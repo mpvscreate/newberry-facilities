@@ -565,6 +565,26 @@
     }
     .show-more-done:hover { border-color: var(--asp); color: var(--text); }
 
+    .completed-header {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 14px; margin-bottom: 10px; margin-top: 6px;
+      background: var(--surface); border: 1.5px solid var(--border);
+      border-radius: var(--radius); cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: border-color .2s, background .2s;
+    }
+    .completed-header:hover { border-color: var(--asp2); background: var(--card); }
+    .completed-header .chevron {
+      font-size: 12px; color: var(--muted); transition: transform .2s;
+      display: inline-block; width: 16px; text-align: center;
+    }
+    .completed-header.open .chevron { transform: rotate(90deg); }
+    .completed-header .completed-label {
+      font-size: 13px; font-weight: 700; font-family: var(--font-body);
+      color: var(--muted); letter-spacing: .3px; text-transform: uppercase;
+    }
+    #completed-list { list-style: none; }
+
     .task-check {
       width: 44px; height: 44px; margin-left: -11px; margin-right: -11px;
       flex-shrink: 0; background: transparent; border: none; cursor: pointer;
@@ -1090,8 +1110,17 @@
     <button class="btn btn-sm btn-ghost" id="mark-all-btn" style="display:none" onclick="markAllDone()">Mark all done &#10003;</button>
   </div>
 
-  <!-- Task list -->
+  <!-- Task list (active) -->
   <ul id="task-list"></ul>
+
+  <!-- Completed section (collapsible) -->
+  <div id="completed-section" style="display:none">
+    <div class="completed-header" id="completed-header" onclick="toggleCompletedSection()">
+      <span class="chevron">&#9654;</span>
+      <span class="completed-label">Completed</span>
+    </div>
+    <ul id="completed-list" style="display:none"></ul>
+  </div>
 
   <!-- Empty state -->
   <div id="empty-state" class="visible">
@@ -1320,6 +1349,7 @@ let tasksAddedSession = 0;
 let toastTimer      = null;
 let _pendingMediaUrl = '';
 let showAllDone     = false;
+let completedOpen   = false;
 let lastPct         = -1;
 const expandedNotes = new Set();
 
@@ -1359,6 +1389,7 @@ function switchSection(sectionId) {
   personFilt = '';
   searchQ = '';
   showAllDone = false;
+  completedOpen = false;
   lastPct = -1;
 
   document.documentElement.setAttribute('data-section', sectionId);
@@ -1382,6 +1413,7 @@ function switchSection(sectionId) {
   if (si) si.value = '';
 
   loadTasks();
+  loadNames();
   if (viewMode === 'stock' && currentSection === 'equipment') {
     loadStock();
     renderStock();
@@ -1447,13 +1479,16 @@ function migrateOldTasks() {
 }
 
 /* ================================================================
-   REMEMBER NAMES (global across sections)
+   REMEMBER NAMES (per main section)
 ================================================================ */
 let savedNames = [];
 
+function namesKey() { return 'nvp_names_' + currentSection + '_v1'; }
+
 function loadNames() {
+  savedNames = [];
   try {
-    const raw = localStorage.getItem('nvp_names_v1') || localStorage.getItem('tv_names_v1');
+    const raw = localStorage.getItem(namesKey());
     if (raw) savedNames = JSON.parse(raw);
   } catch(e) { savedNames = []; }
   tasks.forEach(t => { if (t.person) rememberName(t.person, false); });
@@ -1466,7 +1501,7 @@ function rememberName(name, save = true) {
   if (!norm || savedNames.includes(norm)) return;
   savedNames.push(norm);
   if (save) {
-    try { localStorage.setItem('nvp_names_v1', JSON.stringify(savedNames)); } catch(e) {}
+    try { localStorage.setItem(namesKey(), JSON.stringify(savedNames)); } catch(e) {}
     refreshNameSuggestions();
   }
 }
@@ -1508,7 +1543,7 @@ function renderQuickNames() {
 
 function deleteName(name) {
   savedNames = savedNames.filter(n => n !== name);
-  try { localStorage.setItem('nvp_names_v1', JSON.stringify(savedNames)); } catch(e) {}
+  try { localStorage.setItem(namesKey(), JSON.stringify(savedNames)); } catch(e) {}
   const inp = document.getElementById('voice-person');
   if (inp.value.trim() === name) { inp.value = ''; setFilter('all'); }
   refreshNameSuggestions();
@@ -2013,11 +2048,8 @@ function render() {
 
   const activeTasks = filtered.filter(t => !t.done);
   const doneTasks   = filtered.filter(t =>  t.done);
-  const hiddenDone  = (!showAllDone && doneTasks.length > 2) ? doneTasks.length - 2 : 0;
-  const visibleDone = hiddenDone > 0 ? doneTasks.slice(0, 2) : doneTasks;
-  const displayTasks = [...activeTasks, ...visibleDone];
 
-  document.getElementById('task-list').innerHTML = displayTasks.map(task => {
+  function renderCard(task) {
     const priLabel = task.priority === 'high' ? '&#128308; High' : task.priority === 'low' ? '&#128994; Low' : '&#128993; Med';
     const due = getDueInfo(task.dueDate);
     const dueBadge = due ? '<span class="due-badge ' + due.cls + '">' + escHtml(due.text) + '</span>' : '';
@@ -2067,30 +2099,36 @@ function render() {
         '<button class="btn btn-sm btn-red" title="Delete" onclick="deleteTask(\'' + task.id + '\')">&#10005;</button>' +
       '</div>' +
     '</li>';
-  }).join('');
-
-  const existing = document.getElementById('show-more-done-btn');
-  if (existing) existing.remove();
-  if (hiddenDone > 0) {
-    const btn = document.createElement('button');
-    btn.id = 'show-more-done-btn';
-    btn.className = 'show-more-done';
-    btn.textContent = 'Show ' + hiddenDone + ' more completed task' + (hiddenDone > 1 ? 's' : '') + ' ↓';
-    btn.onclick = () => { showAllDone = true; render(); };
-    document.getElementById('task-list').after(btn);
-  } else if (showAllDone && doneTasks.length > 2) {
-    const btn = document.createElement('button');
-    btn.id = 'show-more-done-btn';
-    btn.className = 'show-more-done';
-    btn.textContent = 'Hide completed ↑';
-    btn.onclick = () => { showAllDone = false; render(); };
-    document.getElementById('task-list').after(btn);
   }
 
-  displayTasks.forEach(task => {
+  document.getElementById('task-list').innerHTML = activeTasks.map(renderCard).join('');
+
+  const compSection = document.getElementById('completed-section');
+  const compHeader  = document.getElementById('completed-header');
+  const compList    = document.getElementById('completed-list');
+  if (doneTasks.length > 0) {
+    compSection.style.display = 'block';
+    compHeader.classList.toggle('open', completedOpen);
+    compList.style.display = completedOpen ? 'block' : 'none';
+    if (completedOpen) {
+      compList.innerHTML = doneTasks.map(renderCard).join('');
+    } else {
+      compList.innerHTML = '';
+    }
+  } else {
+    compSection.style.display = 'none';
+  }
+
+  const allRendered = completedOpen ? [...activeTasks, ...doneTasks] : activeTasks;
+  allRendered.forEach(task => {
     const card = document.getElementById('card-' + task.id);
     if (card) { initSwipe(card, task.id); initCardLongPress(card, task.id); }
   });
+}
+
+function toggleCompletedSection() {
+  completedOpen = !completedOpen;
+  render();
 }
 
 /* ================================================================
@@ -2799,6 +2837,7 @@ function setViewMode(mode) {
   document.getElementById('filter-row').style.display = hideTaskUI ? 'none' : (tasks.length > 0 ? 'flex' : 'none');
   document.getElementById('section-label').style.display = hideTaskUI ? 'none' : '';
   document.getElementById('task-list').style.display = hideTaskUI ? 'none' : '';
+  document.getElementById('completed-section').style.display = hideTaskUI ? 'none' : '';
   document.getElementById('empty-state').style.display = hideTaskUI ? 'none' : '';
   document.getElementById('shortcuts-hint').style.display = hideTaskUI ? 'none' : '';
   document.getElementById('mic-fab').style.display = hideTaskUI ? 'none' : '';
