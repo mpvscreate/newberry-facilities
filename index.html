@@ -221,21 +221,21 @@
     #app { max-width: 700px; margin: 0 auto; padding: max(24px, calc(env(safe-area-inset-top) + 12px)) 16px 160px; }
 
     /* ── Header ── */
-    .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-    .logo { font-family: var(--font-disp); font-size: 26px; color: var(--accent); letter-spacing: -.5px; user-select: none; line-height: 1.1; transition: color .35s; }
+    .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .logo { font-family: var(--font-disp); font-size: 22px; color: var(--accent); letter-spacing: -.5px; user-select: none; line-height: 1; transition: color .35s; }
     .logo em { font-style: italic; color: var(--asp); transition: color .35s; }
-    .logo-sub { font-size: 8px; color: var(--asp2); letter-spacing: 5px; text-transform: uppercase; font-family: var(--font-body); display: block; margin-top: 3px; font-weight: 700; transition: color .35s; }
-    .header-actions { display: flex; gap: 6px; align-items: center; }
+    .logo-sub { font-size: 8px; color: var(--asp2); letter-spacing: 5px; text-transform: uppercase; font-family: var(--font-body); display: block; margin-top: 2px; font-weight: 700; transition: color .35s; }
+    .header-actions { display: flex; gap: 4px; align-items: center; }
 
     .hdr-btn {
-      width: 38px; height: 38px; border-radius: 50%;
-      border: 1.5px solid var(--border); background: var(--surface);
+      width: 32px; height: 32px; border-radius: 50%;
+      border: 1px solid var(--border); background: transparent;
       cursor: pointer; display: flex; align-items: center; justify-content: center;
       transition: border-color .18s, background .18s;
       -webkit-tap-highlight-color: transparent; flex-shrink: 0;
     }
     .hdr-btn:hover { border-color: var(--asp); background: var(--card); }
-    .hdr-btn svg { width: 17px; height: 17px; fill: none; stroke: var(--muted); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: stroke .18s; }
+    .hdr-btn svg { width: 14px; height: 14px; fill: none; stroke: var(--muted); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: stroke .18s; }
     .hdr-btn:hover svg { stroke: var(--accent); }
     .hdr-print { display: none; }
     @media (min-width: 600px) { .hdr-print { display: flex; } }
@@ -244,36 +244,37 @@
        SECTION TABS
     ================================================================ */
     .section-tabs {
-      display: flex; gap: 5px; margin-bottom: 10px;
-      padding: 5px; background: var(--surface); border-radius: var(--radius);
-      border: 1px solid var(--border); box-shadow: var(--shadow-sm);
+      display: flex; gap: 3px; margin-bottom: 6px;
+      padding: 3px; background: var(--surface); border-radius: 10px;
+      border: 1px solid var(--border);
       transition: background .35s, border-color .35s;
     }
     .section-tab {
-      flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
-      padding: 10px 4px 8px; border: none; background: transparent; border-radius: 10px;
+      flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px;
+      padding: 7px 4px; border: none; background: transparent; border-radius: 8px;
       cursor: pointer; font-family: var(--font-body); font-size: 10px; font-weight: 700;
-      color: var(--muted); text-transform: uppercase; letter-spacing: .8px;
+      color: var(--muted); text-transform: uppercase; letter-spacing: .5px;
       transition: all .22s; -webkit-tap-highlight-color: transparent; user-select: none;
     }
-    .section-tab .tab-icon { width: 24px; height: 24px; display: block; }
+    .section-tab .tab-icon { width: 16px; height: 16px; display: block; flex-shrink: 0; }
     .section-tab .tab-icon svg { width: 100%; height: 100%; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
     .section-tab:hover { color: var(--text); background: rgba(255,255,255,.04); }
     [data-theme="light"] .section-tab:hover { background: rgba(0,0,0,.04); }
     .section-tab.active {
-      background: var(--pk); color: #fff; box-shadow: 0 2px 10px var(--glow);
+      background: var(--pk); color: #fff; box-shadow: 0 2px 8px var(--glow);
       transition: background .22s, color .15s, box-shadow .35s;
     }
 
     /* ================================================================
        SUBSECTION BAR
     ================================================================ */
-    .subsection-bar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+    .subsection-bar { display: flex; gap: 6px; margin-bottom: 10px; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+    .subsection-bar::-webkit-scrollbar { display: none; }
     .subsection-bar:empty { margin-bottom: 0; }
     .sub-chip {
-      min-height: 32px; padding: 5px 14px; border-radius: 20px;
-      border: 1.5px solid var(--border); background: transparent; color: var(--muted);
-      cursor: pointer; font-size: 12px; font-family: var(--font-body); font-weight: 700;
+      min-height: 28px; padding: 4px 12px; border-radius: 16px; white-space: nowrap;
+      border: 1px solid var(--border); background: transparent; color: var(--muted);
+      cursor: pointer; font-size: 11px; font-family: var(--font-body); font-weight: 700;
       transition: all .18s; -webkit-tap-highlight-color: transparent; user-select: none;
     }
     .sub-chip:hover { border-color: var(--asp); color: var(--text); }
@@ -946,12 +947,10 @@
     }
 
     @media (max-width: 480px) {
-      .ring-svg  { width: 78px; height: 78px; }
-      .rstat-num { font-size: 19px; }
-      .logo { font-size: 22px; }
+      .logo { font-size: 20px; }
       .modal { padding: 20px 16px; }
-      .section-tab { font-size: 9px; padding: 8px 2px 6px; }
-      .section-tab .tab-icon { width: 20px; height: 20px; }
+      .section-tab { font-size: 8px; padding: 6px 2px; letter-spacing: .3px; }
+      .section-tab .tab-icon { width: 14px; height: 14px; }
     }
 
     @media (max-width: 768px) {
