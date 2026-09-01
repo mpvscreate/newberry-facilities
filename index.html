@@ -1158,6 +1158,7 @@
     <div id="handover-body"></div>
     <div class="handover-actions">
       <button class="btn btn-ghost" onclick="closeHandover()">Close</button>
+      <button class="btn btn-ghost" onclick="exportCSV()" title="Download spreadsheet">&#128202; Export</button>
       <button class="btn btn-pk" onclick="shareHandover()">Share</button>
     </div>
   </div>
@@ -2912,6 +2913,61 @@ function shareHandover() {
       .then(() => showToast('Handover copied — paste into WhatsApp'))
       .catch(() => showToast('Could not copy', true));
   }
+}
+
+/* ================================================================
+   EXPORT CSV
+================================================================ */
+function exportCSV() {
+  const headers = ['Section','Subsection','Task','Person','Priority','Due Date','Status','Notes','Created','Updated'];
+  const rows = [headers];
+  const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+
+  for (const [sectionId, sec] of Object.entries(SECTIONS)) {
+    const sectionTasks = getTasksForSection(sectionId);
+    sectionTasks.forEach(t => {
+      let status = 'Pending';
+      if (t.done) {
+        status = 'Done';
+      } else if (t.dueDate && new Date(t.dueDate + 'T00:00:00') < todayStart) {
+        status = 'Overdue';
+      }
+      rows.push([
+        sec.label,
+        t.subsection || '',
+        t.text || '',
+        t.person || '',
+        (t.priority || 'med').charAt(0).toUpperCase() + (t.priority || 'med').slice(1),
+        t.dueDate || '',
+        status,
+        (t.notes || '').replace(/\n/g, ' '),
+        t.createdAt ? new Date(t.createdAt).toLocaleDateString('en-AU') : '',
+        t.updatedAt ? new Date(t.updatedAt).toLocaleDateString('en-AU') : ''
+      ]);
+    });
+  }
+
+  loadStock();
+  if (stockItems.length) {
+    rows.push([]);
+    rows.push(['Item','Category','Quantity','','','','','','','']);
+    stockItems.forEach(s => {
+      rows.push([s.name, s.subsection || '', String(s.qty), '','','', s.qty <= 2 ? 'Low Stock' : 'OK', '','','']);
+    });
+  }
+
+  const csv = rows.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(',')).join('\n');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const dateStr = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = 'Newberry_Facilities_' + dateStr + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('CSV downloaded');
 }
 
 /* ================================================================
