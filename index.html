@@ -475,6 +475,53 @@
     [data-theme="light"] .filter-count { background: rgba(0,0,0,.1); }
     .filter-btn.active .filter-count { background: rgba(255,255,255,.25); }
 
+    /* ── Sort row ── */
+    .sort-row {
+      display: flex; gap: 6px; margin-bottom: 12px; align-items: center; flex-wrap: wrap;
+    }
+    .sort-label {
+      font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px;
+      color: var(--muted); font-family: var(--font-body); font-weight: 700; margin-right: 2px;
+    }
+    .sort-chip {
+      padding: 5px 12px; border-radius: 16px; border: 1px solid var(--border);
+      background: transparent; color: var(--muted); cursor: pointer;
+      font-size: 11px; font-family: var(--font-body); font-weight: 600;
+      transition: all .15s; -webkit-tap-highlight-color: transparent;
+    }
+    .sort-chip.active { background: var(--pk); color: #fff; border-color: var(--asp); }
+    .sort-chip:hover { border-color: var(--asp); }
+
+    /* ── History modal ── */
+    #history-overlay {
+      position: fixed; inset: 0; z-index: 900; background: rgba(0,0,0,.55);
+      display: flex; align-items: flex-end; justify-content: center;
+      opacity: 0; pointer-events: none; transition: opacity .2s;
+    }
+    #history-overlay.open { opacity: 1; pointer-events: all; }
+    .history-modal {
+      background: var(--card); border-radius: 18px 18px 0 0; padding: 24px 20px 32px;
+      width: 100%; max-width: 520px; max-height: 70vh; overflow-y: auto;
+      transform: translateY(100%); transition: transform .25s ease;
+    }
+    #history-overlay.open .history-modal { transform: translateY(0); }
+    .history-modal h3 { font-family: var(--font-disp); font-size: 17px; margin-bottom: 16px; color: var(--text); }
+    .history-entry {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px;
+      margin-bottom: 8px; background: var(--surface);
+    }
+    .history-entry-info { flex: 1; }
+    .history-entry-time { font-size: 13px; color: var(--text); font-weight: 600; }
+    .history-entry-detail { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .history-entry button {
+      padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border);
+      background: transparent; color: var(--asp); cursor: pointer;
+      font-size: 12px; font-weight: 700; font-family: var(--font-body);
+    }
+    .history-entry button:active { background: var(--pk); color: #fff; }
+    .history-empty { font-size: 13px; color: var(--muted); font-style: italic; text-align: center; padding: 20px; }
+
     /* ── Section label ── */
     .section-label {
       font-family: var(--font-disp); font-size: 10px; text-transform: uppercase;
@@ -1000,6 +1047,9 @@
       <button class="hdr-btn" onclick="openHandover()" title="Daily handover summary">
         <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
       </button>
+      <button class="hdr-btn" onclick="openHistory()" title="Task history &amp; rollback">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </button>
       <button class="hdr-btn" id="theme-toggle" onclick="toggleTheme()" title="Toggle light / dark mode">
         <svg id="theme-icon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
       </button>
@@ -1096,6 +1146,16 @@
     <button class="btn btn-sm btn-ghost" id="clear-done-btn" style="display:none" onclick="clearDone()">Clear done</button>
   </div>
 
+  <!-- Sort -->
+  <div class="sort-row no-print" id="sort-row" style="display:none">
+    <span class="sort-label">Sort</span>
+    <button class="sort-chip active" data-sort="default" onclick="setSort('default')">Default</button>
+    <button class="sort-chip" data-sort="priority" onclick="setSort('priority')">Priority</button>
+    <button class="sort-chip" data-sort="due" onclick="setSort('due')">Due date</button>
+    <button class="sort-chip" data-sort="person" onclick="setSort('person')">Person</button>
+    <button class="sort-chip" data-sort="newest" onclick="setSort('newest')">Newest</button>
+  </div>
+
   <!-- Section label -->
   <div class="section-label" id="section-label" style="display:none">
     <span id="section-label-text"></span>
@@ -1160,6 +1220,18 @@
       <button class="btn btn-ghost" onclick="closeHandover()">Close</button>
       <button class="btn btn-ghost" onclick="exportCSV()" title="Download spreadsheet">&#128202; Export</button>
       <button class="btn btn-pk" onclick="shareHandover()">Share</button>
+    </div>
+  </div>
+</div>
+
+<!-- History Modal -->
+<div id="history-overlay" onclick="closeHistory(event)">
+  <div class="history-modal" onclick="event.stopPropagation()">
+    <h3>&#128340; Task History</h3>
+    <div id="history-body"></div>
+    <div class="handover-actions">
+      <button class="btn btn-ghost" onclick="clearHistory()">Clear history</button>
+      <button class="btn btn-ghost" onclick="closeHistory()">Close</button>
     </div>
   </div>
 </div>
@@ -1343,6 +1415,7 @@ let toastTimer      = null;
 let _pendingMediaUrl = '';
 let showAllDone     = false;
 let completedOpen   = false;
+let sortMode        = 'default';
 let lastPct         = -1;
 const expandedNotes = new Set();
 
@@ -1439,9 +1512,12 @@ function updateManualPlaceholder() {
 /* ================================================================
    PERSISTENCE
 ================================================================ */
-function saveTasks() {
+let _historyDebounce = null;
+function saveTasks(action) {
   const key = SECTIONS[currentSection].key;
   try { localStorage.setItem(key, JSON.stringify(tasks)); } catch(e) {}
+  clearTimeout(_historyDebounce);
+  _historyDebounce = setTimeout(() => saveHistorySnapshot(action || 'Change'), 2000);
   syncTasksUp();
 }
 
@@ -1586,7 +1662,7 @@ function editName(oldName) {
   if (idx !== -1) savedNames[idx] = trimmed;
   try { localStorage.setItem(namesKey(), JSON.stringify(savedNames)); } catch(e) {}
   tasks = tasks.map(t => t.person === oldName ? { ...t, person: trimmed, updatedAt: Date.now() } : t);
-  saveTasks();
+  saveTasks('Rename person');
   const inp = document.getElementById('voice-person');
   if (inp.value.trim() === oldName) inp.value = trimmed;
   renderQuickNames(); render();
@@ -1755,7 +1831,7 @@ function addVoiceTask(text) {
   tasks = [task, ...tasks];
   tasksAddedSession++;
   if (navigator.vibrate) navigator.vibrate(40);
-  saveTasks();
+  saveTasks('Add task');
   if (person) rememberName(person);
   render();
   const newCard = document.getElementById('card-' + task.id);
@@ -1802,7 +1878,7 @@ function parseAndAdd(text, person, pri, due) {
   }));
   tasks = [...newTasks, ...tasks];
   if (navigator.vibrate) navigator.vibrate(40);
-  saveTasks();
+  saveTasks('Add ' + newTasks.length + ' task' + (newTasks.length > 1 ? 's' : ''));
   if (person) rememberName(person);
   showToast(newTasks.length + ' task' + (newTasks.length > 1 ? 's' : '') + ' added');
   render();
@@ -1844,7 +1920,7 @@ function deleteTask(id) {
   const card = document.getElementById('card-' + id);
   const doRemove = () => {
     tasks = tasks.filter(t => t.id !== id);
-    saveTasks(); syncDeleteTask(id); showToast('Task removed', false, true); render();
+    saveTasks('Delete task'); syncDeleteTask(id); showToast('Task removed', false, true); render();
   };
   if (card) { card.classList.add('removing'); setTimeout(doRemove, 310); }
   else doRemove();
@@ -1871,12 +1947,12 @@ function undoDelete() {
 ================================================================ */
 function clearDone() {
   tasks = tasks.filter(t => !t.done);
-  saveTasks(); showToast('Completed tasks cleared'); render();
+  saveTasks('Clear completed'); showToast('Completed tasks cleared'); render();
 }
 function markAllDone() {
   const ids = new Set(getFiltered().filter(t => !t.done).map(t => t.id));
   tasks = tasks.map(t => ids.has(t.id) ? { ...t, done: true } : t);
-  saveTasks(); render();
+  saveTasks('Mark all done'); render();
 }
 
 /* ================================================================
@@ -1938,7 +2014,7 @@ function saveEdit() {
   if (person) rememberName(person);
 
   editingId = null;
-  closeModal(); saveTasks(); showToast('Task updated'); render();
+  closeModal(); saveTasks('Edit task'); showToast('Task updated'); render();
 }
 
 function closeModal(e) {
@@ -2001,11 +2077,27 @@ function getFiltered() {
     return true;
   }).sort((a, b) => {
     if (a.done !== b.done) return a.done ? 1 : -1;
+    if (sortMode === 'priority') return (PRI[a.priority] || 1) - (PRI[b.priority] || 1);
+    if (sortMode === 'due') {
+      const dA = a.dueDate ? new Date(a.dueDate + 'T00:00:00').getTime() : Infinity;
+      const dB = b.dueDate ? new Date(b.dueDate + 'T00:00:00').getTime() : Infinity;
+      return dA - dB;
+    }
+    if (sortMode === 'person') return (a.person || 'zzz').localeCompare(b.person || 'zzz');
+    if (sortMode === 'newest') return (b.createdAt || 0) - (a.createdAt || 0);
     const dA = a.dueDate ? new Date(a.dueDate + 'T00:00:00').getTime() : Infinity;
     const dB = b.dueDate ? new Date(b.dueDate + 'T00:00:00').getTime() : Infinity;
     if (dA !== dB) return dA - dB;
     return (PRI[a.priority] || 1) - (PRI[b.priority] || 1);
   });
+}
+
+function setSort(mode) {
+  sortMode = mode;
+  document.querySelectorAll('.sort-chip[data-sort]').forEach(b =>
+    b.classList.toggle('active', b.dataset.sort === mode)
+  );
+  render();
 }
 
 function allPersons() {
@@ -2034,6 +2126,7 @@ function render() {
   const hasTasks  = tasks.length > 0;
 
   document.getElementById('filter-row').style.display     = hasTasks ? 'flex'  : 'none';
+  document.getElementById('sort-row').style.display       = hasTasks ? 'flex'  : 'none';
   document.getElementById('shortcuts-hint').style.display = hasTasks ? 'block' : 'none';
 
   if (hasTasks) {
@@ -2971,6 +3064,90 @@ function exportCSV() {
 }
 
 /* ================================================================
+   TASK HISTORY & ROLLBACK
+================================================================ */
+const HISTORY_KEY = 'nvp_history_v1';
+const MAX_HISTORY = 30;
+
+function saveHistorySnapshot(action) {
+  try {
+    const snapshots = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+    const allTasks = {};
+    for (const [sectionId, sec] of Object.entries(SECTIONS)) {
+      const raw = localStorage.getItem(sec.key);
+      if (raw) allTasks[sectionId] = JSON.parse(raw);
+    }
+    const totalCount = Object.values(allTasks).reduce((s, arr) => s + arr.length, 0);
+    snapshots.unshift({
+      ts: Date.now(),
+      action: action || 'Change',
+      section: currentSection,
+      count: totalCount,
+      data: allTasks
+    });
+    if (snapshots.length > MAX_HISTORY) snapshots.length = MAX_HISTORY;
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(snapshots));
+  } catch(e) {}
+}
+
+function getHistory() {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch(e) { return []; }
+}
+
+function openHistory() {
+  const snapshots = getHistory();
+  const body = document.getElementById('history-body');
+  if (!snapshots.length) {
+    body.innerHTML = '<div class="history-empty">No history yet. Changes are recorded as you add, edit, or delete tasks.</div>';
+  } else {
+    body.innerHTML = snapshots.map((s, i) => {
+      const d = new Date(s.ts);
+      const time = d.toLocaleString('en-AU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+      const secLabel = SECTIONS[s.section] ? SECTIONS[s.section].label : s.section;
+      return '<div class="history-entry">' +
+        '<div class="history-entry-info">' +
+          '<div class="history-entry-time">' + escHtml(s.action) + '</div>' +
+          '<div class="history-entry-detail">' + escHtml(time) + ' &middot; ' + escHtml(secLabel) + ' &middot; ' + s.count + ' tasks</div>' +
+        '</div>' +
+        '<button onclick="restoreSnapshot(' + i + ')">Restore</button>' +
+      '</div>';
+    }).join('');
+  }
+  document.getElementById('history-overlay').classList.add('open');
+}
+
+function closeHistory(e) {
+  if (e && e.target !== document.getElementById('history-overlay')) return;
+  document.getElementById('history-overlay').classList.remove('open');
+}
+
+function restoreSnapshot(index) {
+  const snapshots = getHistory();
+  const snap = snapshots[index];
+  if (!snap || !snap.data) { showToast('Invalid snapshot', true); return; }
+
+  saveHistorySnapshot('Before rollback');
+
+  for (const [sectionId, sec] of Object.entries(SECTIONS)) {
+    if (snap.data[sectionId]) {
+      try { localStorage.setItem(sec.key, JSON.stringify(snap.data[sectionId])); } catch(e) {}
+    }
+  }
+  loadTasks();
+  render();
+  closeHistory();
+  showToast('Restored to ' + new Date(snap.ts).toLocaleString('en-AU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }));
+  syncTasksUp();
+}
+
+function clearHistory() {
+  if (!confirm('Clear all history snapshots?')) return;
+  try { localStorage.removeItem(HISTORY_KEY); } catch(e) {}
+  showToast('History cleared');
+  openHistory();
+}
+
+/* ================================================================
    STOCK TAKE (Equipment section only)
 ================================================================ */
 let viewMode = 'tasks';
@@ -3002,6 +3179,7 @@ function setViewMode(mode) {
   document.querySelector('.manual-row').style.display = hideTaskUI ? 'none' : '';
   document.getElementById('stats-bar').style.display = hideTaskUI ? 'none' : (tasks.length > 0 ? 'flex' : 'none');
   document.getElementById('filter-row').style.display = hideTaskUI ? 'none' : (tasks.length > 0 ? 'flex' : 'none');
+  document.getElementById('sort-row').style.display = hideTaskUI ? 'none' : (tasks.length > 0 ? 'flex' : 'none');
   document.getElementById('section-label').style.display = hideTaskUI ? 'none' : '';
   document.getElementById('task-list').style.display = hideTaskUI ? 'none' : '';
   document.getElementById('completed-section').style.display = hideTaskUI ? 'none' : '';
