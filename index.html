@@ -1587,7 +1587,7 @@ function renderQuickNames() {
   const current = document.getElementById('voice-person').value.trim();
   container.innerHTML = savedNames.map(n =>
     '<button type="button" class="name-chip' + (n === current ? ' active' : '') +
-    '" onclick="selectNameChip(\'' + escJs(n) + '\')">&#128100; ' + escHtml(n) + '</button>'
+    '" onclick="selectNameChip(\'' + escJs(n) + '\')">' + escHtml(n) + '</button>'
   ).join('');
   container.querySelectorAll('.name-chip').forEach((btn, i) => {
     const name = savedNames[i];
