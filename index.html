@@ -1552,7 +1552,7 @@ function loadTasks() {
   const key = SECTIONS[currentSection].key;
   try {
     const raw = localStorage.getItem(key);
-    if (raw) tasks = JSON.parse(raw).map(t => ({ dueDate: '', media: '', notes: '', subsection: '', ...t }));
+    if (raw) tasks = JSON.parse(raw).map(t => ({ dueDate: '', media: '', notes: '', subsection: '', repeat: '', ...t }));
     else tasks = [];
   } catch(e) { tasks = []; }
 }
@@ -2715,6 +2715,7 @@ async function syncTasksUp() {
         person: t.person || '',
         priority: t.priority || 'med',
         due_date: t.dueDate || '',
+        repeat: t.repeat || '',
         media: t.media || '',
         notes: t.notes || '',
         created_at: t.createdAt || 0,
@@ -2754,7 +2755,8 @@ async function syncTasksDown() {
       })), remote.map(r => ({
         id: r.id, text: r.text, done: r.done,
         person: r.person, priority: r.priority,
-        dueDate: r.due_date, media: r.media, notes: r.notes,
+        dueDate: r.due_date, repeat: r.repeat || '',
+        media: r.media, notes: r.notes,
         subsection: r.subsection, createdAt: r.created_at,
         updatedAt: r.updated_at
       })), deletedIds);
