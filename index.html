@@ -1516,11 +1516,14 @@ function renderQuickNames() {
     const name = savedNames[i];
     let timer;
     const cancel = () => { clearTimeout(timer); btn.classList.remove('long-pressing'); };
-    const start  = () => {
+    const start  = (e) => {
+      const touch = e.touches ? e.touches[0] : e;
+      const cx = touch.clientX, cy = touch.clientY;
       timer = setTimeout(() => {
         btn.classList.remove('long-pressing');
-        if (confirm('Remove "' + name + '" from your list?')) deleteName(name);
-      }, 600);
+        if (navigator.vibrate) navigator.vibrate(30);
+        showNameActionPopup(name, cx, cy);
+      }, 500);
       btn.classList.add('long-pressing');
     };
     btn.addEventListener('touchstart',  start,  { passive: true });
@@ -1539,6 +1542,54 @@ function deleteName(name) {
   const inp = document.getElementById('voice-person');
   if (inp.value.trim() === name) { inp.value = ''; setFilter('all'); }
   refreshNameSuggestions();
+}
+
+function showNameActionPopup(name, x, y) {
+  closeCardActionPopup();
+  const backdrop = document.createElement('div');
+  backdrop.className = 'card-popup-backdrop';
+  backdrop.onclick = closeCardActionPopup;
+
+  const popup = document.createElement('div');
+  popup.className = 'card-action-popup';
+  popup.id = 'card-action-popup';
+
+  const editBtn = document.createElement('button');
+  editBtn.innerHTML = '&#9998;&#65039; Edit name';
+  editBtn.onclick = () => { closeCardActionPopup(); editName(name); };
+
+  const delBtn = document.createElement('button');
+  delBtn.className = 'popup-delete';
+  delBtn.innerHTML = '&#128465; Remove';
+  delBtn.onclick = () => { closeCardActionPopup(); deleteName(name); };
+
+  popup.appendChild(editBtn);
+  popup.appendChild(delBtn);
+  document.body.appendChild(backdrop);
+  document.body.appendChild(popup);
+
+  const vw = window.innerWidth, vh = window.innerHeight;
+  let left = Math.min(x, vw - 170);
+  let top = y + 8;
+  if (top + 110 > vh) top = y - 110;
+  if (left < 8) left = 8;
+  popup.style.left = left + 'px';
+  popup.style.top = top + 'px';
+}
+
+function editName(oldName) {
+  const newName = prompt('Edit name:', oldName);
+  if (!newName || newName.trim() === '' || newName.trim() === oldName) return;
+  const trimmed = newName.trim();
+  const idx = savedNames.indexOf(oldName);
+  if (idx !== -1) savedNames[idx] = trimmed;
+  try { localStorage.setItem(namesKey(), JSON.stringify(savedNames)); } catch(e) {}
+  tasks = tasks.map(t => t.person === oldName ? { ...t, person: trimmed, updatedAt: Date.now() } : t);
+  saveTasks();
+  const inp = document.getElementById('voice-person');
+  if (inp.value.trim() === oldName) inp.value = trimmed;
+  renderQuickNames(); render();
+  showToast('Renamed to "' + trimmed + '"');
 }
 
 function selectNameChip(name) {
