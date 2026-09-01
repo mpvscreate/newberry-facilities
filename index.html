@@ -259,6 +259,8 @@
     }
     .section-tab .tab-icon { width: 16px; height: 16px; display: block; flex-shrink: 0; }
     .section-tab .tab-icon svg { width: 100%; height: 100%; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+    .tab-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; font-size: 9px; font-weight: 700; background: var(--muted); color: var(--bg); margin-left: 2px; }
+    .section-tab.active .tab-badge { background: rgba(255,255,255,.35); color: #fff; }
     .section-tab:hover { color: var(--text); background: rgba(255,255,255,.04); }
     [data-theme="light"] .section-tab:hover { background: rgba(0,0,0,.04); }
     .section-tab.active {
@@ -698,6 +700,11 @@
       background: var(--badge-bg); border: 1px solid var(--border); color: var(--muted);
       border-radius: 20px; padding: 2px 9px; font-size: 10px; font-weight: 700; letter-spacing: .3px;
     }
+    .repeat-badge {
+      background: rgba(100,140,220,.12); border: 1px solid rgba(100,140,220,.3); color: #6c8fd6;
+      border-radius: 20px; padding: 2px 9px; font-size: 10px; font-weight: 700; letter-spacing: .3px;
+    }
+    [data-theme="light"] .repeat-badge { background: rgba(60,100,180,.08); color: #4a6fad; border-color: rgba(60,100,180,.25); }
     .priority-badge { border-radius: 20px; padding: 2px 10px; font-size: 11px; font-weight: 700; }
     .p-high { background: rgba(139,26,46,.18); color: var(--bur-l); border: 1px solid var(--bur2); }
     .p-med  { background: rgba(240,192,64,.1);  color: var(--amber); border: 1px solid #6a5800; }
@@ -1266,6 +1273,15 @@
       <input type="date" id="edit-due" />
     </div>
     <div class="modal-field">
+      <label>Repeat</label>
+      <select id="edit-repeat">
+        <option value="">None</option>
+        <option value="daily">Daily</option>
+        <option value="weekly">Weekly</option>
+        <option value="monthly">Monthly</option>
+      </select>
+    </div>
+    <div class="modal-field">
       <label>Notes</label>
       <textarea id="edit-notes" placeholder="Add context, details, or a reference..."></textarea>
     </div>
@@ -1425,13 +1441,24 @@ const uid = () => String(++_id);
 /* ================================================================
    SECTION MANAGEMENT
 ================================================================ */
+function getSectionPendingCount(sectionId) {
+  try {
+    const raw = localStorage.getItem(SECTIONS[sectionId].key);
+    if (!raw) return 0;
+    const arr = JSON.parse(raw);
+    return arr.filter(t => !t.done).length;
+  } catch(e) { return 0; }
+}
+
 function renderSectionTabs() {
   const container = document.getElementById('section-tabs');
-  container.innerHTML = Object.entries(SECTIONS).map(([id, s]) =>
-    '<button class="section-tab' + (id === currentSection ? ' active' : '') +
-    '" data-section="' + id + '" onclick="switchSection(\'' + id + '\')">' +
-    '<span class="tab-icon">' + SECTION_ICONS[id] + '</svg></span>' + s.label + '</button>'
-  ).join('');
+  container.innerHTML = Object.entries(SECTIONS).map(([id, s]) => {
+    const count = id === currentSection ? tasks.filter(t => !t.done).length : getSectionPendingCount(id);
+    const badge = count > 0 ? '<span class="tab-badge">' + count + '</span>' : '';
+    return '<button class="section-tab' + (id === currentSection ? ' active' : '') +
+      '" data-section="' + id + '" onclick="switchSection(\'' + id + '\')">' +
+      '<span class="tab-icon">' + SECTION_ICONS[id] + '</svg></span>' + s.label + badge + '</button>';
+  }).join('');
 }
 
 function renderSubsectionBar() {
@@ -1903,8 +1930,33 @@ function addManual() {
 /* ================================================================
    TOGGLE DONE
 ================================================================ */
+function getNextDueDate(currentDue, repeat) {
+  const d = currentDue ? new Date(currentDue + 'T00:00:00') : new Date();
+  if (d < new Date()) d.setTime(Date.now());
+  if (repeat === 'daily')   d.setDate(d.getDate() + 1);
+  else if (repeat === 'weekly')  d.setDate(d.getDate() + 7);
+  else if (repeat === 'monthly') d.setMonth(d.getMonth() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
 function toggleDone(id) {
+  const task = tasks.find(t => t.id === id);
+  if (!task) return;
+  const wasDone = task.done;
   tasks = tasks.map(t => t.id === id ? { ...t, done: !t.done, updatedAt: Date.now() } : t);
+  if (!wasDone && task.repeat) {
+    const now = Date.now();
+    const next = {
+      id: uid(), text: task.text, done: false,
+      person: task.person, priority: task.priority,
+      dueDate: getNextDueDate(task.dueDate, task.repeat),
+      repeat: task.repeat, media: task.media || '', notes: task.notes || '',
+      subsection: task.subsection,
+      createdAt: now, updatedAt: now
+    };
+    tasks = [next, ...tasks];
+    showToast('Recurring task created');
+  }
   saveTasks(); render();
 }
 
@@ -1967,6 +2019,7 @@ function openEdit(id) {
   document.getElementById('edit-person').value   = task.person;
   document.getElementById('edit-priority').value = task.priority;
   document.getElementById('edit-due').value      = task.dueDate || '';
+  document.getElementById('edit-repeat').value   = task.repeat || '';
 
   const subSelect = document.getElementById('edit-subsection');
   const subs = SECTIONS[currentSection].subs;
@@ -2006,6 +2059,7 @@ function saveEdit() {
     person:   document.getElementById('edit-person').value.trim(),
     priority: document.getElementById('edit-priority').value,
     dueDate:  document.getElementById('edit-due').value,
+    repeat:   document.getElementById('edit-repeat').value,
     media:    mediaUrl,
     updatedAt: Date.now()
   } : t);
@@ -2204,6 +2258,9 @@ function render() {
     const subBadge = task.subsection
       ? '<span class="sub-badge">' + escHtml(task.subsection) + '</span>'
       : '';
+    const repeatBadge = task.repeat
+      ? '<span class="repeat-badge">&#128260; ' + task.repeat.charAt(0).toUpperCase() + task.repeat.slice(1) + '</span>'
+      : '';
 
     const selClass = selectMode && selectedIds.has(task.id) ? ' selected' : '';
     const tapClass = selectMode ? ' select-tappable' : '';
@@ -2219,7 +2276,7 @@ function render() {
         '<div class="task-meta">' +
           (task.person ? '<span class="person-badge">' + escHtml(task.person) + '</span>' : '') +
           '<span class="priority-badge p-' + task.priority + '">' + priLabel + '</span>' +
-          dueBadge + subBadge + notesBtn +
+          dueBadge + subBadge + repeatBadge + notesBtn +
         '</div>' +
         notesBody + mediaBlock +
       '</div>' +
@@ -2407,7 +2464,7 @@ function updateQuickDateActive(days) {
 /* ================================================================
    VOICE BAR COLLAPSE
 ================================================================ */
-let voiceBarOpen = true;
+let voiceBarOpen = false;
 function toggleVoiceBar() {
   voiceBarOpen = !voiceBarOpen;
   applyVoiceBarState();
@@ -2420,7 +2477,7 @@ function applyVoiceBarState() {
   if (label) label.classList.toggle('collapsed', !voiceBarOpen);
 }
 function initVoiceBar() {
-  try { if (localStorage.getItem('nvp_voicebar') === '0') voiceBarOpen = false; } catch(e) {}
+  try { if (localStorage.getItem('nvp_voicebar') === '1') voiceBarOpen = true; } catch(e) {}
   applyVoiceBarState();
 }
 
@@ -3012,7 +3069,7 @@ function shareHandover() {
    EXPORT CSV
 ================================================================ */
 function exportCSV() {
-  const headers = ['Section','Subsection','Task','Person','Priority','Due Date','Status','Notes','Created','Updated'];
+  const headers = ['Section','Subsection','Task','Person','Priority','Due Date','Repeat','Status','Notes','Created','Updated'];
   const rows = [headers];
   const todayStart = new Date(); todayStart.setHours(0,0,0,0);
 
@@ -3032,6 +3089,7 @@ function exportCSV() {
         t.person || '',
         (t.priority || 'med').charAt(0).toUpperCase() + (t.priority || 'med').slice(1),
         t.dueDate || '',
+        t.repeat ? t.repeat.charAt(0).toUpperCase() + t.repeat.slice(1) : '',
         status,
         (t.notes || '').replace(/\n/g, ' '),
         t.createdAt ? new Date(t.createdAt).toLocaleDateString('en-AU') : '',
