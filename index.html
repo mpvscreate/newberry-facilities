@@ -2179,7 +2179,7 @@ function render() {
   const doneTasks   = filtered.filter(t =>  t.done);
 
   function renderCard(task) {
-    const priLabel = task.priority === 'high' ? '&#128308; High' : task.priority === 'low' ? '&#128994; Low' : '&#128993; Med';
+    const priLabel = task.priority === 'high' ? 'High' : task.priority === 'low' ? 'Low' : 'Med';
     const due = getDueInfo(task.dueDate);
     const dueBadge = due ? '<span class="due-badge ' + due.cls + '">' + escHtml(due.text) + '</span>' : '';
 
@@ -2202,7 +2202,7 @@ function render() {
       : '';
 
     const subBadge = task.subsection
-      ? '<span class="sub-badge">&#128194; ' + escHtml(task.subsection) + '</span>'
+      ? '<span class="sub-badge">' + escHtml(task.subsection) + '</span>'
       : '';
 
     const selClass = selectMode && selectedIds.has(task.id) ? ' selected' : '';
@@ -2217,7 +2217,7 @@ function render() {
       '<div class="task-body">' +
         '<div class="task-text">' + escHtml(task.text) + '</div>' +
         '<div class="task-meta">' +
-          (task.person ? '<span class="person-badge">&#128100; ' + escHtml(task.person) + '</span>' : '') +
+          (task.person ? '<span class="person-badge">' + escHtml(task.person) + '</span>' : '') +
           '<span class="priority-badge p-' + task.priority + '">' + priLabel + '</span>' +
           dueBadge + subBadge + notesBtn +
         '</div>' +
