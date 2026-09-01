@@ -1108,16 +1108,16 @@
     </div>
     <div class="voice-bar-body" id="voice-bar-body">
       <div class="controls-row-top">
-        <select class="priority-select" id="voice-priority">
-          <option value="high">&#128308; High</option>
-          <option value="med" selected>&#128993; Med</option>
-          <option value="low">&#128994; Low</option>
+        <select class="priority-select" id="voice-priority" title="Priority">
+          <option value="high">&#128308;</option>
+          <option value="med" selected>&#128993;</option>
+          <option value="low">&#128994;</option>
         </select>
         <input class="tag-input" id="voice-person" type="text"
-               placeholder="&#128100; Assign to..." autocomplete="off"
+               placeholder="&#128100;" autocomplete="off" title="Assign to"
                list="person-suggestions" oninput="renderQuickNames()" />
         <datalist id="person-suggestions"></datalist>
-        <input class="date-input" id="voice-due" type="text" placeholder="&#128197; Date" title="Due date (optional)" onfocus="this.type='date';this.showPicker&&this.showPicker()" onblur="if(!this.value){this.type='text'}" onchange="onDueDateChange()" />
+        <input class="date-input" id="voice-due" type="text" placeholder="&#128197;" title="Due date" onfocus="this.type='date';this.showPicker&&this.showPicker()" onblur="if(!this.value){this.type='text'}" onchange="onDueDateChange()" />
       </div>
       <div class="quick-dates">
         <button type="button" class="qdate-chip" data-days="0" onclick="setQuickDate(0)">Today</button>
