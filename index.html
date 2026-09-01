@@ -338,7 +338,8 @@
     .voice-bar-label.collapsed .voice-bar-chevron { transform: rotate(-90deg); }
     .voice-bar-body { overflow: hidden; transition: max-height .3s ease, opacity .25s ease; max-height: 600px; opacity: 1; }
     .voice-bar-body.collapsed { max-height: 0; opacity: 0; }
-    .controls-row-top { display: flex; gap: 8px; margin-bottom: 8px; }
+    .controls-row-top { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+    .controls-row-top .tag-input { flex: 1; min-width: 0; }
     .controls-row-bottom { display: flex; gap: 8px; }
 
     /* ── Quick-name chips ── */
@@ -1055,13 +1056,14 @@
       <div class="controls-row-top">
         <select class="priority-select" id="voice-priority">
           <option value="high">&#128308; High</option>
-          <option value="med" selected>&#128993; Medium</option>
+          <option value="med" selected>&#128993; Med</option>
           <option value="low">&#128994; Low</option>
         </select>
         <input class="tag-input" id="voice-person" type="text"
-               placeholder="&#128100; Assign to person" autocomplete="off"
+               placeholder="&#128100; Assign to..." autocomplete="off"
                list="person-suggestions" oninput="renderQuickNames()" />
         <datalist id="person-suggestions"></datalist>
+        <input class="date-input" id="voice-due" type="date" title="Due date (optional)" onchange="onDueDateChange()" />
       </div>
       <div class="controls-row-bottom">
         <select class="priority-select" id="voice-lang" onchange="saveLang(this.value)" title="Speech language">
@@ -1074,7 +1076,6 @@
           <option value="pt-BR">&#127760; Portuguese</option>
           <option value="de-DE">&#127760; German</option>
         </select>
-        <input class="date-input" id="voice-due" type="date" title="Due date (optional)" onchange="onDueDateChange()" />
       </div>
       <div class="quick-dates">
         <button type="button" class="qdate-chip" data-days="0" onclick="setQuickDate(0)">Today</button>
@@ -2513,6 +2514,7 @@ async function syncTasksDown() {
         if (raw) local = JSON.parse(raw);
       } catch(e) { local = []; }
 
+      const deletedIds = getDeletedIds(sectionId);
       const merged = mergeById(local.map(t => ({
         ...t, updatedAt: t.updatedAt || t.createdAt || 0
       })), remote.map(r => ({
@@ -2521,7 +2523,7 @@ async function syncTasksDown() {
         dueDate: r.due_date, media: r.media, notes: r.notes,
         subsection: r.subsection, createdAt: r.created_at,
         updatedAt: r.updated_at
-      })));
+      })), deletedIds);
 
       try { localStorage.setItem(sec.key, JSON.stringify(merged)); } catch(e) {}
     }
@@ -2564,16 +2566,37 @@ async function syncStockDown() {
       id: r.id, name: r.name, qty: r.qty,
       subsection: r.subsection, updatedAt: r.updated_at
     }));
-    stockItems = mergeById(local, remote);
+    const deletedStockIds = getDeletedIds('stock');
+    stockItems = mergeById(local, remote, deletedStockIds);
     saveStock();
     if (viewMode === 'stock') renderStock();
   } catch(e) { console.warn('Stock sync down failed:', e); }
 }
 
-function mergeById(localArr, remoteArr) {
+function getDeletedIds(section) {
+  try {
+    const raw = localStorage.getItem('nvp_deleted_' + section);
+    return raw ? new Set(JSON.parse(raw)) : new Set();
+  } catch(e) { return new Set(); }
+}
+
+function trackDeletedId(section, id) {
+  const set = getDeletedIds(section);
+  set.add(id);
+  try { localStorage.setItem('nvp_deleted_' + section, JSON.stringify([...set])); } catch(e) {}
+}
+
+function untrackDeletedId(section, id) {
+  const set = getDeletedIds(section);
+  set.delete(id);
+  try { localStorage.setItem('nvp_deleted_' + section, JSON.stringify([...set])); } catch(e) {}
+}
+
+function mergeById(localArr, remoteArr, deletedIds) {
   const map = new Map();
   localArr.forEach(item => map.set(item.id, item));
   remoteArr.forEach(item => {
+    if (deletedIds && deletedIds.has(item.id)) return;
     const existing = map.get(item.id);
     if (!existing || (item.updatedAt || 0) >= (existing.updatedAt || 0)) {
       map.set(item.id, item);
@@ -2583,16 +2606,20 @@ function mergeById(localArr, remoteArr) {
 }
 
 async function syncDeleteTask(taskId) {
+  trackDeletedId(currentSection, taskId);
   if (!sb) return;
   try {
     await sb.from('facilities_tasks').update({ deleted: true, updated_at: Date.now() }).eq('id', taskId);
+    untrackDeletedId(currentSection, taskId);
   } catch(e) {}
 }
 
 async function syncDeleteStock(stockId) {
+  trackDeletedId('stock', stockId);
   if (!sb) return;
   try {
     await sb.from('facilities_stock').update({ deleted: true, updated_at: Date.now() }).eq('id', stockId);
+    untrackDeletedId('stock', stockId);
   } catch(e) {}
 }
 
