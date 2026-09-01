@@ -1027,25 +1027,7 @@
   </div>
 
   <!-- Stats ring -->
-  <div class="stats-ring-wrap no-print" id="stats-bar" style="display:none">
-    <svg class="ring-svg" viewBox="0 0 100 100">
-      <defs>
-        <linearGradient id="ring-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" style="stop-color: var(--pk)"/>
-          <stop offset="100%" style="stop-color: var(--asp)"/>
-        </linearGradient>
-      </defs>
-      <circle class="ring-track" cx="50" cy="50" r="38"/>
-      <circle class="ring-fill" id="progress-ring" cx="50" cy="50" r="38"/>
-      <text class="ring-pct" id="stat-pct" x="50" y="46">0%</text>
-      <text class="ring-sub" x="50" y="61">complete</text>
-    </svg>
-    <div class="ring-stats">
-      <div class="rstat"><span class="rstat-num" id="stat-total">0</span><span class="rstat-label">Total</span></div>
-      <div class="rstat"><span class="rstat-num red" id="stat-pending">0</span><span class="rstat-label">Pending</span></div>
-      <div class="rstat"><span class="rstat-num asp" id="stat-done">0</span><span class="rstat-label">Done</span></div>
-    </div>
-  </div>
+  <div id="stats-bar" style="display:none"></div>
 
   <!-- Voice settings -->
   <div class="voice-bar no-print">
@@ -1064,18 +1046,6 @@
                list="person-suggestions" oninput="renderQuickNames()" />
         <datalist id="person-suggestions"></datalist>
         <input class="date-input" id="voice-due" type="date" title="Due date (optional)" onchange="onDueDateChange()" />
-      </div>
-      <div class="controls-row-bottom">
-        <select class="priority-select" id="voice-lang" onchange="saveLang(this.value)" title="Speech language">
-          <option value="en-US">&#127760; English</option>
-          <option value="af-ZA">&#127760; Afrikaans</option>
-          <option value="zu-ZA">&#127760; Zulu</option>
-          <option value="xh-ZA">&#127760; Xhosa</option>
-          <option value="es-ES">&#127760; Spanish</option>
-          <option value="fr-FR">&#127760; French</option>
-          <option value="pt-BR">&#127760; Portuguese</option>
-          <option value="de-DE">&#127760; German</option>
-        </select>
       </div>
       <div class="quick-dates">
         <button type="button" class="qdate-chip" data-days="0" onclick="setQuickDate(0)">Today</button>
@@ -1643,7 +1613,7 @@ function startMic() {
   pendingText = ''; tasksAddedSession = 0; liveText = '';
 
   recog = new SR();
-  recog.lang = (document.getElementById('voice-lang') && document.getElementById('voice-lang').value) || 'en-US';
+  recog.lang = 'en-US';
   recog.interimResults = true; recog.continuous = true;
 
   recog.onresult = (e) => {
@@ -1986,22 +1956,10 @@ function render() {
   const pct       = tasks.length ? Math.round(doneCount / tasks.length * 100) : 0;
   const hasTasks  = tasks.length > 0;
 
-  document.getElementById('stats-bar').style.display      = hasTasks ? 'flex'  : 'none';
   document.getElementById('filter-row').style.display     = hasTasks ? 'flex'  : 'none';
   document.getElementById('shortcuts-hint').style.display = hasTasks ? 'block' : 'none';
 
   if (hasTasks) {
-    document.getElementById('stat-total').textContent   = tasks.length;
-    document.getElementById('stat-pending').textContent = pendCount;
-    document.getElementById('stat-done').textContent    = doneCount;
-    document.getElementById('stat-pct').textContent     = pct + '%';
-    const circumference = 238.76;
-    const ring = document.getElementById('progress-ring');
-    if (ring) {
-      ring.style.strokeDashoffset = circumference * (1 - pct / 100);
-      ring.style.stroke = pct === 100 ? 'url(#ring-grad)' : '';
-      ring.classList.toggle('complete', pct === 100);
-    }
     if (pct === 100 && lastPct !== 100 && tasks.length > 0) launchConfetti();
     lastPct = pct;
   }
