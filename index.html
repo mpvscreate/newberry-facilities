@@ -416,6 +416,7 @@
     [data-theme="dark"] input.date-input { color-scheme: dark; }
     [data-theme="light"] input.date-input { color-scheme: light; }
     input.date-input:focus { border-color: var(--asp); }
+    input.date-input::placeholder { color: var(--muted); }
 
     /* ── Manual add ── */
     .manual-row { display: flex; gap: 8px; margin-bottom: 18px; }
@@ -529,6 +530,27 @@
     .swipe-hint-delete { justify-content: flex-end;  padding-right: 22px; background: rgba(176,58,58,.22); }
     .task-card.swiping-right .swipe-hint-done   { opacity: 1; }
     .task-card.swiping-left  .swipe-hint-delete { opacity: 1; }
+
+    /* ── Long-press action popup ── */
+    .card-action-popup {
+      position: fixed; z-index: 2000;
+      background: var(--card); border: 1.5px solid var(--border);
+      border-radius: 12px; box-shadow: var(--shadow);
+      overflow: hidden; min-width: 150px;
+      animation: fadeIn .15s ease;
+    }
+    .card-action-popup button {
+      display: flex; align-items: center; gap: 10px;
+      width: 100%; padding: 14px 18px; border: none; background: none;
+      color: var(--text); font-family: var(--font-body); font-size: 15px;
+      cursor: pointer; -webkit-tap-highlight-color: transparent;
+    }
+    .card-action-popup button:active { background: var(--surface); }
+    .card-action-popup button + button { border-top: 1px solid var(--border); }
+    .card-action-popup button.popup-delete { color: var(--red); }
+    .card-popup-backdrop {
+      position: fixed; inset: 0; z-index: 1999; background: rgba(0,0,0,.3);
+    }
 
     .notes-toggle {
       background: var(--badge-bg); border: 1px solid var(--border);
@@ -1044,7 +1066,7 @@
                placeholder="&#128100; Assign to..." autocomplete="off"
                list="person-suggestions" oninput="renderQuickNames()" />
         <datalist id="person-suggestions"></datalist>
-        <input class="date-input" id="voice-due" type="date" title="Due date (optional)" onchange="onDueDateChange()" />
+        <input class="date-input" id="voice-due" type="text" placeholder="&#128197; Date" title="Due date (optional)" onfocus="this.type='date';this.showPicker&&this.showPicker()" onblur="if(!this.value){this.type='text'}" onchange="onDueDateChange()" />
       </div>
       <div class="quick-dates">
         <button type="button" class="qdate-chip" data-days="0" onclick="setQuickDate(0)">Today</button>
@@ -1764,7 +1786,7 @@ function toggleDone(id) {
 function deleteTask(id) {
   const idx = tasks.findIndex(t => t.id === id);
   if (idx === -1) return;
-  undoData = { task: { ...tasks[idx] }, index: idx };
+  undoData = { task: { ...tasks[idx] }, index: idx, section: currentSection };
   clearTimeout(undoTimer);
   undoTimer = setTimeout(() => { undoData = null; }, 5500);
   const card = document.getElementById('card-' + id);
@@ -1781,11 +1803,15 @@ function deleteTask(id) {
 ================================================================ */
 function undoDelete() {
   if (!undoData) return;
-  const { task, index } = undoData;
+  const { task, index, section } = undoData;
   undoData = null; clearTimeout(undoTimer);
   document.getElementById('toast').classList.remove('show');
+  untrackDeletedId(section || currentSection, task.id);
   tasks.splice(Math.min(index, tasks.length), 0, task);
   saveTasks(); showToast('Task restored'); render();
+  if (sb) {
+    sb.from('facilities_tasks').update({ deleted: false, updated_at: Date.now() }).eq('id', task.id).then(() => {});
+  }
 }
 
 /* ================================================================
@@ -2213,11 +2239,15 @@ function initLang() {
 function setQuickDate(days) {
   const d = new Date();
   d.setDate(d.getDate() + days);
-  document.getElementById('voice-due').value = d.toISOString().slice(0, 10);
+  const el = document.getElementById('voice-due');
+  el.type = 'date';
+  el.value = d.toISOString().slice(0, 10);
   updateQuickDateActive(days);
 }
 function clearQuickDate() {
-  document.getElementById('voice-due').value = '';
+  const el = document.getElementById('voice-due');
+  el.value = '';
+  el.type = 'text';
   updateQuickDateActive(null);
 }
 function onDueDateChange() { updateQuickDateActive(null); }
@@ -2308,7 +2338,12 @@ function initCardLongPress(card, taskId) {
   const cancel = () => clearTimeout(timer);
   const start  = (e) => {
     if (e.target.closest('button')) return;
-    timer = setTimeout(() => { if (!selectMode) enterSelectMode(taskId); }, 600);
+    const touch = e.touches ? e.touches[0] : e;
+    const cx = touch.clientX, cy = touch.clientY;
+    timer = setTimeout(() => {
+      if (navigator.vibrate) navigator.vibrate(30);
+      showCardActionPopup(taskId, cx, cy);
+    }, 500);
   };
   card.addEventListener('touchstart',  start,  { passive: true });
   card.addEventListener('touchend',    cancel, { passive: true });
@@ -2317,6 +2352,46 @@ function initCardLongPress(card, taskId) {
   card.addEventListener('mousedown',   start);
   card.addEventListener('mouseup',     cancel);
   card.addEventListener('mouseleave',  cancel);
+}
+
+function showCardActionPopup(taskId, x, y) {
+  closeCardActionPopup();
+  const backdrop = document.createElement('div');
+  backdrop.className = 'card-popup-backdrop';
+  backdrop.onclick = closeCardActionPopup;
+
+  const popup = document.createElement('div');
+  popup.className = 'card-action-popup';
+  popup.id = 'card-action-popup';
+
+  const editBtn = document.createElement('button');
+  editBtn.innerHTML = '&#9998;&#65039; Edit';
+  editBtn.onclick = () => { closeCardActionPopup(); openEdit(taskId); };
+
+  const delBtn = document.createElement('button');
+  delBtn.className = 'popup-delete';
+  delBtn.innerHTML = '&#128465; Delete';
+  delBtn.onclick = () => { closeCardActionPopup(); deleteTask(taskId); };
+
+  popup.appendChild(editBtn);
+  popup.appendChild(delBtn);
+  document.body.appendChild(backdrop);
+  document.body.appendChild(popup);
+
+  const vw = window.innerWidth, vh = window.innerHeight;
+  let left = Math.min(x, vw - 170);
+  let top = y + 8;
+  if (top + 110 > vh) top = y - 110;
+  if (left < 8) left = 8;
+  popup.style.left = left + 'px';
+  popup.style.top = top + 'px';
+}
+
+function closeCardActionPopup() {
+  const p = document.getElementById('card-action-popup');
+  if (p) p.remove();
+  const b = document.querySelector('.card-popup-backdrop');
+  if (b) b.remove();
 }
 
 /* ================================================================
@@ -2563,11 +2638,12 @@ function mergeById(localArr, remoteArr, deletedIds) {
 }
 
 async function syncDeleteTask(taskId) {
-  trackDeletedId(currentSection, taskId);
+  const section = currentSection;
+  trackDeletedId(section, taskId);
   if (!sb) return;
   try {
     await sb.from('facilities_tasks').update({ deleted: true, updated_at: Date.now() }).eq('id', taskId);
-    untrackDeletedId(currentSection, taskId);
+    untrackDeletedId(section, taskId);
   } catch(e) {}
 }
 
