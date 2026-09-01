@@ -478,17 +478,17 @@
 
     /* ── Sort row ── */
     .sort-row {
-      display: flex; gap: 6px; margin-bottom: 12px; align-items: center; flex-wrap: wrap;
+      display: flex; gap: 6px; margin-bottom: 12px; align-items: center;
+      overflow-x: auto; -webkit-overflow-scrolling: touch;
+      scrollbar-width: none; -ms-overflow-style: none;
     }
-    .sort-label {
-      font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px;
-      color: var(--muted); font-family: var(--font-body); font-weight: 700; margin-right: 2px;
-    }
+    .sort-row::-webkit-scrollbar { display: none; }
     .sort-chip {
       padding: 5px 12px; border-radius: 16px; border: 1px solid var(--border);
       background: transparent; color: var(--muted); cursor: pointer;
       font-size: 11px; font-family: var(--font-body); font-weight: 600;
       transition: all .15s; -webkit-tap-highlight-color: transparent;
+      white-space: nowrap; flex-shrink: 0;
     }
     .sort-chip.active { background: var(--pk); color: #fff; border-color: var(--asp); }
     .sort-chip:hover { border-color: var(--asp); }
@@ -1149,7 +1149,6 @@
 
   <!-- Sort -->
   <div class="sort-row no-print" id="sort-row" style="display:none">
-    <span class="sort-label">Sort</span>
     <button class="sort-chip active" data-sort="default" onclick="setSort('default')">Default</button>
     <button class="sort-chip" data-sort="priority" onclick="setSort('priority')">Priority</button>
     <button class="sort-chip" data-sort="due" onclick="setSort('due')">Due date</button>
