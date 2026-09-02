@@ -453,6 +453,56 @@ body {
 @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(198,40,40,.5); } 50% { box-shadow: 0 0 0 12px rgba(198,40,40,0); } }
 
 /* ================================================================
+   EDIT MODE
+================================================================ */
+.edit-mode-active #edit-mode-btn { background: var(--pk); color: #fff; border-color: var(--pk); }
+.edit-banner {
+  display: none; padding: 6px 16px; background: rgba(230,81,0,.1); border-bottom: 1px solid rgba(230,81,0,.2);
+  font-size: 12px; font-weight: 600; color: #e65100; text-align: center;
+}
+.edit-mode-active .edit-banner { display: block; }
+.room-card .edit-room-actions {
+  display: none; gap: 4px; margin-top: 4px;
+}
+.edit-mode-active .room-card .edit-room-actions { display: flex; }
+.edit-room-actions button {
+  padding: 3px 8px; border-radius: 6px; border: 1px solid var(--border);
+  background: var(--card); color: var(--muted); font-size: 10px; font-weight: 600;
+  font-family: var(--font-body); cursor: pointer; transition: all .15s;
+}
+.edit-room-actions button:hover { color: var(--text); border-color: var(--text); }
+.edit-room-actions .edit-delete-room { color: var(--red); }
+.edit-room-actions .edit-delete-room:hover { border-color: var(--red); }
+.add-room-card {
+  display: none; background: var(--badge-bg); border: 2px dashed var(--border);
+  border-radius: 12px; padding: 16px; cursor: pointer; text-align: center;
+  color: var(--muted); font-size: 13px; font-weight: 600;
+  transition: all .2s; align-items: center; justify-content: center;
+}
+.add-room-card:hover { border-color: var(--pk); color: var(--pk); }
+.edit-mode-active .add-room-card { display: flex; }
+.checklist-item .edit-item-actions {
+  display: none; gap: 4px; margin-left: auto;
+}
+.edit-mode-active .checklist-item .edit-item-actions { display: flex; }
+.edit-item-actions button {
+  padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border);
+  background: var(--card); color: var(--muted); font-size: 10px;
+  cursor: pointer; font-family: var(--font-body);
+}
+.edit-item-actions .edit-del-item { color: var(--red); }
+.add-checklist-row {
+  display: none; padding: 8px 16px; gap: 8px;
+}
+.edit-mode-active .add-checklist-row { display: flex; }
+.add-checklist-input {
+  flex: 1; padding: 6px 10px; border: 1.5px solid var(--border); border-radius: 8px;
+  background: var(--bg); color: var(--text); font-size: 12px;
+  font-family: var(--font-body); outline: none;
+}
+.add-checklist-input:focus { border-color: var(--pk); }
+
+/* ================================================================
    PRINT
 ================================================================ */
 @media print {
@@ -479,6 +529,12 @@ body {
     <button class="header-btn" title="Schedule" onclick="openSchedulePanel()">
       <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
     </button>
+    <button class="header-btn" title="Export CSV" onclick="exportCSV()">
+      <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    </button>
+    <button class="header-btn" id="edit-mode-btn" title="Edit Mode" onclick="toggleEditMode()">
+      <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+    </button>
     <button class="header-btn" title="Print" onclick="window.print()">
       <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
     </button>
@@ -490,6 +546,9 @@ body {
 
 <!-- Section Tabs -->
 <div class="section-tabs" id="section-tabs"></div>
+
+<!-- Edit Banner -->
+<div class="edit-banner">EDIT MODE — Tap room names to rename, add/remove rooms & checklist items</div>
 
 <!-- Stats Bar -->
 <div class="stats-bar">
@@ -505,7 +564,6 @@ body {
   <button class="shift-chip active" data-shift="all" onclick="setShift('all')">All</button>
   <button class="shift-chip" data-shift="morning" onclick="setShift('morning')">Morning</button>
   <button class="shift-chip" data-shift="afternoon" onclick="setShift('afternoon')">Afternoon</button>
-  <button class="shift-chip" data-shift="evening" onclick="setShift('evening')">Evening</button>
   <input type="text" class="search-box" id="search-input" placeholder="Search rooms..." oninput="onSearch(this.value)">
 </div>
 
@@ -553,6 +611,11 @@ body {
       <button class="modal-close" onclick="closeChecklist()">&times;</button>
     </div>
     <div class="modal-body" id="checklist-body"></div>
+    <div class="add-checklist-row">
+      <input type="text" class="add-checklist-input" id="add-checklist-input"
+        placeholder="Add checklist item..." onkeydown="if(event.key==='Enter') addChecklistItem()">
+      <button class="btn btn-pk btn-sm" onclick="addChecklistItem()">Add</button>
+    </div>
     <div class="modal-section-title">Assignment</div>
     <div class="modal-assign-row">
       <select id="assign-staff" onchange="onAssignChange()">
@@ -561,7 +624,6 @@ body {
       <select id="assign-shift" onchange="onAssignChange()">
         <option value="morning">Morning</option>
         <option value="afternoon">Afternoon</option>
-        <option value="evening">Evening</option>
       </select>
     </div>
     <div class="modal-actions">
@@ -988,7 +1050,7 @@ function renderRoomGrid() {
     const a = assignments[room.id];
 
     return '<div class="room-card' + (isComplete ? ' complete' : '') +
-      '" onclick="openRoom(\'' + room.id + '\')">' +
+      '" onclick="' + (editMode ? '' : "openRoom('" + room.id + "')") + '">' +
       '<div class="room-name">' + escHtml(room.name) + '</div>' +
       '<div class="room-progress-bar"><div class="room-progress-fill" style="width:' + pct + '%"></div></div>' +
       '<div class="room-meta">' +
@@ -996,8 +1058,13 @@ function renderRoomGrid() {
         (a && a.staff ? '<span class="room-staff-badge">' + escHtml(a.staff) + '</span>' : '') +
         (a && a.shift ? '<span class="room-shift-badge">' + a.shift + '</span>' : '') +
       '</div>' +
+      '<div class="edit-room-actions">' +
+        '<button onclick="event.stopPropagation();renameRoom(\'' + room.id + '\')">Rename</button>' +
+        '<button class="edit-delete-room" onclick="event.stopPropagation();deleteRoom(\'' + room.id + '\')">Remove</button>' +
+      '</div>' +
     '</div>';
-  }).join('');
+  }).join('') +
+  '<div class="add-room-card" onclick="addRoom()">+ Add Room</div>';
 }
 
 /* ================================================================
@@ -1037,6 +1104,10 @@ function renderChecklistItems(roomId) {
       '<div class="check-box"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>' +
       '<span class="check-label">' + escHtml(item) + '</span>' +
       (time ? '<span class="check-time">' + time + '</span>' : '') +
+      '<span class="edit-item-actions">' +
+        '<button onclick="event.stopPropagation();renameChecklistItem(' + idx + ')">Edit</button>' +
+        '<button class="edit-del-item" onclick="event.stopPropagation();deleteChecklistItem(' + idx + ')">&times;</button>' +
+      '</span>' +
     '</div>';
   }).join('');
 }
@@ -1163,7 +1234,7 @@ function openSchedulePanel() {
   if (allAssigned.length === 0) {
     body.innerHTML = '<p style="color:var(--muted);font-size:13px;">No assignments yet. Open a room and assign staff.</p>';
   } else {
-    const byShift = { morning: [], afternoon: [], evening: [] };
+    const byShift = { morning: [], afternoon: [] };
     allAssigned.forEach(a => {
       if (byShift[a.shift]) byShift[a.shift].push(a);
     });
@@ -1312,6 +1383,191 @@ function findRoom(roomId) {
 }
 
 /* ================================================================
+   EXPORT CSV
+================================================================ */
+function exportCSV() {
+  const headers = ['Section', 'Room', 'Checklist Item', 'Status', 'Completed At', 'Assigned To', 'Shift'];
+  const rows = [headers];
+  const today = getToday();
+
+  for (const [sectionId, rooms] of Object.entries(ROOMS)) {
+    const sectionLabel = SECTIONS[sectionId].label;
+    rooms.forEach(room => {
+      const items = getChecklistForRoom(room.id);
+      const a = assignments[room.id];
+      items.forEach((item, idx) => {
+        const checked = isChecked(room.id, idx);
+        const time = checked ? getCheckTime(room.id, idx) : '';
+        rows.push([
+          sectionLabel,
+          room.name,
+          item,
+          checked ? 'Done' : 'Pending',
+          time,
+          a && a.staff ? a.staff : '',
+          a && a.shift ? a.shift.charAt(0).toUpperCase() + a.shift.slice(1) : ''
+        ]);
+      });
+    });
+  }
+
+  const csv = rows.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(',')).join('\n');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'NewberryCleaning_' + today + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('CSV exported');
+}
+
+/* ================================================================
+   EDIT MODE
+================================================================ */
+let editMode = false;
+
+function toggleEditMode() {
+  editMode = !editMode;
+  document.body.classList.toggle('edit-mode-active', editMode);
+  if (openRoomId) renderChecklistItems(openRoomId);
+  render();
+  showToast(editMode ? 'Edit mode on' : 'Edit mode off');
+}
+
+function renameRoom(roomId) {
+  const room = findRoom(roomId);
+  if (!room) return;
+  const name = prompt('Rename room:', room.name);
+  if (name === null || !name.trim()) return;
+  room.name = name.trim();
+  saveRooms();
+  render();
+  showToast('Room renamed');
+}
+
+function deleteRoom(roomId) {
+  const room = findRoom(roomId);
+  if (!room) return;
+  if (!confirm('Remove "' + room.name + '"?')) return;
+  const section = getRoomSection(roomId);
+  ROOMS[section] = ROOMS[section].filter(r => r.id !== roomId);
+  delete checks[roomId];
+  delete assignments[roomId];
+  saveRooms();
+  saveChecks();
+  saveAssignments();
+  render();
+  showToast('Room removed');
+}
+
+function addRoom() {
+  const name = prompt('New room name:');
+  if (!name || !name.trim()) return;
+  const id = currentSection.slice(0, 2) + Date.now();
+  ROOMS[currentSection].push({ id: id, name: name.trim() });
+  saveRooms();
+  render();
+  showToast(name.trim() + ' added');
+}
+
+function saveRooms() {
+  try { localStorage.setItem('ncl_rooms_v1', JSON.stringify(ROOMS)); } catch (e) {}
+}
+
+function loadRooms() {
+  try {
+    const raw = localStorage.getItem('ncl_rooms_v1');
+    if (raw) {
+      const saved = JSON.parse(raw);
+      for (const [key, rooms] of Object.entries(saved)) {
+        if (ROOMS[key]) ROOMS[key] = rooms;
+      }
+    }
+  } catch (e) {}
+}
+
+function renameChecklistItem(idx) {
+  if (!openRoomId) return;
+  const items = getChecklistForRoom(openRoomId);
+  const current = items[idx];
+  const name = prompt('Edit item:', current);
+  if (name === null || !name.trim()) return;
+  const section = getRoomSection(openRoomId);
+  const preset = CHECKLISTS[section] || [];
+  if (idx < preset.length) {
+    preset[idx] = name.trim();
+    savePresetChecklists();
+  } else {
+    const customIdx = idx - preset.length;
+    if (customItems[section] && customItems[section][customIdx] !== undefined) {
+      customItems[section][customIdx] = name.trim();
+      saveCustomItems();
+    }
+  }
+  renderChecklistItems(openRoomId);
+  showToast('Item updated');
+}
+
+function deleteChecklistItem(idx) {
+  if (!openRoomId) return;
+  const section = getRoomSection(openRoomId);
+  const preset = CHECKLISTS[section] || [];
+  if (idx < preset.length) {
+    if (!confirm('Remove "' + preset[idx] + '" from all ' + SECTIONS[section].label + '?')) return;
+    preset.splice(idx, 1);
+    savePresetChecklists();
+  } else {
+    const customIdx = idx - preset.length;
+    if (customItems[section]) {
+      customItems[section].splice(customIdx, 1);
+      saveCustomItems();
+    }
+  }
+  if (checks[openRoomId]) {
+    checks[openRoomId] = checks[openRoomId].filter(i => i < idx).concat(
+      checks[openRoomId].filter(i => i > idx).map(i => i - 1)
+    );
+    saveChecks();
+  }
+  renderChecklistItems(openRoomId);
+  render();
+  showToast('Item removed');
+}
+
+function addChecklistItem() {
+  const input = document.getElementById('add-checklist-input');
+  const text = input.value.trim();
+  if (!text || !openRoomId) return;
+  const section = getRoomSection(openRoomId);
+  if (!customItems[section]) customItems[section] = [];
+  customItems[section].push(text);
+  input.value = '';
+  saveCustomItems();
+  renderChecklistItems(openRoomId);
+  render();
+  showToast('Item added');
+}
+
+function savePresetChecklists() {
+  try { localStorage.setItem('ncl_presets_v1', JSON.stringify(CHECKLISTS)); } catch (e) {}
+}
+
+function loadPresetChecklists() {
+  try {
+    const raw = localStorage.getItem('ncl_presets_v1');
+    if (raw) {
+      const saved = JSON.parse(raw);
+      for (const [key, items] of Object.entries(saved)) {
+        if (CHECKLISTS[key]) CHECKLISTS[key] = items;
+      }
+    }
+  } catch (e) {}
+}
+
+/* ================================================================
    INIT
 ================================================================ */
 (function init() {
@@ -1337,6 +1593,8 @@ function findRoom(roomId) {
     document.getElementById('voice-bar-toggle').classList.toggle('collapsed', !voiceBarOpen);
   } catch (e) {}
 
+  loadRooms();
+  loadPresetChecklists();
   loadChecks();
   loadCustomItems();
   loadStaff();
