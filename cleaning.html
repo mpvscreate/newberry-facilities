@@ -615,6 +615,7 @@ let staff = [];
 let assignments = {};
 let editMode = false;
 let roomEstimates = {};
+let roomExclusions = {};
 let toastTimer = null;
 let _syncDebounce = null;
 function debouncedSync() { clearTimeout(_syncDebounce); _syncDebounce = setTimeout(() => syncUp(), 2000); }
@@ -656,6 +657,8 @@ function loadAssignments() { try { const r = localStorage.getItem('ncl_assign_v1
 function saveAssignments() { try { localStorage.setItem('ncl_assign_v1', JSON.stringify(assignments)); } catch (e) {} debouncedSync(); }
 function loadRoomEstimates() { try { const r = localStorage.getItem('ncl_est_v1'); if (r) roomEstimates = JSON.parse(r); } catch (e) { roomEstimates = {}; } }
 function saveRoomEstimates() { try { localStorage.setItem('ncl_est_v1', JSON.stringify(roomEstimates)); } catch (e) {} }
+function loadRoomExclusions() { try { const r = localStorage.getItem('ncl_excl_v1'); if (r) roomExclusions = JSON.parse(r); } catch (e) { roomExclusions = {}; } }
+function saveRoomExclusions() { try { localStorage.setItem('ncl_excl_v1', JSON.stringify(roomExclusions)); } catch (e) {} }
 function getRoomEstimate(roomId) {
   if (roomEstimates[roomId]) return roomEstimates[roomId];
   const section = getRoomSection(roomId);
@@ -669,7 +672,10 @@ function formatMinutes(m) {
 
 function getChecklistForRoom(roomId) {
   const section = getRoomSection(roomId);
-  return [...(CHECKLISTS[section] || []), ...(customItems[section] || [])];
+  const excl = roomExclusions[roomId] || [];
+  const preset = (CHECKLISTS[section] || []).filter(item => !excl.includes(item));
+  const custom = (customItems[section] || []).filter(item => !excl.includes(item));
+  return [...preset, ...custom];
 }
 function getRoomSection(roomId) {
   for (const [sid, rooms] of Object.entries(ROOMS)) { if (rooms.some(r => r.id === roomId)) return sid; }
@@ -1091,21 +1097,50 @@ function renameChecklistItem(roomId, idx) {
   render(); showToast('Item updated');
 }
 function deleteChecklistItem(roomId, idx) {
+  const items = getChecklistForRoom(roomId);
+  const itemName = items[idx];
+  if (!itemName) return;
   const section = getRoomSection(roomId);
-  const preset = CHECKLISTS[section] || [];
-  if (idx < preset.length) {
-    if (!confirm('Remove "' + preset[idx] + '" from all ' + SECTIONS[section].label + '?')) return;
-    preset.splice(idx, 1); savePresetChecklists();
-  } else {
-    const ci = idx - preset.length;
-    if (customItems[section]) { customItems[section].splice(ci, 1); saveCustomItems(); }
-  }
-  Object.keys(checks).forEach(rid => {
-    if (getRoomSection(rid) === section && checks[rid]) {
-      checks[rid] = checks[rid].filter(i => i < idx).concat(checks[rid].filter(i => i > idx).map(i => i - 1));
+  const room = findRoom(roomId);
+  const roomLabel = room ? room.name : roomId;
+  const sectionLabel = SECTIONS[section] ? SECTIONS[section].label : section;
+  const choice = prompt(
+    'Remove "' + itemName + '"?\n\nType 1 = This room only (' + roomLabel + ')\nType 2 = All ' + sectionLabel + ' rooms'
+  );
+  if (choice === null) return;
+  const opt = choice.trim();
+  if (opt === '1') {
+    if (!roomExclusions[roomId]) roomExclusions[roomId] = [];
+    if (!roomExclusions[roomId].includes(itemName)) roomExclusions[roomId].push(itemName);
+    saveRoomExclusions();
+    if (checks[roomId]) {
+      checks[roomId] = checks[roomId].filter(i => i < idx).concat(checks[roomId].filter(i => i > idx).map(i => i - 1));
+      saveChecks();
     }
-  });
-  saveChecks(); render(); showToast('Item removed');
+    render(); showToast('Removed from ' + roomLabel);
+  } else if (opt === '2') {
+    const allPreset = CHECKLISTS[section] || [];
+    const presetIdx = allPreset.indexOf(itemName);
+    if (presetIdx >= 0) {
+      allPreset.splice(presetIdx, 1); savePresetChecklists();
+    } else {
+      const customList = customItems[section] || [];
+      const ci = customList.indexOf(itemName);
+      if (ci >= 0) { customList.splice(ci, 1); saveCustomItems(); }
+    }
+    const sectionRooms = ROOMS[section] || [];
+    sectionRooms.forEach(r => {
+      if (checks[r.id]) {
+        const rItems = getChecklistForRoom(r.id);
+        const rIdx = rItems.indexOf(itemName);
+        if (rIdx < 0) return;
+        checks[r.id] = checks[r.id].filter(i => i < rIdx).concat(checks[r.id].filter(i => i > rIdx).map(i => i - 1));
+      }
+    });
+    saveChecks(); render(); showToast('Removed from all ' + sectionLabel);
+  } else {
+    showToast('Enter 1 or 2');
+  }
 }
 function addChecklistItem(roomId) {
   const input = document.getElementById('acl-' + roomId); if (!input) return;
@@ -1183,7 +1218,7 @@ async function syncDown() {
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.setAttribute('content', SECTIONS[currentSection].themeColor);
   document.getElementById('logo-sub').textContent = SECTIONS[currentSection].label;
-  loadRooms(); loadPresetChecklists(); loadChecks(); loadCustomItems(); loadStaff(); loadAssignments(); loadRoomEstimates();
+  loadRooms(); loadPresetChecklists(); loadChecks(); loadCustomItems(); loadStaff(); loadAssignments(); loadRoomEstimates(); loadRoomExclusions();
   render();
   initSupabase();
   if (sb) { syncDown(); startAutoSync(); }
