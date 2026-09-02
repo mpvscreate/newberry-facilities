@@ -921,9 +921,13 @@ function renderStaffList() {
     return;
   }
   document.getElementById('staff-list').innerHTML = staff.map((s, i) => {
-    const count = Object.values(assignments).filter(a => a.staff === s.name).length;
+    let totalMin = 0;
+    const assignedRooms = Object.entries(assignments).filter(([, a]) => a.staff === s.name);
+    assignedRooms.forEach(([rid]) => { totalMin += getRoomEstimate(rid); });
+    const count = assignedRooms.length;
     return '<div class="staff-row"><span class="staff-name">' + escHtml(s.name) + '</span>' +
-      '<span class="staff-count">' + count + ' room' + (count !== 1 ? 's' : '') + '</span>' +
+      '<span class="staff-count">' + count + ' room' + (count !== 1 ? 's' : '') +
+      (totalMin > 0 ? ' · ~' + totalMin + ' min' : '') + '</span>' +
       '<button class="staff-edit" onclick="editStaff(' + i + ')" title="Edit name">&#9998;</button>' +
       '<button class="staff-remove" onclick="removeStaff(' + i + ')" title="Remove">&times;</button></div>';
   }).join('');
@@ -957,18 +961,26 @@ function openSchedulePanel() {
   const body = document.getElementById('schedule-body');
   const all = [];
   for (const [sid, rooms] of Object.entries(ROOMS)) {
-    rooms.forEach(r => { const a = assignments[r.id]; if (a && a.staff) all.push({ section: SECTIONS[sid].label, room: r.name, staff: a.staff, shift: a.shift }); });
+    rooms.forEach(r => { const a = assignments[r.id]; if (a && a.staff) all.push({ section: SECTIONS[sid].label, room: r.name, roomId: r.id, staff: a.staff, shift: a.shift }); });
   }
   if (all.length === 0) { body.innerHTML = '<p style="color:var(--muted);font-size:13px;">No assignments yet.</p>'; }
   else {
+    const byStaff = {};
+    all.forEach(a => { if (!byStaff[a.staff]) byStaff[a.staff] = { rooms: [], totalMin: 0 }; byStaff[a.staff].rooms.push(a); byStaff[a.staff].totalMin += getRoomEstimate(a.roomId); });
+    let html = '<div style="margin-bottom:12px">';
+    Object.entries(byStaff).forEach(([name, data]) => {
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border-light)">' +
+        '<span style="font-size:13px;font-weight:600">' + escHtml(name) + '</span>' +
+        '<span style="font-size:11px;color:var(--muted)">' + data.rooms.length + ' room' + (data.rooms.length !== 1 ? 's' : '') + ' · ~' + data.totalMin + ' min</span></div>';
+    });
+    html += '</div>';
     const byShift = { morning: [], afternoon: [] };
     all.forEach(a => { if (byShift[a.shift]) byShift[a.shift].push(a); });
-    let html = '';
     for (const [shift, items] of Object.entries(byShift)) {
       if (items.length === 0) continue;
       html += '<div class="modal-section-title" style="padding-left:0">' + shift.charAt(0).toUpperCase() + shift.slice(1) + ' Shift</div>';
-      html += '<table class="schedule-table"><thead><tr><th>Room</th><th>Section</th><th>Staff</th></tr></thead><tbody>';
-      items.forEach(a => { html += '<tr><td class="sched-room">' + escHtml(a.room) + '</td><td>' + escHtml(a.section) + '</td><td class="sched-staff">' + escHtml(a.staff) + '</td></tr>'; });
+      html += '<table class="schedule-table"><thead><tr><th>Room</th><th>Section</th><th>Staff</th><th>Est.</th></tr></thead><tbody>';
+      items.forEach(a => { html += '<tr><td class="sched-room">' + escHtml(a.room) + '</td><td>' + escHtml(a.section) + '</td><td class="sched-staff">' + escHtml(a.staff) + '</td><td style="font-size:10px;color:var(--muted)">~' + getRoomEstimate(a.roomId) + 'm</td></tr>'; });
       html += '</tbody></table>';
     }
     body.innerHTML = html;
