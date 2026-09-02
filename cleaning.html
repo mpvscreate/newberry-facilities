@@ -329,6 +329,11 @@ body {
 .staff-row:last-child { border-bottom: none; }
 .staff-name { flex: 1; font-size: 13px; font-weight: 600; }
 .staff-count { font-size: 11px; color: var(--muted); }
+.staff-edit {
+  width: 24px; height: 24px; border: none; background: rgba(21,101,192,.08);
+  border-radius: 50%; color: #1565c0; cursor: pointer; font-size: 12px;
+  display: flex; align-items: center; justify-content: center;
+}
 .staff-remove {
   width: 24px; height: 24px; border: none; background: rgba(198,40,40,.08);
   border-radius: 50%; color: var(--red); cursor: pointer; font-size: 12px;
@@ -904,7 +909,8 @@ function renderStaffList() {
     const count = Object.values(assignments).filter(a => a.staff === s.name).length;
     return '<div class="staff-row"><span class="staff-name">' + escHtml(s.name) + '</span>' +
       '<span class="staff-count">' + count + ' room' + (count !== 1 ? 's' : '') + '</span>' +
-      '<button class="staff-remove" onclick="removeStaff(' + i + ')">&times;</button></div>';
+      '<button class="staff-edit" onclick="editStaff(' + i + ')" title="Edit name">&#9998;</button>' +
+      '<button class="staff-remove" onclick="removeStaff(' + i + ')" title="Remove">&times;</button></div>';
   }).join('');
 }
 function addStaff() {
@@ -915,9 +921,21 @@ function addStaff() {
   saveStaff(); renderStaffList(); showToast(name + ' added');
 }
 function removeStaff(idx) {
-  const name = staff[idx].name; staff.splice(idx, 1);
+  const name = staff[idx].name;
+  if (!confirm('Remove "' + name + '"? This will also unassign them from all rooms.')) return;
+  staff.splice(idx, 1);
   Object.keys(assignments).forEach(rid => { if (assignments[rid].staff === name) delete assignments[rid]; });
   saveStaff(); saveAssignments(); renderStaffList(); render(); showToast(name + ' removed');
+}
+function editStaff(idx) {
+  const oldName = staff[idx].name;
+  const newName = prompt('Edit staff name:', oldName);
+  if (newName === null || !newName.trim() || newName.trim() === oldName) return;
+  const trimmed = newName.trim();
+  if (staff.some((s, i) => i !== idx && s.name.toLowerCase() === trimmed.toLowerCase())) { showToast('Name already exists'); return; }
+  staff[idx].name = trimmed;
+  Object.keys(assignments).forEach(rid => { if (assignments[rid].staff === oldName) assignments[rid].staff = trimmed; });
+  saveStaff(); saveAssignments(); renderStaffList(); render(); showToast('Renamed to ' + trimmed);
 }
 
 function openSchedulePanel() {
