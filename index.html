@@ -1494,6 +1494,9 @@ function switchSection(sectionId) {
   document.getElementById('print-header').textContent =
     'Newberry Facilities — ' + SECTIONS[sectionId].label + ' Task List';
 
+  loadTasks();
+  loadNames();
+
   renderSectionTabs();
   renderSubsectionBar();
   updateManualPlaceholder();
@@ -1504,9 +1507,6 @@ function switchSection(sectionId) {
   );
   const si = document.getElementById('search-input');
   if (si) si.value = '';
-
-  loadTasks();
-  loadNames();
   if (viewMode === 'stock' && currentSection === 'equipment') {
     loadStock();
     renderStock();
@@ -2173,6 +2173,7 @@ function escJs(s) {
    RENDER
 ================================================================ */
 function render() {
+  renderSectionTabs();
   const filtered  = getFiltered();
   const doneCount = tasks.filter(t => t.done).length;
   const pendCount = tasks.length - doneCount;
@@ -3447,12 +3448,12 @@ function parseCSVLine(line) {
   document.getElementById('print-header').textContent =
     'Newberry Facilities — ' + SECTIONS[currentSection].label + ' Task List';
 
+  loadTasks();
+  loadNames();
   renderSectionTabs();
   renderSubsectionBar();
   updateManualPlaceholder();
   updateStockToggleVisibility();
-  loadTasks();
-  loadNames();
   initLang();
   initVoiceBar();
   render();
