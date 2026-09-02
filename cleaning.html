@@ -70,7 +70,7 @@ body {
 [data-section="office"]      { --pk: #455a64; --pk-light: rgba(69,90,100,.08); --pk-mid: rgba(69,90,100,.15); --glow: rgba(69,90,100,.35); }
 
 .app-header {
-  padding: 14px 16px 10px;
+  padding: calc(14px + env(safe-area-inset-top, 0px)) 16px 10px;
   display: flex; align-items: center; justify-content: space-between;
 }
 .logo { display: flex; flex-direction: column; }
