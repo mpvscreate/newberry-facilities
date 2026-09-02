@@ -187,6 +187,18 @@ body {
 }
 .room-subtitle { display: flex; align-items: center; gap: 6px; margin-top: 2px; }
 .room-fraction { font-size: 10px; font-weight: 600; color: var(--muted); }
+.room-time-badge {
+  font-size: 9px; font-weight: 600; color: var(--text-secondary);
+  background: var(--badge-bg); border-radius: 10px; padding: 1px 6px;
+}
+.room-card.complete .room-time-badge { color: var(--green); background: var(--green-light); }
+.stats-time { font-size: 11px; color: var(--muted); font-weight: 600; white-space: nowrap; margin-left: auto; }
+.room-est-edit {
+  display: none; font-size: 10px; color: var(--pk); cursor: pointer;
+  background: none; border: 1px dashed var(--pk-mid); border-radius: 4px;
+  padding: 1px 6px; font-family: var(--font-body); font-weight: 600;
+}
+.edit-mode-active .room-est-edit { display: inline-block; }
 .room-staff-badge {
   font-size: 9px; font-weight: 600; color: var(--pk);
   background: var(--pk-light); border-radius: 10px; padding: 1px 6px;
@@ -459,6 +471,7 @@ body {
     <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
     <div class="progress-label" id="progress-label">0%</div>
   </div>
+  <span class="stats-time" id="stats-time"></span>
 </div>
 
 <div class="filter-bar">
@@ -537,12 +550,12 @@ const SECTION_ICONS = {
   office: '<svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>'
 };
 const SECTIONS = {
-  classrooms: { label: 'Classrooms', themeColor: '#1565c0' },
-  bathrooms:  { label: 'Bathrooms',  themeColor: '#00838f' },
-  kitchen:    { label: 'Kitchen',    themeColor: '#e65100' },
-  outdoor:    { label: 'Outdoor',    themeColor: '#2e7d32' },
-  common:     { label: 'Common',     themeColor: '#6a1b9a' },
-  office:     { label: 'Office',     themeColor: '#455a64' }
+  classrooms: { label: 'Classrooms', themeColor: '#1565c0', estMin: 15 },
+  bathrooms:  { label: 'Bathrooms',  themeColor: '#00838f', estMin: 20 },
+  kitchen:    { label: 'Kitchen',    themeColor: '#e65100', estMin: 25 },
+  outdoor:    { label: 'Outdoor',    themeColor: '#2e7d32', estMin: 15 },
+  common:     { label: 'Common',     themeColor: '#6a1b9a', estMin: 20 },
+  office:     { label: 'Office',     themeColor: '#455a64', estMin: 15 }
 };
 const ROOMS = {
   classrooms: Array.from({ length: 38 }, (_, i) => ({ id: 'cr' + (i + 1), name: 'Classroom ' + (i + 1) })),
@@ -588,6 +601,7 @@ let customItems = {};
 let staff = [];
 let assignments = {};
 let editMode = false;
+let roomEstimates = {};
 let toastTimer = null;
 let _syncDebounce = null;
 function debouncedSync() { clearTimeout(_syncDebounce); _syncDebounce = setTimeout(() => syncUp(), 2000); }
@@ -627,6 +641,18 @@ function loadStaff() { try { const r = localStorage.getItem('ncl_staff_v1'); if 
 function saveStaff() { try { localStorage.setItem('ncl_staff_v1', JSON.stringify(staff)); } catch (e) {} debouncedSync(); }
 function loadAssignments() { try { const r = localStorage.getItem('ncl_assign_v1'); if (r) assignments = JSON.parse(r); } catch (e) { assignments = {}; } }
 function saveAssignments() { try { localStorage.setItem('ncl_assign_v1', JSON.stringify(assignments)); } catch (e) {} debouncedSync(); }
+function loadRoomEstimates() { try { const r = localStorage.getItem('ncl_est_v1'); if (r) roomEstimates = JSON.parse(r); } catch (e) { roomEstimates = {}; } }
+function saveRoomEstimates() { try { localStorage.setItem('ncl_est_v1', JSON.stringify(roomEstimates)); } catch (e) {} }
+function getRoomEstimate(roomId) {
+  if (roomEstimates[roomId]) return roomEstimates[roomId];
+  const section = getRoomSection(roomId);
+  return SECTIONS[section] ? SECTIONS[section].estMin : 15;
+}
+function formatMinutes(m) {
+  if (m < 60) return m + ' min';
+  const h = Math.floor(m / 60); const r = m % 60;
+  return r > 0 ? h + 'h ' + r + 'm' : h + 'h';
+}
 
 function getChecklistForRoom(roomId) {
   const section = getRoomSection(roomId);
@@ -713,11 +739,16 @@ function render() { renderSectionTabs(); updateStats(); renderRoomList(); }
 function updateStats() {
   document.getElementById('stats-date').innerHTML = formatDate(getToday());
   const rooms = ROOMS[currentSection] || [];
-  let totalItems = 0, doneItems = 0;
-  rooms.forEach(r => { const p = getRoomProgress(r.id); totalItems += p.total; doneItems += p.done; });
+  let totalItems = 0, doneItems = 0, remainingMin = 0;
+  rooms.forEach(r => {
+    const p = getRoomProgress(r.id);
+    totalItems += p.total; doneItems += p.done;
+    if (p.done < p.total) remainingMin += getRoomEstimate(r.id);
+  });
   const pct = totalItems > 0 ? Math.round(doneItems / totalItems * 100) : 0;
   document.getElementById('progress-fill').style.width = pct + '%';
   document.getElementById('progress-label').textContent = doneItems + '/' + totalItems + ' (' + pct + '%)';
+  document.getElementById('stats-time').textContent = remainingMin > 0 ? '~' + formatMinutes(remainingMin) + ' left' : 'Done';
 }
 
 function renderRoomList() {
@@ -766,6 +797,7 @@ function renderRoomList() {
         '<button class="btn btn-ghost btn-sm" onclick="uncheckAll(\'' + room.id + '\')">Reset</button>' +
         '<button class="btn btn-green btn-sm" onclick="checkAll(\'' + room.id + '\')">&#10003; All</button>' +
         '<button class="btn btn-assign btn-sm" onclick="openAssignModal(\'' + room.id + '\')">Assign</button>' +
+        '<button class="room-est-edit" onclick="editRoomEstimate(\'' + room.id + '\')" title="Edit time">~' + getRoomEstimate(room.id) + ' min</button>' +
         '<div class="edit-room-actions" style="margin-left:auto">' +
           '<button onclick="renameRoom(\'' + room.id + '\')">Rename</button>' +
           '<button class="edit-delete-room" onclick="deleteRoom(\'' + room.id + '\')">Remove</button>' +
@@ -780,6 +812,7 @@ function renderRoomList() {
           '<div class="room-name">' + escHtml(room.name) + '</div>' +
           '<div class="room-subtitle">' +
             '<span class="room-fraction">' + p.done + '/' + p.total + '</span>' +
+            '<span class="room-time-badge">~' + getRoomEstimate(room.id) + ' min</span>' +
             (a && a.staff ? '<span class="room-staff-badge">' + escHtml(a.staff) + '</span>' : '') +
           '</div>' +
         '</div>' +
@@ -985,6 +1018,16 @@ function toggleEditMode() {
   document.getElementById('edit-mode-btn').classList.toggle('active', editMode);
   render(); showToast(editMode ? 'Edit mode on' : 'Edit mode off');
 }
+function editRoomEstimate(roomId) {
+  const current = getRoomEstimate(roomId);
+  const val = prompt('Estimated cleaning time (minutes):', current);
+  if (val === null) return;
+  const mins = parseInt(val, 10);
+  if (isNaN(mins) || mins < 1) { showToast('Enter a valid number'); return; }
+  roomEstimates[roomId] = mins;
+  saveRoomEstimates(); render(); showToast('Time updated to ' + mins + ' min');
+}
+
 function renameRoom(roomId) {
   const room = findRoom(roomId); if (!room) return;
   const name = prompt('Rename room:', room.name);
@@ -1114,7 +1157,7 @@ async function syncDown() {
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.setAttribute('content', SECTIONS[currentSection].themeColor);
   document.getElementById('logo-sub').textContent = SECTIONS[currentSection].label;
-  loadRooms(); loadPresetChecklists(); loadChecks(); loadCustomItems(); loadStaff(); loadAssignments();
+  loadRooms(); loadPresetChecklists(); loadChecks(); loadCustomItems(); loadStaff(); loadAssignments(); loadRoomEstimates();
   render();
   initSupabase();
   if (sb) { syncDown(); startAutoSync(); }
