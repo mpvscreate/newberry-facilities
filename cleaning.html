@@ -7,6 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Newberry Cleaning</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
 /* ================================================================
    RESET & BASE
@@ -805,6 +806,11 @@ let staff = [];
 let assignments = {};
 let voiceBarOpen = false;
 let toastTimer = null;
+let _syncDebounce = null;
+function debouncedSync() {
+  clearTimeout(_syncDebounce);
+  _syncDebounce = setTimeout(() => syncUp(), 2000);
+}
 
 /* ================================================================
    DATE HELPERS
@@ -846,6 +852,7 @@ function saveChecks() {
     all[today] = checks;
     localStorage.setItem('ncl_checks_v1', JSON.stringify(all));
   } catch (e) {}
+  debouncedSync();
 }
 
 function loadCustomItems() {
@@ -866,6 +873,7 @@ function loadStaff() {
 }
 function saveStaff() {
   try { localStorage.setItem('ncl_staff_v1', JSON.stringify(staff)); } catch (e) {}
+  debouncedSync();
 }
 
 function loadAssignments() {
@@ -876,6 +884,7 @@ function loadAssignments() {
 }
 function saveAssignments() {
   try { localStorage.setItem('ncl_assign_v1', JSON.stringify(assignments)); } catch (e) {}
+  debouncedSync();
 }
 
 /* ================================================================
@@ -1568,6 +1577,121 @@ function loadPresetChecklists() {
 }
 
 /* ================================================================
+   SUPABASE CLOUD SYNC
+================================================================ */
+const SUPABASE_URL = 'https://oikwudpqmbnssttatlhc.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9pa3d1ZHBxbWJuc3N0dGF0bGhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxMTMzODEsImV4cCI6MjA5NTY4OTM4MX0.p6I9qlvre5TjF3qOVjAIBus3_PNrbvCF2cMXHe3uiXw';
+let sb = null;
+let syncInterval = null;
+
+function initSupabase() {
+  try {
+    if (window.supabase && window.supabase.createClient) {
+      sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    }
+  } catch (e) { sb = null; }
+}
+
+function startAutoSync() {
+  if (syncInterval) clearInterval(syncInterval);
+  syncInterval = setInterval(() => { syncUp(); syncDown(); }, 30000);
+}
+
+async function syncUp() {
+  if (!sb) return;
+  try {
+    const today = getToday();
+
+    const checkRows = [];
+    for (const [roomId, indices] of Object.entries(checks)) {
+      const section = getRoomSection(roomId);
+      const timesRaw = localStorage.getItem('ncl_times_v1');
+      const times = timesRaw ? JSON.parse(timesRaw) : {};
+      const roomTimes = (times[today] && times[today][roomId]) || {};
+      checkRows.push({
+        id: roomId + '_' + today,
+        room_id: roomId,
+        section: section,
+        date: today,
+        checked_indices: JSON.stringify(indices),
+        check_times: JSON.stringify(roomTimes),
+        updated_at: Date.now()
+      });
+    }
+    if (checkRows.length > 0) {
+      await sb.from('cleaning_checks').upsert(checkRows, { onConflict: 'id' });
+    }
+
+    const staffRows = staff.map(s => ({
+      id: s.id, name: s.name, updated_at: Date.now(), deleted: false
+    }));
+    if (staffRows.length > 0) {
+      await sb.from('cleaning_staff').upsert(staffRows, { onConflict: 'id' });
+    }
+
+    const assignRows = Object.entries(assignments).map(([roomId, a]) => ({
+      room_id: roomId, staff_name: a.staff || '', shift: a.shift || 'morning', updated_at: Date.now()
+    }));
+    if (assignRows.length > 0) {
+      await sb.from('cleaning_assignments').upsert(assignRows, { onConflict: 'room_id' });
+    }
+  } catch (e) { console.warn('Sync up failed:', e); }
+}
+
+async function syncDown() {
+  if (!sb) return;
+  try {
+    const today = getToday();
+
+    const { data: checkData } = await sb.from('cleaning_checks')
+      .select('*').eq('date', today);
+    if (checkData && checkData.length > 0) {
+      const timesRaw = localStorage.getItem('ncl_times_v1');
+      const allTimes = timesRaw ? JSON.parse(timesRaw) : {};
+      if (!allTimes[today]) allTimes[today] = {};
+
+      checkData.forEach(row => {
+        const localIndices = checks[row.room_id] || [];
+        const remoteIndices = JSON.parse(row.checked_indices || '[]');
+        const merged = [...new Set([...localIndices, ...remoteIndices])].sort((a, b) => a - b);
+        checks[row.room_id] = merged;
+
+        const remoteTimes = JSON.parse(row.check_times || '{}');
+        if (!allTimes[today][row.room_id]) allTimes[today][row.room_id] = {};
+        Object.assign(allTimes[today][row.room_id], remoteTimes);
+      });
+
+      saveChecks();
+      try { localStorage.setItem('ncl_times_v1', JSON.stringify(allTimes)); } catch (e) {}
+    }
+
+    const { data: staffData } = await sb.from('cleaning_staff')
+      .select('*').eq('deleted', false);
+    if (staffData) {
+      const localMap = new Map(staff.map(s => [s.id, s]));
+      staffData.forEach(r => {
+        if (!localMap.has(r.id)) {
+          staff.push({ id: r.id, name: r.name });
+        }
+      });
+      saveStaff();
+    }
+
+    const { data: assignData } = await sb.from('cleaning_assignments').select('*');
+    if (assignData) {
+      assignData.forEach(r => {
+        if (!assignments[r.room_id] && r.staff_name) {
+          assignments[r.room_id] = { staff: r.staff_name, shift: r.shift };
+        }
+      });
+      saveAssignments();
+    }
+
+    render();
+  } catch (e) { console.warn('Sync down failed:', e); }
+}
+
+/* ================================================================
    INIT
 ================================================================ */
 (function init() {
@@ -1600,6 +1724,12 @@ function loadPresetChecklists() {
   loadStaff();
   loadAssignments();
   render();
+
+  initSupabase();
+  if (sb) {
+    syncDown();
+    startAutoSync();
+  }
 })();
 </script>
 </body>
