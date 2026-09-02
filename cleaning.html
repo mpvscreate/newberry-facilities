@@ -1,0 +1,1348 @@
+<!DOCTYPE html>
+<html lang="en" data-section="classrooms" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1565c0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Newberry Cleaning</title>
+<style>
+/* ================================================================
+   RESET & BASE
+================================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { height: 100%; -webkit-text-size-adjust: 100%; }
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100dvh;
+  padding-bottom: env(safe-area-inset-bottom, 20px);
+  transition: background .3s, color .3s;
+  -webkit-tap-highlight-color: transparent;
+  overflow-x: hidden;
+}
+
+/* ================================================================
+   THEME — LIGHT (default)
+================================================================ */
+:root {
+  --bg: #f5f5f0;
+  --card: #ffffff;
+  --card-hover: #fafaf8;
+  --border: #e0ddd5;
+  --text: #1a1a1a;
+  --muted: #777;
+  --shadow: 0 2px 8px rgba(0,0,0,.06);
+  --font-head: 'Georgia', 'Times New Roman', serif;
+  --font-body: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --badge-bg: rgba(0,0,0,.06);
+  --red: #c62828;
+  --green: #2e7d32;
+  --amber: #f9a825;
+  --toast-bg: #333;
+  --toast-color: #fff;
+  --overlay: rgba(0,0,0,.35);
+}
+
+/* ================================================================
+   THEME — DARK
+================================================================ */
+[data-theme="dark"] {
+  --bg: #0e0e0e;
+  --card: #1a1a1a;
+  --card-hover: #222;
+  --border: #2a2a2a;
+  --text: #e8e6e1;
+  --muted: #888;
+  --shadow: 0 2px 10px rgba(0,0,0,.5);
+  --badge-bg: rgba(255,255,255,.08);
+  --toast-bg: #e8e6e1;
+  --toast-color: #1a1a1a;
+  --overlay: rgba(0,0,0,.55);
+}
+
+/* ================================================================
+   SECTION COLORS
+================================================================ */
+[data-section="classrooms"]  { --pk: #1565c0; --pk-light: rgba(21,101,192,.12); --glow: rgba(21,101,192,.35); }
+[data-section="bathrooms"]   { --pk: #00838f; --pk-light: rgba(0,131,143,.12); --glow: rgba(0,131,143,.35); }
+[data-section="kitchen"]     { --pk: #e65100; --pk-light: rgba(230,81,0,.12); --glow: rgba(230,81,0,.35); }
+[data-section="outdoor"]     { --pk: #2e7d32; --pk-light: rgba(46,125,50,.12); --glow: rgba(46,125,50,.35); }
+[data-section="common"]      { --pk: #6a1b9a; --pk-light: rgba(106,27,154,.12); --glow: rgba(106,27,154,.35); }
+[data-section="office"]      { --pk: #455a64; --pk-light: rgba(69,90,100,.12); --glow: rgba(69,90,100,.35); }
+
+/* ================================================================
+   HEADER
+================================================================ */
+.app-header {
+  padding: 16px 16px 8px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.logo {
+  display: flex; flex-direction: column;
+}
+.logo-title {
+  font-family: var(--font-head); font-size: 22px; font-weight: 700;
+  color: var(--pk); line-height: 1.1; letter-spacing: -.3px;
+}
+.logo-sub {
+  font-size: 9px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 2.5px; color: var(--muted); margin-top: 2px;
+}
+.header-actions { display: flex; gap: 6px; }
+.header-btn {
+  width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid var(--border);
+  background: var(--card); color: var(--muted); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .2s;
+}
+.header-btn:hover { color: var(--text); border-color: var(--pk); }
+.header-btn svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ================================================================
+   SECTION TABS
+================================================================ */
+.section-tabs {
+  display: flex; gap: 4px; padding: 6px 16px;
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.section-tabs::-webkit-scrollbar { display: none; }
+.section-tab {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 4px;
+  padding: 7px 10px; border: none; background: transparent; border-radius: 8px;
+  cursor: pointer; font-family: var(--font-body); font-size: 9px; font-weight: 700;
+  color: var(--muted); text-transform: uppercase; letter-spacing: .4px;
+  transition: all .22s; user-select: none; white-space: nowrap;
+}
+.section-tab .tab-icon { width: 14px; height: 14px; display: block; flex-shrink: 0; }
+.section-tab .tab-icon svg { width: 100%; height: 100%; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.section-tab:hover { color: var(--text); background: rgba(0,0,0,.04); }
+[data-theme="dark"] .section-tab:hover { background: rgba(255,255,255,.04); }
+.section-tab.active {
+  background: var(--pk); color: #fff; box-shadow: 0 2px 8px var(--glow);
+}
+.tab-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px;
+  font-size: 9px; font-weight: 700; background: var(--muted); color: var(--bg); margin-left: 2px;
+}
+.section-tab.active .tab-badge { background: rgba(255,255,255,.35); color: #fff; }
+
+/* ================================================================
+   DATE & STATS BAR
+================================================================ */
+.stats-bar {
+  padding: 10px 16px; display: flex; align-items: center; gap: 12px;
+}
+.stats-date {
+  font-size: 13px; font-weight: 700; color: var(--text);
+}
+.stats-date span { color: var(--muted); font-weight: 400; }
+.stats-progress {
+  flex: 1; display: flex; align-items: center; gap: 8px;
+}
+.progress-track {
+  flex: 1; height: 6px; background: var(--badge-bg); border-radius: 3px; overflow: hidden;
+}
+.progress-fill {
+  height: 100%; background: var(--pk); border-radius: 3px;
+  transition: width .4s ease;
+}
+.progress-label {
+  font-size: 11px; font-weight: 700; color: var(--pk); white-space: nowrap;
+}
+
+/* ================================================================
+   SHIFT FILTER
+================================================================ */
+.shift-bar {
+  padding: 4px 16px 8px; display: flex; gap: 6px; align-items: center;
+}
+.shift-chip {
+  padding: 5px 12px; border-radius: 20px; border: 1.5px solid var(--border);
+  background: transparent; font-size: 11px; font-weight: 600; color: var(--muted);
+  cursor: pointer; transition: all .2s; font-family: var(--font-body);
+}
+.shift-chip.active { background: var(--pk); color: #fff; border-color: var(--pk); }
+.search-box {
+  flex: 1; max-width: 200px; padding: 5px 10px; border: 1.5px solid var(--border);
+  border-radius: 20px; background: var(--card); color: var(--text);
+  font-size: 12px; font-family: var(--font-body); outline: none;
+  transition: border-color .2s;
+}
+.search-box:focus { border-color: var(--pk); }
+.search-box::placeholder { color: var(--muted); }
+
+/* ================================================================
+   ROOM GRID
+================================================================ */
+.room-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px; padding: 0 16px 100px;
+}
+.room-card {
+  background: var(--card); border: 1.5px solid var(--border); border-radius: 12px;
+  padding: 12px; cursor: pointer; transition: all .2s;
+  display: flex; flex-direction: column; gap: 8px;
+  position: relative; overflow: hidden;
+}
+.room-card:active { transform: scale(.97); }
+.room-card:hover { border-color: var(--pk); box-shadow: var(--shadow); }
+.room-card.complete { border-color: var(--green); }
+.room-card.complete::after {
+  content: '\2713'; position: absolute; top: 8px; right: 8px;
+  width: 20px; height: 20px; border-radius: 50%; background: var(--green);
+  color: #fff; font-size: 11px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.room-name {
+  font-size: 13px; font-weight: 700; color: var(--text);
+  line-height: 1.2; padding-right: 24px;
+}
+.room-progress-bar {
+  height: 4px; background: var(--badge-bg); border-radius: 2px; overflow: hidden;
+}
+.room-progress-fill {
+  height: 100%; border-radius: 2px; transition: width .3s ease;
+}
+.room-card:not(.complete) .room-progress-fill { background: var(--pk); }
+.room-card.complete .room-progress-fill { background: var(--green); }
+.room-meta {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+}
+.room-fraction {
+  font-size: 10px; font-weight: 700; color: var(--muted);
+}
+.room-staff-badge {
+  font-size: 10px; font-weight: 600; color: var(--pk);
+  background: var(--pk-light); border-radius: 10px; padding: 1px 7px;
+}
+.room-shift-badge {
+  font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px;
+  color: var(--muted); background: var(--badge-bg); border-radius: 10px; padding: 1px 7px;
+}
+
+/* ================================================================
+   EMPTY STATE
+================================================================ */
+.empty-state {
+  text-align: center; padding: 60px 20px; color: var(--muted);
+  display: none;
+}
+.empty-state.visible { display: block; }
+.empty-state svg { width: 48px; height: 48px; stroke: var(--muted); fill: none; stroke-width: 1.2; margin-bottom: 12px; }
+.empty-msg { font-size: 14px; line-height: 1.5; }
+
+/* ================================================================
+   CHECKLIST MODAL
+================================================================ */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 1000; background: var(--overlay);
+  display: none; align-items: flex-end; justify-content: center;
+  padding: 0;
+}
+.modal-overlay.open { display: flex; }
+.modal-sheet {
+  background: var(--card); border-radius: 16px 16px 0 0;
+  width: 100%; max-width: 500px; max-height: 85dvh;
+  overflow-y: auto; padding: 0;
+  animation: slideUp .25s ease;
+}
+@keyframes slideUp {
+  from { transform: translateY(40px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.modal-handle {
+  width: 36px; height: 4px; border-radius: 2px; background: var(--border);
+  margin: 10px auto 0;
+}
+.modal-header {
+  padding: 12px 16px 8px; display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+}
+.modal-title { font-size: 16px; font-weight: 700; color: var(--text); }
+.modal-close {
+  width: 30px; height: 30px; border: none; background: var(--badge-bg);
+  border-radius: 50%; color: var(--muted); cursor: pointer; font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .2s;
+}
+.modal-close:hover { background: var(--border); color: var(--text); }
+.modal-body { padding: 8px 0; }
+
+.checklist-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px; border-bottom: 1px solid var(--badge-bg);
+  cursor: pointer; transition: background .15s; user-select: none;
+}
+.checklist-item:active { background: var(--pk-light); }
+.checklist-item:last-child { border-bottom: none; }
+.check-box {
+  width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--border);
+  flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  transition: all .2s; color: transparent;
+}
+.checklist-item.checked .check-box {
+  background: var(--pk); border-color: var(--pk); color: #fff;
+}
+.check-box svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.check-label {
+  font-size: 14px; color: var(--text); transition: all .2s;
+  flex: 1;
+}
+.checklist-item.checked .check-label {
+  text-decoration: line-through; color: var(--muted);
+}
+.check-time {
+  font-size: 10px; color: var(--muted); white-space: nowrap;
+}
+
+.modal-section-title {
+  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px;
+  color: var(--muted); padding: 12px 16px 6px;
+}
+.modal-assign-row {
+  display: flex; gap: 8px; padding: 8px 16px;
+}
+.modal-assign-row select {
+  flex: 1; padding: 8px 10px; border: 1.5px solid var(--border);
+  border-radius: 8px; background: var(--card); color: var(--text);
+  font-size: 13px; font-family: var(--font-body); outline: none;
+}
+.modal-assign-row select:focus { border-color: var(--pk); }
+.modal-actions {
+  padding: 12px 16px; border-top: 1px solid var(--border);
+  display: flex; gap: 8px; justify-content: flex-end;
+}
+
+/* ================================================================
+   BUTTONS
+================================================================ */
+.btn {
+  padding: 8px 16px; border-radius: 8px; border: none; font-size: 13px;
+  font-weight: 600; font-family: var(--font-body); cursor: pointer;
+  transition: all .2s; display: inline-flex; align-items: center; gap: 6px;
+}
+.btn-pk { background: var(--pk); color: #fff; }
+.btn-pk:hover { filter: brightness(1.1); }
+.btn-ghost { background: transparent; color: var(--muted); border: 1.5px solid var(--border); }
+.btn-ghost:hover { color: var(--text); border-color: var(--text); }
+.btn-sm { padding: 5px 10px; font-size: 11px; }
+.btn-green { background: var(--green); color: #fff; }
+
+/* ================================================================
+   STAFF PANEL
+================================================================ */
+.panel-overlay {
+  position: fixed; inset: 0; z-index: 1000; background: var(--overlay);
+  display: none; align-items: center; justify-content: center; padding: 16px;
+}
+.panel-overlay.open { display: flex; }
+.panel {
+  background: var(--card); border-radius: 16px; width: 100%; max-width: 420px;
+  max-height: 80dvh; overflow-y: auto; animation: fadeIn .2s ease;
+}
+@keyframes fadeIn { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: scale(1); } }
+.panel-header {
+  padding: 16px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.panel-title { font-size: 16px; font-weight: 700; }
+.panel-body { padding: 8px 16px 16px; }
+.staff-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 0; border-bottom: 1px solid var(--badge-bg);
+}
+.staff-row:last-child { border-bottom: none; }
+.staff-name { flex: 1; font-size: 14px; font-weight: 600; }
+.staff-count { font-size: 11px; color: var(--muted); }
+.staff-remove {
+  width: 24px; height: 24px; border: none; background: rgba(198,40,40,.1);
+  border-radius: 50%; color: var(--red); cursor: pointer; font-size: 12px;
+  display: flex; align-items: center; justify-content: center;
+}
+.add-staff-row {
+  display: flex; gap: 8px; margin-top: 12px;
+}
+.add-staff-input {
+  flex: 1; padding: 8px 12px; border: 1.5px solid var(--border); border-radius: 8px;
+  background: var(--bg); color: var(--text); font-size: 13px;
+  font-family: var(--font-body); outline: none;
+}
+.add-staff-input:focus { border-color: var(--pk); }
+.add-staff-input::placeholder { color: var(--muted); }
+
+/* ================================================================
+   SCHEDULE PANEL
+================================================================ */
+.schedule-table {
+  width: 100%; border-collapse: collapse; font-size: 12px;
+}
+.schedule-table th {
+  text-align: left; padding: 8px 6px; font-size: 10px; text-transform: uppercase;
+  letter-spacing: .5px; color: var(--muted); border-bottom: 1.5px solid var(--border);
+}
+.schedule-table td {
+  padding: 6px; border-bottom: 1px solid var(--badge-bg); color: var(--text);
+}
+.schedule-table .sched-room { font-weight: 600; }
+.schedule-table .sched-staff { color: var(--pk); }
+.schedule-table .sched-shift { font-size: 10px; text-transform: uppercase; color: var(--muted); }
+
+/* ================================================================
+   VOICE BAR (simplified)
+================================================================ */
+.voice-bar {
+  padding: 8px 16px; margin: 0 16px 8px; background: var(--card);
+  border: 1.5px solid var(--border); border-radius: 12px;
+}
+.voice-bar-header {
+  display: flex; align-items: center; justify-content: space-between;
+  cursor: pointer; user-select: none;
+}
+.voice-bar-label {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1px; color: var(--muted);
+}
+.voice-bar-toggle {
+  font-size: 10px; color: var(--pk); transition: transform .2s;
+}
+.voice-bar-toggle.collapsed { transform: rotate(-90deg); }
+.voice-bar-body { overflow: hidden; transition: max-height .25s ease, opacity .2s; max-height: 200px; opacity: 1; }
+.voice-bar-body.collapsed { max-height: 0; opacity: 0; }
+.manual-row {
+  display: flex; gap: 8px; margin-top: 8px;
+}
+.manual-input {
+  flex: 1; padding: 8px 12px; border: 1.5px solid var(--border); border-radius: 8px;
+  background: var(--bg); color: var(--text); font-size: 13px;
+  font-family: var(--font-body); outline: none;
+}
+.manual-input:focus { border-color: var(--pk); }
+.manual-input::placeholder { color: var(--muted); }
+
+/* ================================================================
+   TOAST
+================================================================ */
+.toast {
+  position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: var(--toast-bg); color: var(--toast-color);
+  padding: 10px 20px; border-radius: 10px; font-size: 13px; font-weight: 600;
+  box-shadow: 0 4px 16px rgba(0,0,0,.25); opacity: 0; transition: all .25s;
+  z-index: 2000; pointer-events: none; white-space: nowrap;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ================================================================
+   MIC FAB
+================================================================ */
+.mic-fab {
+  position: fixed; bottom: 20px; right: 20px; width: 56px; height: 56px;
+  border-radius: 50%; border: none; background: var(--pk);
+  color: #fff; cursor: pointer; box-shadow: 0 4px 16px var(--glow);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 900; transition: transform .15s, box-shadow .2s;
+}
+.mic-fab:active { transform: scale(.92); }
+.mic-fab svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.mic-fab.recording { background: var(--red); animation: pulse 1s infinite; }
+@keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(198,40,40,.5); } 50% { box-shadow: 0 0 0 12px rgba(198,40,40,0); } }
+
+/* ================================================================
+   PRINT
+================================================================ */
+@media print {
+  .app-header, .section-tabs, .shift-bar, .voice-bar, .mic-fab, .toast,
+  .header-actions, .modal-overlay, .panel-overlay { display: none !important; }
+  body { background: #fff; color: #000; }
+  .room-grid { gap: 6px; }
+  .room-card { border: 1px solid #ccc; break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="app-header">
+  <div class="logo">
+    <div class="logo-title">Newberry<span style="font-weight:400">Cleaning</span></div>
+    <div class="logo-sub" id="logo-sub">Classrooms</div>
+  </div>
+  <div class="header-actions">
+    <button class="header-btn" title="Staff" onclick="openStaffPanel()">
+      <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    </button>
+    <button class="header-btn" title="Schedule" onclick="openSchedulePanel()">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    </button>
+    <button class="header-btn" title="Print" onclick="window.print()">
+      <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+    </button>
+    <button class="header-btn" title="Theme" onclick="toggleTheme()">
+      <svg id="theme-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+    </button>
+  </div>
+</header>
+
+<!-- Section Tabs -->
+<div class="section-tabs" id="section-tabs"></div>
+
+<!-- Stats Bar -->
+<div class="stats-bar">
+  <div class="stats-date" id="stats-date"></div>
+  <div class="stats-progress">
+    <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+    <div class="progress-label" id="progress-label">0%</div>
+  </div>
+</div>
+
+<!-- Shift Filter + Search -->
+<div class="shift-bar">
+  <button class="shift-chip active" data-shift="all" onclick="setShift('all')">All</button>
+  <button class="shift-chip" data-shift="morning" onclick="setShift('morning')">Morning</button>
+  <button class="shift-chip" data-shift="afternoon" onclick="setShift('afternoon')">Afternoon</button>
+  <button class="shift-chip" data-shift="evening" onclick="setShift('evening')">Evening</button>
+  <input type="text" class="search-box" id="search-input" placeholder="Search rooms..." oninput="onSearch(this.value)">
+</div>
+
+<!-- Voice Bar (simplified) -->
+<div class="voice-bar">
+  <div class="voice-bar-header" onclick="toggleVoiceBar()">
+    <span class="voice-bar-label">Add Custom Item</span>
+    <span class="voice-bar-toggle" id="voice-bar-toggle">&#9660;</span>
+  </div>
+  <div class="voice-bar-body collapsed" id="voice-bar-body">
+    <div class="manual-row">
+      <input type="text" class="manual-input" id="custom-item-input"
+        placeholder="Type a custom checklist item..." onkeydown="if(event.key==='Enter') addCustomItem()">
+      <button class="btn btn-pk btn-sm" onclick="addCustomItem()">Add</button>
+    </div>
+    <p style="font-size:10px;color:var(--muted);margin-top:6px;">
+      Added to all rooms in this section. Hold mic to speak.
+    </p>
+  </div>
+</div>
+
+<!-- Room Grid -->
+<div class="room-grid" id="room-grid"></div>
+
+<!-- Empty State -->
+<div class="empty-state" id="empty-state">
+  <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+  <div class="empty-msg" id="empty-msg">No rooms match your search.</div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Mic FAB -->
+<button class="mic-fab" id="mic-fab" title="Hold to speak">
+  <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+</button>
+
+<!-- Checklist Modal -->
+<div class="modal-overlay" id="checklist-overlay" onclick="closeChecklist(event)">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <span class="modal-title" id="checklist-title">Room</span>
+      <button class="modal-close" onclick="closeChecklist()">&times;</button>
+    </div>
+    <div class="modal-body" id="checklist-body"></div>
+    <div class="modal-section-title">Assignment</div>
+    <div class="modal-assign-row">
+      <select id="assign-staff" onchange="onAssignChange()">
+        <option value="">Unassigned</option>
+      </select>
+      <select id="assign-shift" onchange="onAssignChange()">
+        <option value="morning">Morning</option>
+        <option value="afternoon">Afternoon</option>
+        <option value="evening">Evening</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost btn-sm" onclick="uncheckAll()">Reset</button>
+      <button class="btn btn-green btn-sm" onclick="checkAll()">&#10003; Complete All</button>
+    </div>
+  </div>
+</div>
+
+<!-- Staff Panel -->
+<div class="panel-overlay" id="staff-overlay" onclick="closeStaffPanel(event)">
+  <div class="panel" onclick="event.stopPropagation()">
+    <div class="panel-header">
+      <span class="panel-title">Staff Members</span>
+      <button class="modal-close" onclick="closeStaffPanel()">&times;</button>
+    </div>
+    <div class="panel-body">
+      <div id="staff-list"></div>
+      <div class="add-staff-row">
+        <input type="text" class="add-staff-input" id="add-staff-input"
+          placeholder="Add staff member..." onkeydown="if(event.key==='Enter') addStaff()">
+        <button class="btn btn-pk btn-sm" onclick="addStaff()">Add</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Schedule Panel -->
+<div class="panel-overlay" id="schedule-overlay" onclick="closeSchedulePanel(event)">
+  <div class="panel" onclick="event.stopPropagation()">
+    <div class="panel-header">
+      <span class="panel-title">Today's Schedule</span>
+      <button class="modal-close" onclick="closeSchedulePanel()">&times;</button>
+    </div>
+    <div class="panel-body" id="schedule-body"></div>
+  </div>
+</div>
+
+<script>
+/* ================================================================
+   SECTION CONFIG
+================================================================ */
+const SECTION_ICONS = {
+  classrooms: '<svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
+  bathrooms: '<svg viewBox="0 0 24 24"><path d="M2 12h20v4a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4v-4z"/><path d="M6 12V5a2 2 0 0 1 2-2h1"/><circle cx="12" cy="5" r="1"/>',
+  kitchen: '<svg viewBox="0 0 24 24"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><line x1="7" y1="2" x2="7" y2="11"/><line x1="7" y1="15" x2="7" y2="22"/><path d="M17 2v5a3 3 0 0 0 3 3h0"/><line x1="17" y1="10" x2="17" y2="22"/>',
+  outdoor: '<svg viewBox="0 0 24 24"><path d="M12 22c-4-2-8-6-8-11a8 8 0 0 1 16 0c0 5-4 9-8 11z"/><path d="M12 2v10"/><path d="M8 8c2 1 4 1 4 4"/><path d="M16 8c-2 1-4 1-4 4"/>',
+  common: '<svg viewBox="0 0 24 24"><rect x="3" y="7" width="8" height="15" rx="1"/><rect x="13" y="3" width="8" height="19" rx="1"/><line x1="6" y1="10" x2="8" y2="10"/><line x1="6" y1="13" x2="8" y2="13"/><line x1="16" y1="6" x2="18" y2="6"/><line x1="16" y1="9" x2="18" y2="9"/>',
+  office: '<svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>'
+};
+
+const SECTIONS = {
+  classrooms: { label: 'Classrooms', themeColor: '#1565c0' },
+  bathrooms:  { label: 'Bathrooms',  themeColor: '#00838f' },
+  kitchen:    { label: 'Kitchen',    themeColor: '#e65100' },
+  outdoor:    { label: 'Outdoor',    themeColor: '#2e7d32' },
+  common:     { label: 'Common',     themeColor: '#6a1b9a' },
+  office:     { label: 'Office',     themeColor: '#455a64' }
+};
+
+/* ================================================================
+   ROOMS
+================================================================ */
+const ROOMS = {
+  classrooms: Array.from({ length: 38 }, (_, i) => ({ id: 'cr' + (i + 1), name: 'Classroom ' + (i + 1) })),
+  bathrooms: [
+    { id: 'bt1', name: 'Staff Bathroom' },
+    { id: 'bt2', name: "Children's Block A" },
+    { id: 'bt3', name: "Children's Block B" },
+    { id: 'bt4', name: "Children's Block C" },
+    { id: 'bt5', name: 'Accessible Bathroom' }
+  ],
+  kitchen: [
+    { id: 'kt1', name: 'Main Kitchen' },
+    { id: 'kt2', name: 'Canteen' },
+    { id: 'kt3', name: 'Staff Kitchen' }
+  ],
+  outdoor: [
+    { id: 'od1', name: 'Front Yard' },
+    { id: 'od2', name: 'Back Yard' },
+    { id: 'od3', name: 'Playground A' },
+    { id: 'od4', name: 'Playground B' },
+    { id: 'od5', name: 'Car Park' },
+    { id: 'od6', name: 'Garden Beds' }
+  ],
+  common: [
+    { id: 'cm1', name: 'Main Hall' },
+    { id: 'cm2', name: 'Library' },
+    { id: 'cm3', name: 'Staff Room' },
+    { id: 'cm4', name: 'Reception' },
+    { id: 'cm5', name: 'Corridor Block A' },
+    { id: 'cm6', name: 'Corridor Block B' }
+  ],
+  office: [
+    { id: 'of1', name: 'Main Office' },
+    { id: 'of2', name: "Principal's Office" },
+    { id: 'of3', name: 'Admin Room' },
+    { id: 'of4', name: 'Meeting Room' }
+  ]
+};
+
+/* ================================================================
+   PRESET CHECKLISTS
+================================================================ */
+const CHECKLISTS = {
+  classrooms: [
+    'Floors swept & mopped',
+    'Tables & desks wiped',
+    'Chairs arranged',
+    'Whiteboard cleaned',
+    'Bins emptied',
+    'Windows & sills dusted',
+    'Door handles sanitised',
+    'Light switches wiped'
+  ],
+  bathrooms: [
+    'Toilets cleaned & sanitised',
+    'Sinks & taps cleaned',
+    'Mirrors wiped',
+    'Floors mopped',
+    'Soap & paper restocked',
+    'Bins emptied',
+    'Door handles sanitised',
+    'Air freshener checked'
+  ],
+  kitchen: [
+    'Benches wiped & sanitised',
+    'Floors swept & mopped',
+    'Appliances wiped down',
+    'Fridge cleaned & organised',
+    'Bins emptied',
+    'Dishes washed & put away',
+    'Stovetop cleaned',
+    'Pantry tidied'
+  ],
+  outdoor: [
+    'Pathways swept',
+    'Garden beds tidied',
+    'Play equipment wiped',
+    'Sandpit raked & covered',
+    'Bins emptied',
+    'Tables & benches wiped',
+    'Gates checked & secure',
+    'Leaf litter cleared'
+  ],
+  common: [
+    'Floors swept & mopped',
+    'Furniture wiped',
+    'Windows cleaned',
+    'Bins emptied',
+    'Notice boards tidy',
+    'Door handles sanitised',
+    'Light switches wiped',
+    'Shelves & surfaces dusted'
+  ],
+  office: [
+    'Desks wiped',
+    'Floors vacuumed',
+    'Bins emptied',
+    'Printer area tidied',
+    'Kitchen corner cleaned',
+    'Door handles sanitised',
+    'Surfaces dusted',
+    'Filing area organised'
+  ]
+};
+
+/* ================================================================
+   STATE
+================================================================ */
+let currentSection = 'classrooms';
+let currentShift = 'all';
+let searchQ = '';
+let openRoomId = null;
+
+let checks = {};
+let customItems = {};
+let staff = [];
+let assignments = {};
+let voiceBarOpen = false;
+let toastTimer = null;
+
+/* ================================================================
+   DATE HELPERS
+================================================================ */
+function getToday() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function formatDate(iso) {
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+/* ================================================================
+   PERSISTENCE
+================================================================ */
+function loadChecks() {
+  const today = getToday();
+  try {
+    const raw = localStorage.getItem('ncl_checks_v1');
+    if (raw) {
+      const all = JSON.parse(raw);
+      checks = all[today] || {};
+      const keys = Object.keys(all).sort();
+      let changed = false;
+      while (keys.length > 7) { delete all[keys.shift()]; changed = true; }
+      if (changed) localStorage.setItem('ncl_checks_v1', JSON.stringify(all));
+    } else {
+      checks = {};
+    }
+  } catch (e) { checks = {}; }
+}
+
+function saveChecks() {
+  const today = getToday();
+  try {
+    const raw = localStorage.getItem('ncl_checks_v1');
+    const all = raw ? JSON.parse(raw) : {};
+    all[today] = checks;
+    localStorage.setItem('ncl_checks_v1', JSON.stringify(all));
+  } catch (e) {}
+}
+
+function loadCustomItems() {
+  try {
+    const raw = localStorage.getItem('ncl_custom_v1');
+    if (raw) customItems = JSON.parse(raw);
+  } catch (e) { customItems = {}; }
+}
+function saveCustomItems() {
+  try { localStorage.setItem('ncl_custom_v1', JSON.stringify(customItems)); } catch (e) {}
+}
+
+function loadStaff() {
+  try {
+    const raw = localStorage.getItem('ncl_staff_v1');
+    if (raw) staff = JSON.parse(raw);
+  } catch (e) { staff = []; }
+}
+function saveStaff() {
+  try { localStorage.setItem('ncl_staff_v1', JSON.stringify(staff)); } catch (e) {}
+}
+
+function loadAssignments() {
+  try {
+    const raw = localStorage.getItem('ncl_assign_v1');
+    if (raw) assignments = JSON.parse(raw);
+  } catch (e) { assignments = {}; }
+}
+function saveAssignments() {
+  try { localStorage.setItem('ncl_assign_v1', JSON.stringify(assignments)); } catch (e) {}
+}
+
+/* ================================================================
+   CHECKLIST LOGIC
+================================================================ */
+function getChecklistForRoom(roomId) {
+  const section = getRoomSection(roomId);
+  const preset = CHECKLISTS[section] || [];
+  const custom = (customItems[section] || []);
+  return [...preset, ...custom];
+}
+
+function getRoomSection(roomId) {
+  for (const [sid, rooms] of Object.entries(ROOMS)) {
+    if (rooms.some(r => r.id === roomId)) return sid;
+  }
+  return currentSection;
+}
+
+function isChecked(roomId, idx) {
+  return checks[roomId] && checks[roomId].includes(idx);
+}
+
+function getCheckTime(roomId, idx) {
+  const key = 'ncl_times_v1';
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return '';
+    const times = JSON.parse(raw);
+    const today = getToday();
+    return (times[today] && times[today][roomId] && times[today][roomId][idx]) || '';
+  } catch (e) { return ''; }
+}
+
+function setCheckTime(roomId, idx) {
+  const key = 'ncl_times_v1';
+  const today = getToday();
+  try {
+    const raw = localStorage.getItem(key);
+    const times = raw ? JSON.parse(raw) : {};
+    if (!times[today]) times[today] = {};
+    if (!times[today][roomId]) times[today][roomId] = {};
+    times[today][roomId][idx] = new Date().toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' });
+    localStorage.setItem(key, JSON.stringify(times));
+  } catch (e) {}
+}
+
+function toggleCheck(roomId, idx) {
+  if (!checks[roomId]) checks[roomId] = [];
+  const i = checks[roomId].indexOf(idx);
+  if (i === -1) {
+    checks[roomId].push(idx);
+    setCheckTime(roomId, idx);
+  } else {
+    checks[roomId].splice(i, 1);
+  }
+  saveChecks();
+}
+
+function getRoomProgress(roomId) {
+  const total = getChecklistForRoom(roomId).length;
+  const done = checks[roomId] ? checks[roomId].filter(i => i < total).length : 0;
+  return { done, total };
+}
+
+/* ================================================================
+   SECTION MANAGEMENT
+================================================================ */
+function renderSectionTabs() {
+  const container = document.getElementById('section-tabs');
+  container.innerHTML = Object.entries(SECTIONS).map(([id, s]) => {
+    const rooms = ROOMS[id] || [];
+    let complete = 0;
+    rooms.forEach(r => {
+      const p = getRoomProgress(r.id);
+      if (p.done === p.total && p.total > 0) complete++;
+    });
+    const remaining = rooms.length - complete;
+    const badge = remaining > 0 ? '<span class="tab-badge">' + remaining + '</span>' : '';
+    return '<button class="section-tab' + (id === currentSection ? ' active' : '') +
+      '" data-section="' + id + '" onclick="switchSection(\'' + id + '\')">' +
+      '<span class="tab-icon">' + SECTION_ICONS[id] + '</svg></span>' + s.label + badge + '</button>';
+  }).join('');
+}
+
+function switchSection(sectionId) {
+  if (sectionId === currentSection) return;
+  currentSection = sectionId;
+  searchQ = '';
+  document.getElementById('search-input').value = '';
+  document.documentElement.setAttribute('data-section', sectionId);
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', SECTIONS[sectionId].themeColor);
+  document.getElementById('logo-sub').textContent = SECTIONS[sectionId].label;
+  try { localStorage.setItem('ncl_section', sectionId); } catch (e) {}
+  render();
+}
+
+/* ================================================================
+   FILTER & SEARCH
+================================================================ */
+function setShift(shift) {
+  currentShift = shift;
+  document.querySelectorAll('.shift-chip').forEach(b =>
+    b.classList.toggle('active', b.dataset.shift === shift)
+  );
+  render();
+}
+
+function onSearch(q) {
+  searchQ = q.toLowerCase().trim();
+  render();
+}
+
+function getFilteredRooms() {
+  let rooms = ROOMS[currentSection] || [];
+  if (searchQ) {
+    rooms = rooms.filter(r => r.name.toLowerCase().includes(searchQ));
+  }
+  if (currentShift !== 'all') {
+    rooms = rooms.filter(r => {
+      const a = assignments[r.id];
+      return a && a.shift === currentShift;
+    });
+  }
+  return rooms;
+}
+
+/* ================================================================
+   RENDER
+================================================================ */
+function render() {
+  renderSectionTabs();
+  updateStats();
+  renderRoomGrid();
+}
+
+function updateStats() {
+  const today = getToday();
+  document.getElementById('stats-date').innerHTML = formatDate(today);
+
+  const rooms = ROOMS[currentSection] || [];
+  let totalItems = 0, doneItems = 0;
+  rooms.forEach(r => {
+    const p = getRoomProgress(r.id);
+    totalItems += p.total;
+    doneItems += p.done;
+  });
+  const pct = totalItems > 0 ? Math.round(doneItems / totalItems * 100) : 0;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-label').textContent = doneItems + '/' + totalItems + ' (' + pct + '%)';
+}
+
+function renderRoomGrid() {
+  const rooms = getFilteredRooms();
+  const grid = document.getElementById('room-grid');
+  const empty = document.getElementById('empty-state');
+
+  if (rooms.length === 0) {
+    grid.innerHTML = '';
+    empty.classList.add('visible');
+    document.getElementById('empty-msg').textContent =
+      searchQ ? 'No rooms match "' + searchQ + '".' : 'No rooms in this shift.';
+    return;
+  }
+  empty.classList.remove('visible');
+
+  grid.innerHTML = rooms.map(room => {
+    const p = getRoomProgress(room.id);
+    const pct = p.total > 0 ? Math.round(p.done / p.total * 100) : 0;
+    const isComplete = p.done === p.total && p.total > 0;
+    const a = assignments[room.id];
+
+    return '<div class="room-card' + (isComplete ? ' complete' : '') +
+      '" onclick="openRoom(\'' + room.id + '\')">' +
+      '<div class="room-name">' + escHtml(room.name) + '</div>' +
+      '<div class="room-progress-bar"><div class="room-progress-fill" style="width:' + pct + '%"></div></div>' +
+      '<div class="room-meta">' +
+        '<span class="room-fraction">' + p.done + '/' + p.total + '</span>' +
+        (a && a.staff ? '<span class="room-staff-badge">' + escHtml(a.staff) + '</span>' : '') +
+        (a && a.shift ? '<span class="room-shift-badge">' + a.shift + '</span>' : '') +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+/* ================================================================
+   CHECKLIST MODAL
+================================================================ */
+function openRoom(roomId) {
+  openRoomId = roomId;
+  const room = findRoom(roomId);
+  if (!room) return;
+
+  document.getElementById('checklist-title').textContent = room.name;
+  renderChecklistItems(roomId);
+
+  const staffSelect = document.getElementById('assign-staff');
+  staffSelect.innerHTML = '<option value="">Unassigned</option>' +
+    staff.map(s => '<option value="' + escHtml(s.name) + '">' + escHtml(s.name) + '</option>').join('');
+
+  const a = assignments[roomId];
+  if (a) {
+    staffSelect.value = a.staff || '';
+    document.getElementById('assign-shift').value = a.shift || 'morning';
+  } else {
+    staffSelect.value = '';
+    document.getElementById('assign-shift').value = 'morning';
+  }
+
+  document.getElementById('checklist-overlay').classList.add('open');
+}
+
+function renderChecklistItems(roomId) {
+  const items = getChecklistForRoom(roomId);
+  document.getElementById('checklist-body').innerHTML = items.map((item, idx) => {
+    const checked = isChecked(roomId, idx);
+    const time = checked ? getCheckTime(roomId, idx) : '';
+    return '<div class="checklist-item' + (checked ? ' checked' : '') +
+      '" onclick="onCheckItem(\'' + roomId + '\',' + idx + ')">' +
+      '<div class="check-box"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>' +
+      '<span class="check-label">' + escHtml(item) + '</span>' +
+      (time ? '<span class="check-time">' + time + '</span>' : '') +
+    '</div>';
+  }).join('');
+}
+
+function onCheckItem(roomId, idx) {
+  toggleCheck(roomId, idx);
+  renderChecklistItems(roomId);
+  render();
+}
+
+function checkAll() {
+  if (!openRoomId) return;
+  const items = getChecklistForRoom(openRoomId);
+  checks[openRoomId] = items.map((_, i) => i);
+  items.forEach((_, i) => setCheckTime(openRoomId, i));
+  saveChecks();
+  renderChecklistItems(openRoomId);
+  render();
+  showToast('All items completed');
+}
+
+function uncheckAll() {
+  if (!openRoomId) return;
+  checks[openRoomId] = [];
+  saveChecks();
+  renderChecklistItems(openRoomId);
+  render();
+  showToast('Checklist reset');
+}
+
+function closeChecklist(e) {
+  if (e && e.target !== document.getElementById('checklist-overlay')) return;
+  document.getElementById('checklist-overlay').classList.remove('open');
+  openRoomId = null;
+}
+
+function onAssignChange() {
+  if (!openRoomId) return;
+  const staffName = document.getElementById('assign-staff').value;
+  const shift = document.getElementById('assign-shift').value;
+  if (staffName) {
+    assignments[openRoomId] = { staff: staffName, shift: shift };
+  } else {
+    delete assignments[openRoomId];
+  }
+  saveAssignments();
+  render();
+}
+
+/* ================================================================
+   STAFF PANEL
+================================================================ */
+function openStaffPanel() {
+  renderStaffList();
+  document.getElementById('staff-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('add-staff-input').focus(), 100);
+}
+
+function closeStaffPanel(e) {
+  if (e && e.target !== document.getElementById('staff-overlay')) return;
+  document.getElementById('staff-overlay').classList.remove('open');
+}
+
+function renderStaffList() {
+  if (staff.length === 0) {
+    document.getElementById('staff-list').innerHTML =
+      '<p style="color:var(--muted);font-size:13px;padding:8px 0;">No staff added yet.</p>';
+    return;
+  }
+  document.getElementById('staff-list').innerHTML = staff.map((s, i) => {
+    const count = Object.values(assignments).filter(a => a.staff === s.name).length;
+    return '<div class="staff-row">' +
+      '<span class="staff-name">' + escHtml(s.name) + '</span>' +
+      '<span class="staff-count">' + count + ' room' + (count !== 1 ? 's' : '') + '</span>' +
+      '<button class="staff-remove" onclick="removeStaff(' + i + ')" title="Remove">&times;</button>' +
+    '</div>';
+  }).join('');
+}
+
+function addStaff() {
+  const input = document.getElementById('add-staff-input');
+  const name = input.value.trim();
+  if (!name) return;
+  if (staff.some(s => s.name.toLowerCase() === name.toLowerCase())) {
+    showToast('Staff member already exists');
+    return;
+  }
+  staff.push({ name: name, id: Date.now().toString() });
+  input.value = '';
+  saveStaff();
+  renderStaffList();
+  showToast(name + ' added');
+}
+
+function removeStaff(idx) {
+  const name = staff[idx].name;
+  staff.splice(idx, 1);
+  Object.keys(assignments).forEach(roomId => {
+    if (assignments[roomId].staff === name) delete assignments[roomId];
+  });
+  saveStaff();
+  saveAssignments();
+  renderStaffList();
+  render();
+  showToast(name + ' removed');
+}
+
+/* ================================================================
+   SCHEDULE PANEL
+================================================================ */
+function openSchedulePanel() {
+  const body = document.getElementById('schedule-body');
+  const allAssigned = [];
+
+  for (const [sectionId, rooms] of Object.entries(ROOMS)) {
+    rooms.forEach(r => {
+      const a = assignments[r.id];
+      if (a && a.staff) {
+        allAssigned.push({ section: SECTIONS[sectionId].label, room: r.name, staff: a.staff, shift: a.shift });
+      }
+    });
+  }
+
+  if (allAssigned.length === 0) {
+    body.innerHTML = '<p style="color:var(--muted);font-size:13px;">No assignments yet. Open a room and assign staff.</p>';
+  } else {
+    const byShift = { morning: [], afternoon: [], evening: [] };
+    allAssigned.forEach(a => {
+      if (byShift[a.shift]) byShift[a.shift].push(a);
+    });
+
+    let html = '';
+    for (const [shift, items] of Object.entries(byShift)) {
+      if (items.length === 0) continue;
+      html += '<div class="modal-section-title" style="padding-left:0">' + shift.charAt(0).toUpperCase() + shift.slice(1) + ' Shift</div>';
+      html += '<table class="schedule-table"><thead><tr><th>Room</th><th>Section</th><th>Staff</th></tr></thead><tbody>';
+      items.forEach(a => {
+        html += '<tr><td class="sched-room">' + escHtml(a.room) + '</td>' +
+          '<td>' + escHtml(a.section) + '</td>' +
+          '<td class="sched-staff">' + escHtml(a.staff) + '</td></tr>';
+      });
+      html += '</tbody></table>';
+    }
+    body.innerHTML = html;
+  }
+
+  document.getElementById('schedule-overlay').classList.add('open');
+}
+
+function closeSchedulePanel(e) {
+  if (e && e.target !== document.getElementById('schedule-overlay')) return;
+  document.getElementById('schedule-overlay').classList.remove('open');
+}
+
+/* ================================================================
+   CUSTOM ITEMS
+================================================================ */
+function addCustomItem() {
+  const input = document.getElementById('custom-item-input');
+  const text = input.value.trim();
+  if (!text) return;
+  if (!customItems[currentSection]) customItems[currentSection] = [];
+  if (customItems[currentSection].includes(text)) {
+    showToast('Item already exists');
+    return;
+  }
+  customItems[currentSection].push(text);
+  input.value = '';
+  saveCustomItems();
+  render();
+  showToast('Custom item added to all ' + SECTIONS[currentSection].label);
+}
+
+/* ================================================================
+   VOICE INPUT (simplified)
+================================================================ */
+let holdActive = false;
+let recognition = null;
+
+function startMic() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { showToast('Speech not supported'); return; }
+  recognition = new SR();
+  recognition.lang = 'en-AU';
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+  recognition.onresult = function (e) {
+    const text = e.results[0][0].transcript.trim();
+    if (text) {
+      if (!customItems[currentSection]) customItems[currentSection] = [];
+      customItems[currentSection].push(text);
+      saveCustomItems();
+      render();
+      showToast('Added: ' + text);
+    }
+  };
+  recognition.onerror = function () { showToast('Could not hear, try again'); };
+  recognition.onend = function () { document.getElementById('mic-fab').classList.remove('recording'); };
+  recognition.start();
+  document.getElementById('mic-fab').classList.add('recording');
+}
+
+function stopMic() {
+  holdActive = false;
+  if (recognition) { recognition.stop(); recognition = null; }
+}
+
+(function () {
+  const fab = document.getElementById('mic-fab');
+  function onPress(e) { e.preventDefault(); holdActive = true; startMic(); }
+  function onRelease(e) { e.preventDefault(); if (holdActive) stopMic(); }
+  fab.addEventListener('touchstart', onPress, { passive: false });
+  fab.addEventListener('touchend', onRelease, { passive: false });
+  fab.addEventListener('touchcancel', onRelease, { passive: false });
+  fab.addEventListener('mousedown', onPress);
+  fab.addEventListener('mouseup', onRelease);
+  fab.addEventListener('mouseleave', function () { if (holdActive) stopMic(); });
+})();
+
+/* ================================================================
+   VOICE BAR COLLAPSE
+================================================================ */
+function toggleVoiceBar() {
+  voiceBarOpen = !voiceBarOpen;
+  document.getElementById('voice-bar-body').classList.toggle('collapsed', !voiceBarOpen);
+  document.getElementById('voice-bar-toggle').classList.toggle('collapsed', !voiceBarOpen);
+  try { localStorage.setItem('ncl_voicebar', voiceBarOpen ? '1' : '0'); } catch (e) {}
+}
+
+/* ================================================================
+   THEME
+================================================================ */
+function toggleTheme() {
+  const html = document.documentElement;
+  const isDark = html.getAttribute('data-theme') === 'dark';
+  html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  try { localStorage.setItem('ncl_theme', isDark ? 'light' : 'dark'); } catch (e) {}
+  updateThemeIcon();
+}
+
+function updateThemeIcon() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  document.getElementById('theme-icon').innerHTML = isDark
+    ? '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>'
+    : '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+}
+
+/* ================================================================
+   TOAST
+================================================================ */
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+/* ================================================================
+   UTILITIES
+================================================================ */
+function escHtml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function findRoom(roomId) {
+  for (const rooms of Object.values(ROOMS)) {
+    const r = rooms.find(r => r.id === roomId);
+    if (r) return r;
+  }
+  return null;
+}
+
+/* ================================================================
+   INIT
+================================================================ */
+(function init() {
+  try {
+    const savedTheme = localStorage.getItem('ncl_theme');
+    if (savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
+  } catch (e) {}
+  updateThemeIcon();
+
+  try {
+    const savedSection = localStorage.getItem('ncl_section');
+    if (savedSection && SECTIONS[savedSection]) currentSection = savedSection;
+  } catch (e) {}
+
+  document.documentElement.setAttribute('data-section', currentSection);
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', SECTIONS[currentSection].themeColor);
+  document.getElementById('logo-sub').textContent = SECTIONS[currentSection].label;
+
+  try {
+    if (localStorage.getItem('ncl_voicebar') === '1') voiceBarOpen = true;
+    document.getElementById('voice-bar-body').classList.toggle('collapsed', !voiceBarOpen);
+    document.getElementById('voice-bar-toggle').classList.toggle('collapsed', !voiceBarOpen);
+  } catch (e) {}
+
+  loadChecks();
+  loadCustomItems();
+  loadStaff();
+  loadAssignments();
+  render();
+})();
+</script>
+</body>
+</html>
