@@ -848,6 +848,11 @@
       <button type="button" class="qdate-chip clear-chip" id="qdate-clear" onclick="clearQuickDate()">&#10005; Clear</button>
     </div>
     <div class="quick-names" id="quick-names"></div>
+    <div id="room-selector-wrap" style="display:none;width:100%">
+      <select id="room-select" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:8px 10px;color:var(--text);font-family:var(--font-body);font-size:13px;outline:none;cursor:pointer">
+        <option value="">All rooms</option>
+      </select>
+    </div>
   </div>
 
   <!-- Manual add -->
@@ -1103,7 +1108,7 @@ function switchSection(sectionId) {
   if (meta) meta.setAttribute('content', SECTIONS[sectionId].themeColor);
   document.getElementById('logo-sub').textContent = SECTIONS[sectionId].label;
   document.getElementById('print-header').textContent = 'Newberry Facilities — ' + SECTIONS[sectionId].label + ' Task List';
-  renderSectionTabs(); renderSubsectionBar(); updateManualPlaceholder(); updateStockToggleVisibility();
+  renderSectionTabs(); renderSubsectionBar(); updateManualPlaceholder(); updateStockToggleVisibility(); renderRoomSelector();
   document.querySelectorAll('.filter-btn[data-filter]').forEach(b => b.classList.toggle('active', b.dataset.filter === 'all'));
   const si = document.getElementById('search-input'); if (si) si.value = '';
   loadTasks(); loadNames();
@@ -1113,7 +1118,7 @@ function switchSection(sectionId) {
 }
 
 function setSub(sub) {
-  currentSub = sub; renderSubsectionBar(); updateManualPlaceholder();
+  currentSub = sub; renderSubsectionBar(); updateManualPlaceholder(); renderRoomSelector();
   if (viewMode === 'stock' && currentSection === 'equipment') renderStock(); else render();
 }
 
@@ -1149,30 +1154,40 @@ function migrateOldTasks() {
   } catch(e) {}
 }
 
-function preloadBuildingsRooms() {
-  try {
-    if (localStorage.getItem('nvp_buildings_preloaded_v1')) return;
-    const key = SECTIONS.buildings.key;
-    const existing = localStorage.getItem(key);
-    if (existing && JSON.parse(existing).length > 0) { localStorage.setItem('nvp_buildings_preloaded_v1', '1'); return; }
-    const rooms = {
-      'Toddlers': ['Jasmine', 'Freesia'],
-      'Pre-Primary': ['Protea', 'Disa', 'Azalea', 'Cosmos'],
-      'Lower Elementary': ['Oak', 'Willow', 'Rooibos'],
-      'Upper Elementary': ['Breeze', 'Newton'],
-      'Middle School': ['Hamlet', 'Alpha', 'Mercury', 'Gravity'],
-      'High School': ['Iris', 'Sage', 'Delta', 'B5', 'B6', 'B7', 'Ivy', 'Eagle Owl', 'The Lab'],
-      'Campus': ['Reception', 'Staffroom G', 'Staffroom', 'Toilet 1', 'Toilet 2', 'Astro & Stoep']
-    };
-    const now = Date.now(); const preloaded = [];
-    Object.entries(rooms).forEach(([sub, names]) => {
-      names.forEach(name => {
-        preloaded.push({ id: uid(), text: name, done: false, person: '', priority: 'med', dueDate: '', media: '', notes: '', subsection: sub, createdAt: now, updatedAt: now });
-      });
+const BUILDING_ROOMS = {
+  'Toddlers': ['Jasmine', 'Freesia'],
+  'Pre-Primary': ['Protea', 'Disa', 'Azalea', 'Cosmos'],
+  'Lower Elementary': ['Oak', 'Willow', 'Rooibos'],
+  'Upper Elementary': ['Breeze', 'Newton'],
+  'Middle School': ['Hamlet', 'Alpha', 'Mercury', 'Gravity'],
+  'High School': ['Iris', 'Sage', 'Delta', 'B5', 'B6', 'B7', 'Ivy', 'Eagle Owl', 'The Lab'],
+  'Campus': ['Reception', 'Staffroom G', 'Staffroom', 'Toilet 1', 'Toilet 2', 'Astro & Stoep']
+};
+
+function renderRoomSelector() {
+  const wrap = document.getElementById('room-selector-wrap');
+  if (!wrap) return;
+  if (currentSection !== 'buildings') { wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
+  const sel = document.getElementById('room-select');
+  const sub = getActiveSub();
+  const rooms = sub === 'All' ? Object.values(BUILDING_ROOMS).flat() : (BUILDING_ROOMS[sub] || []);
+  let html = '<option value="">All rooms</option>';
+  if (sub === 'All') {
+    Object.entries(BUILDING_ROOMS).forEach(([grp, names]) => {
+      html += '<optgroup label="' + grp + '">';
+      names.forEach(r => html += '<option value="' + r + '">' + r + '</option>');
+      html += '</optgroup>';
     });
-    localStorage.setItem(key, JSON.stringify(preloaded));
-    localStorage.setItem('nvp_buildings_preloaded_v1', '1');
-  } catch(e) {}
+  } else {
+    rooms.forEach(r => html += '<option value="' + r + '">' + r + '</option>');
+  }
+  sel.innerHTML = html;
+}
+
+function getSelectedRoom() {
+  const sel = document.getElementById('room-select');
+  return sel ? sel.value : '';
 }
 
 /* Names */
@@ -1347,7 +1362,8 @@ function parseAndAdd(text, person, pri, due) {
     .split(/[,;\n]+/).map(s => s.trim().replace(/^\d+[\.\)]\s*/, '').trim()).filter(s => s.length > 1);
   if (!raw.length) return;
   const sub = getActiveSub(), now = Date.now();
-  const newTasks = raw.map(t => ({ id: uid(), text: t, done: false, person: person || '', priority: pri || 'med', dueDate: due || '', media: '', notes: '', subsection: sub, createdAt: now, updatedAt: now }));
+  const room = getSelectedRoom();
+  const newTasks = raw.map(t => ({ id: uid(), text: room ? '[' + room + '] ' + t : t, done: false, person: person || '', priority: pri || 'med', dueDate: due || '', media: '', notes: '', subsection: sub, createdAt: now, updatedAt: now }));
   tasks = [...newTasks, ...tasks];
   if (navigator.vibrate) navigator.vibrate(40);
   saveTasks(); if (person) rememberName(person);
@@ -2032,14 +2048,13 @@ function parseCSVLine(line) {
 /* Init */
 (function init() {
   migrateOldTasks();
-  preloadBuildingsRooms();
   try { const s = localStorage.getItem('nvp_section'); if (s && SECTIONS[s]) currentSection = s; } catch(e) {}
   document.documentElement.setAttribute('data-section', currentSection);
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.setAttribute('content', SECTIONS[currentSection].themeColor);
   document.getElementById('logo-sub').textContent = SECTIONS[currentSection].label;
   document.getElementById('print-header').textContent = 'Newberry Facilities — ' + SECTIONS[currentSection].label + ' Task List';
-  renderSectionTabs(); renderSubsectionBar(); updateManualPlaceholder(); updateStockToggleVisibility();
+  renderSectionTabs(); renderSubsectionBar(); updateManualPlaceholder(); updateStockToggleVisibility(); renderRoomSelector();
   loadTasks(); loadNames(); initLang(); render();
   initSupabase();
   if (sb) { syncTasksDown().then(() => syncStockDown()); startAutoSync(); }
