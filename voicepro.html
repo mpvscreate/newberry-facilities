@@ -442,6 +442,7 @@
       transition: background .35s, transform .15s, box-shadow .35s;
       box-shadow: 0 6px 20px rgba(0,0,0,.5), 0 0 0 4px var(--glow), inset 0 1px 0 rgba(255,255,255,.15);
       -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none; touch-action: manipulation; user-select: none; -webkit-user-select: none;
     }
     #mic-fab:hover { transform: scale(1.07); }
     #mic-fab:active { transform: scale(.94); }
@@ -917,7 +918,7 @@
 <div id="transcript-bubble" class="no-print"></div>
 
 <!-- Mic FAB -->
-<button id="mic-fab" class="no-print" title="Hold to record"><svg id="mic-icon" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>
+<button id="mic-fab" class="no-print" title="Tap to record"><svg id="mic-icon" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>
 
 <!-- Toast -->
 <div id="toast">
@@ -1347,8 +1348,10 @@ function addVoiceTask(text) {
   const person = document.getElementById('voice-person').value.trim();
   const pri = document.getElementById('voice-priority').value;
   const due = document.getElementById('voice-due').value;
+  const room = getSelectedRoom();
+  const taskText = room ? '[' + room + '] ' + text.trim() : text.trim();
   const now = Date.now();
-  const task = { id: uid(), text: text.trim(), done: false, person: person || '', priority: pri || 'med', dueDate: due || '', media: '', notes: '', subsection: getActiveSub(), createdAt: now, updatedAt: now };
+  const task = { id: uid(), text: taskText, done: false, person: person || '', priority: pri || 'med', dueDate: due || '', media: '', notes: '', subsection: getActiveSub(), createdAt: now, updatedAt: now };
   tasks = [task, ...tasks]; tasksAddedSession++;
   if (navigator.vibrate) navigator.vibrate(40);
   saveTasks(); if (person) rememberName(person); render();
@@ -1366,7 +1369,7 @@ function setListeningState(on) {
   const fab = document.getElementById('mic-fab');
   fab.innerHTML = on ? STOP_SVG : MIC_SVG;
   fab.classList.toggle('listening', on);
-  fab.title = on ? 'Release to stop' : 'Hold to record';
+  fab.title = on ? 'Tap to stop' : 'Tap to record';
 }
 
 /* Parse + add */
@@ -1652,15 +1655,43 @@ document.addEventListener('keydown', (e) => {
   if (e.key === '4') switchSection('equipment');
 });
 
-/* Hold-to-record */
+/* Tap-to-toggle + hold-to-record */
 (function () {
   const fab = document.getElementById('mic-fab');
-  function onPress(e) { e.preventDefault(); holdActive = true; startMic(); }
-  function onRelease(e) { e.preventDefault(); if (holdActive) stopMic(); }
-  fab.addEventListener('touchstart', onPress, { passive: false }); fab.addEventListener('touchend', onRelease, { passive: false });
-  fab.addEventListener('touchcancel', onRelease, { passive: false });
-  fab.addEventListener('mousedown', onPress); fab.addEventListener('mouseup', onRelease);
-  fab.addEventListener('mouseleave', () => { if (holdActive) stopMic(); });
+  let pressStart = 0, moved = false;
+  const HOLD_MS = 400;
+
+  function onTouchStart(e) {
+    e.preventDefault();
+    pressStart = Date.now(); moved = false;
+  }
+  function onTouchMove() { moved = true; }
+  function onTouchEnd(e) {
+    e.preventDefault();
+    if (moved) return;
+    const held = Date.now() - pressStart;
+    if (held >= HOLD_MS && holdActive) {
+      stopMic();
+    } else if (listening) {
+      stopMic();
+    } else {
+      holdActive = true; startMic();
+    }
+  }
+  function onTouchCancel() {
+    if (holdActive && listening) stopMic();
+  }
+
+  fab.addEventListener('touchstart', onTouchStart, { passive: false });
+  fab.addEventListener('touchmove', onTouchMove, { passive: true });
+  fab.addEventListener('touchend', onTouchEnd, { passive: false });
+  fab.addEventListener('touchcancel', onTouchCancel, { passive: false });
+  fab.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+
+  fab.addEventListener('click', function(e) {
+    if (e.sourceCapabilities && e.sourceCapabilities.firesTouchEvents) return;
+    if (listening) { stopMic(); } else { holdActive = true; startMic(); }
+  });
 })();
 
 /* Language (moved to popup) */
