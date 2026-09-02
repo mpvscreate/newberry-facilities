@@ -1024,7 +1024,7 @@ const SECTION_ICONS = {
 
 const SECTIONS = {
   garden:    { label: 'Garden',    subs: ['Hard Landscaping', 'Soft Landscaping', 'Equipment'], key: 'nvp_tasks_garden_v1',    themeColor: '#2e7d32' },
-  buildings: { label: 'Buildings', subs: ['Maintenance', 'Renovations', 'Improvements'],        key: 'nvp_tasks_buildings_v1', themeColor: '#e65100' },
+  buildings: { label: 'Buildings', subs: ['Toddlers', 'Pre-Primary', 'Lower Elementary', 'Upper Elementary', 'Middle School', 'High School', 'Campus'], key: 'nvp_tasks_buildings_v1', themeColor: '#e65100' },
   safety:    { label: 'Safety',    subs: ['Campus Safety', 'Fire Safety', 'Playground Safety'],  key: 'nvp_tasks_safety_v1',    themeColor: '#f9a825' },
   equipment: { label: 'Equipment', subs: ['Workshop', 'Maintenance', 'Garden'],                  key: 'nvp_tasks_equipment_v1', themeColor: '#00796b' }
 };
@@ -1146,6 +1146,32 @@ function migrateOldTasks() {
         localStorage.setItem(SECTIONS.garden.key, JSON.stringify(oldTasks));
     }
     localStorage.setItem('nvp_migrated_v2', '1');
+  } catch(e) {}
+}
+
+function preloadBuildingsRooms() {
+  try {
+    if (localStorage.getItem('nvp_buildings_preloaded_v1')) return;
+    const key = SECTIONS.buildings.key;
+    const existing = localStorage.getItem(key);
+    if (existing && JSON.parse(existing).length > 0) { localStorage.setItem('nvp_buildings_preloaded_v1', '1'); return; }
+    const rooms = {
+      'Toddlers': ['Jasmine', 'Freesia'],
+      'Pre-Primary': ['Protea', 'Disa', 'Azalea', 'Cosmos'],
+      'Lower Elementary': ['Oak', 'Willow', 'Rooibos'],
+      'Upper Elementary': ['Breeze', 'Newton'],
+      'Middle School': ['Hamlet', 'Alpha', 'Mercury', 'Gravity'],
+      'High School': ['Iris', 'Sage', 'Delta', 'B5', 'B6', 'B7', 'Ivy', 'Eagle Owl', 'The Lab'],
+      'Campus': ['Reception', 'Staffroom G', 'Staffroom', 'Toilet 1', 'Toilet 2', 'Astro & Stoep']
+    };
+    const now = Date.now(); const preloaded = [];
+    Object.entries(rooms).forEach(([sub, names]) => {
+      names.forEach(name => {
+        preloaded.push({ id: uid(), text: name, done: false, person: '', priority: 'med', dueDate: '', media: '', notes: '', subsection: sub, createdAt: now, updatedAt: now });
+      });
+    });
+    localStorage.setItem(key, JSON.stringify(preloaded));
+    localStorage.setItem('nvp_buildings_preloaded_v1', '1');
   } catch(e) {}
 }
 
@@ -2006,6 +2032,7 @@ function parseCSVLine(line) {
 /* Init */
 (function init() {
   migrateOldTasks();
+  preloadBuildingsRooms();
   try { const s = localStorage.getItem('nvp_section'); if (s && SECTIONS[s]) currentSection = s; } catch(e) {}
   document.documentElement.setAttribute('data-section', currentSection);
   const meta = document.querySelector('meta[name="theme-color"]');
