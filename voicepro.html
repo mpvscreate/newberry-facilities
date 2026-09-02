@@ -841,18 +841,16 @@
            list="person-suggestions" oninput="renderQuickNames()" />
     <datalist id="person-suggestions"></datalist>
     <input type="date" id="voice-due" title="Due date" onchange="onDueDateChange()" />
-    <div class="quick-dates">
+    <select id="room-select" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:8px 10px;color:var(--text);font-family:var(--font-body);font-size:13px;outline:none;cursor:pointer;flex-shrink:0">
+      <option value="">All rooms</option>
+    </select>
+    <div class="quick-dates" id="quick-dates-wrap">
       <button type="button" class="qdate-chip" data-days="0" onclick="setQuickDate(0)">Today</button>
       <button type="button" class="qdate-chip" data-days="1" onclick="setQuickDate(1)">Tomorrow</button>
       <button type="button" class="qdate-chip" data-days="7" onclick="setQuickDate(7)">This week</button>
       <button type="button" class="qdate-chip clear-chip" id="qdate-clear" onclick="clearQuickDate()">&#10005; Clear</button>
     </div>
     <div class="quick-names" id="quick-names"></div>
-    <div id="room-selector-wrap" style="display:none;width:100%">
-      <select id="room-select" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:8px 10px;color:var(--text);font-family:var(--font-body);font-size:13px;outline:none;cursor:pointer">
-        <option value="">All rooms</option>
-      </select>
-    </div>
   </div>
 
   <!-- Manual add -->
@@ -1165,14 +1163,22 @@ const BUILDING_ROOMS = {
 };
 
 function renderRoomSelector() {
-  const wrap = document.getElementById('room-selector-wrap');
-  if (!wrap) return;
-  if (currentSection !== 'buildings') { wrap.style.display = 'none'; return; }
-  wrap.style.display = '';
   const sel = document.getElementById('room-select');
+  const datePicker = document.getElementById('voice-due');
+  const dateChips = document.getElementById('quick-dates-wrap');
+  if (!sel || !datePicker) return;
+  if (currentSection !== 'buildings') {
+    sel.style.display = 'none';
+    datePicker.style.display = '';
+    if (dateChips) dateChips.style.display = '';
+    return;
+  }
+  sel.style.display = '';
+  datePicker.style.display = 'none';
+  if (dateChips) dateChips.style.display = 'none';
   const sub = getActiveSub();
   const rooms = sub === 'All' ? Object.values(BUILDING_ROOMS).flat() : (BUILDING_ROOMS[sub] || []);
-  let html = '<option value="">All rooms</option>';
+  let html = '<option value="">Select room...</option>';
   if (sub === 'All') {
     Object.entries(BUILDING_ROOMS).forEach(([grp, names]) => {
       html += '<optgroup label="' + grp + '">';
