@@ -67,6 +67,7 @@ body {
 
 [data-section="lower"]       { --pk: #e91e63; --pk-light: rgba(233,30,99,.08); --pk-mid: rgba(233,30,99,.15); --glow: rgba(233,30,99,.35); }
 [data-section="upper"]       { --pk: #1565c0; --pk-light: rgba(21,101,192,.08); --pk-mid: rgba(21,101,192,.15); --glow: rgba(21,101,192,.35); }
+[data-section="support"]     { --pk: #546e7a; --pk-light: rgba(84,110,122,.08); --pk-mid: rgba(84,110,122,.15); --glow: rgba(84,110,122,.35); }
 
 .app-header {
   padding: calc(14px + env(safe-area-inset-top, 0px)) 16px 10px;
@@ -598,7 +599,8 @@ const CHECKLISTS = {
 
 const CAMPUSES = {
   lower: { label: 'Lower Campus', themeColor: '#e91e63', sections: ['toddlers', 'pp', 'le', 'ue'] },
-  upper: { label: 'Upper Campus', themeColor: '#1565c0', sections: ['ms', 'hs', 'campus'] }
+  upper: { label: 'Upper Campus', themeColor: '#1565c0', sections: ['ms', 'hs'] },
+  support: { label: 'Support Buildings', themeColor: '#546e7a', sections: ['campus'] }
 };
 let currentCampus = 'lower';
 let currentShift = 'all';
