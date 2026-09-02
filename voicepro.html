@@ -841,7 +841,7 @@
            list="person-suggestions" oninput="renderQuickNames()" />
     <datalist id="person-suggestions"></datalist>
     <input type="date" id="voice-due" title="Due date" onchange="onDueDateChange()" />
-    <select id="room-select" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:8px 10px;color:var(--text);font-family:var(--font-body);font-size:13px;outline:none;cursor:pointer;flex-shrink:0">
+    <select id="room-select" onchange="onRoomChange()" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:8px 10px;color:var(--text);font-family:var(--font-body);font-size:13px;outline:none;cursor:pointer;flex-shrink:0">
       <option value="">All rooms</option>
     </select>
     <div class="quick-dates" id="quick-dates-wrap">
@@ -1124,7 +1124,9 @@ function getActiveSub() { return currentSub !== 'all' ? currentSub : SECTIONS[cu
 
 function updateManualPlaceholder() {
   const inp = document.getElementById('manual-input');
-  if (inp) inp.placeholder = 'Add task to ' + getActiveSub() + '...';
+  if (!inp) return;
+  const room = getSelectedRoom();
+  inp.placeholder = room ? 'Add task to ' + room + '...' : 'Add task to ' + getActiveSub() + '...';
 }
 
 /* Persistence */
@@ -1194,6 +1196,11 @@ function renderRoomSelector() {
 function getSelectedRoom() {
   const sel = document.getElementById('room-select');
   return sel ? sel.value : '';
+}
+
+function onRoomChange() {
+  updateManualPlaceholder();
+  render();
 }
 
 /* Names */
@@ -1482,8 +1489,10 @@ function exportTasks() {
 /* Derived data */
 const PRI = { high: 0, med: 1, low: 2 };
 function getFiltered() {
+  const room = getSelectedRoom();
   return tasks.filter(t => {
     if (currentSub !== 'all' && t.subsection !== currentSub) return false;
+    if (room && !t.text.startsWith('[' + room + ']')) return false;
     if (filter === 'active' && t.done) return false;
     if (filter === 'done' && !t.done) return false;
     if (filter === 'person' && t.person !== personFilt) return false;
