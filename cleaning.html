@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-section="toddlers" data-theme="light">
+<html lang="en" data-section="lower" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
@@ -62,13 +62,8 @@ body {
   --overlay: rgba(0,0,0,.55);
 }
 
-[data-section="toddlers"]    { --pk: #e91e63; --pk-light: rgba(233,30,99,.08); --pk-mid: rgba(233,30,99,.15); --glow: rgba(233,30,99,.35); }
-[data-section="pp"]          { --pk: #9c27b0; --pk-light: rgba(156,39,176,.08); --pk-mid: rgba(156,39,176,.15); --glow: rgba(156,39,176,.35); }
-[data-section="le"]          { --pk: #2e7d32; --pk-light: rgba(46,125,50,.08); --pk-mid: rgba(46,125,50,.15); --glow: rgba(46,125,50,.35); }
-[data-section="ue"]          { --pk: #1565c0; --pk-light: rgba(21,101,192,.08); --pk-mid: rgba(21,101,192,.15); --glow: rgba(21,101,192,.35); }
-[data-section="ms"]          { --pk: #e65100; --pk-light: rgba(230,81,0,.08); --pk-mid: rgba(230,81,0,.15); --glow: rgba(230,81,0,.35); }
-[data-section="hs"]          { --pk: #00838f; --pk-light: rgba(0,131,143,.08); --pk-mid: rgba(0,131,143,.15); --glow: rgba(0,131,143,.35); }
-[data-section="campus"]      { --pk: #455a64; --pk-light: rgba(69,90,100,.08); --pk-mid: rgba(69,90,100,.15); --glow: rgba(69,90,100,.35); }
+[data-section="lower"]       { --pk: #e91e63; --pk-light: rgba(233,30,99,.08); --pk-mid: rgba(233,30,99,.15); --glow: rgba(233,30,99,.35); }
+[data-section="upper"]       { --pk: #1565c0; --pk-light: rgba(21,101,192,.08); --pk-mid: rgba(21,101,192,.15); --glow: rgba(21,101,192,.35); }
 
 .app-header {
   padding: calc(14px + env(safe-area-inset-top, 0px)) 16px 10px;
@@ -123,8 +118,6 @@ body {
   color: var(--muted); text-transform: uppercase; letter-spacing: .3px;
   transition: all .22s; user-select: none; white-space: nowrap;
 }
-.section-tab .tab-icon { width: 14px; height: 14px; display: block; flex-shrink: 0; }
-.section-tab .tab-icon svg { width: 100%; height: 100%; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .section-tab:hover { color: var(--text); background: var(--badge-bg); }
 .section-tab.active { background: var(--pk); color: #fff; box-shadow: 0 2px 8px var(--glow); }
 .tab-badge {
@@ -157,6 +150,14 @@ body {
 .search-box::placeholder { color: var(--muted); }
 
 .room-list { padding: 0 12px 100px; display: flex; flex-direction: column; gap: 4px; }
+.section-group-header {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px;
+  color: var(--muted); padding: 12px 4px 4px; display: flex; align-items: center; gap: 8px;
+}
+.section-group-header:first-child { padding-top: 4px; }
+.section-group-header .sgh-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
 .room-card {
   background: var(--card); border: 1px solid var(--border-light);
   border-radius: var(--radius); overflow: hidden; transition: all .2s;
@@ -539,15 +540,6 @@ body {
 </div>
 
 <script>
-const SECTION_ICONS = {
-  toddlers: '<svg viewBox="0 0 24 24"><circle cx="12" cy="4" r="2"/><path d="M12 6v6"/><path d="M9 9h6"/><path d="M10 12l-2 8"/><path d="M14 12l2 8"/>',
-  pp: '<svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z"/><circle cx="12" cy="9" r="2.5"/>',
-  le: '<svg viewBox="0 0 24 24"><path d="M12 22c-4-2-8-6-8-11a8 8 0 0 1 16 0c0 5-4 9-8 11z"/><path d="M12 2v10"/><path d="M8 8c2 1 4 1 4 4"/><path d="M16 8c-2 1-4 1-4 4"/>',
-  ue: '<svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
-  ms: '<svg viewBox="0 0 24 24"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5"/><line x1="12" y1="22" x2="12" y2="15.5"/><polyline points="22 8.5 12 15.5 2 8.5"/>',
-  hs: '<svg viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 2 3 3 6 3s6-1 6-3v-5"/>',
-  campus: '<svg viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="9" y1="6" x2="15" y2="6"/><line x1="9" y1="10" x2="15" y2="10"/><line x1="9" y1="14" x2="15" y2="14"/><line x1="9" y1="18" x2="15" y2="18"/>'
-};
 const SECTIONS = {
   toddlers: { label: 'Toddlers',          themeColor: '#e91e63' },
   pp:       { label: 'Pre-Primary',        themeColor: '#9c27b0' },
@@ -596,7 +588,11 @@ const CHECKLISTS = {
   campus: ['Floors swept & mopped','Surfaces wiped & sanitised','Bins emptied','Windows cleaned','Door handles sanitised','Light switches wiped','Furniture & fittings checked','Supplies restocked']
 };
 
-let currentSection = 'toddlers';
+const CAMPUSES = {
+  lower: { label: 'Lower Campus', themeColor: '#e91e63', sections: ['toddlers', 'pp', 'le', 'ue'] },
+  upper: { label: 'Upper Campus', themeColor: '#1565c0', sections: ['ms', 'hs', 'campus'] }
+};
+let currentCampus = 'lower';
 let currentShift = 'all';
 let searchQ = '';
 let expandedRoomId = null;
@@ -673,7 +669,7 @@ function getChecklistForRoom(roomId) {
 }
 function getRoomSection(roomId) {
   for (const [sid, rooms] of Object.entries(ROOMS)) { if (rooms.some(r => r.id === roomId)) return sid; }
-  return currentSection;
+  return CAMPUSES[currentCampus].sections[0];
 }
 function isChecked(roomId, idx) { return checks[roomId] && checks[roomId].includes(idx); }
 function getCheckTime(roomId, idx) {
@@ -709,27 +705,31 @@ function getRoomProgress(roomId) {
 
 function renderSectionTabs() {
   const container = document.getElementById('section-tabs');
-  container.innerHTML = Object.entries(SECTIONS).map(([id, s]) => {
-    const rooms = ROOMS[id] || [];
-    let complete = 0;
-    rooms.forEach(r => { const p = getRoomProgress(r.id); if (p.done === p.total && p.total > 0) complete++; });
-    const remaining = rooms.length - complete;
-    return '<button class="section-tab' + (id === currentSection ? ' active' : '') +
-      '" onclick="switchSection(\'' + id + '\')">' +
-      '<span class="tab-icon">' + SECTION_ICONS[id] + '</svg></span>' +
-      s.label + '<span class="tab-badge">' + remaining + '</span></button>';
+  container.innerHTML = Object.entries(CAMPUSES).map(([id, c]) => {
+    let totalRooms = 0, completeRooms = 0;
+    c.sections.forEach(sid => {
+      (ROOMS[sid] || []).forEach(r => {
+        totalRooms++;
+        const p = getRoomProgress(r.id);
+        if (p.done === p.total && p.total > 0) completeRooms++;
+      });
+    });
+    const remaining = totalRooms - completeRooms;
+    return '<button class="section-tab' + (id === currentCampus ? ' active' : '') +
+      '" onclick="switchCampus(\'' + id + '\')">' +
+      c.label + '<span class="tab-badge">' + remaining + '</span></button>';
   }).join('');
 }
 
-function switchSection(sectionId) {
-  if (sectionId === currentSection) return;
-  currentSection = sectionId; searchQ = ''; expandedRoomId = null;
+function switchCampus(campusId) {
+  if (campusId === currentCampus) return;
+  currentCampus = campusId; searchQ = ''; expandedRoomId = null;
   document.getElementById('search-input').value = '';
-  document.documentElement.setAttribute('data-section', sectionId);
+  document.documentElement.setAttribute('data-section', campusId);
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', SECTIONS[sectionId].themeColor);
-  document.getElementById('logo-sub').textContent = SECTIONS[sectionId].label;
-  try { localStorage.setItem('ncl_section', sectionId); } catch (e) {}
+  if (meta) meta.setAttribute('content', CAMPUSES[campusId].themeColor);
+  document.getElementById('logo-sub').textContent = CAMPUSES[campusId].label;
+  try { localStorage.setItem('ncl_section', campusId); } catch (e) {}
   render();
 }
 
@@ -740,8 +740,17 @@ function setShift(shift) {
 }
 function onSearch(q) { searchQ = q.toLowerCase().trim(); render(); }
 
+function getCampusRooms() {
+  const campus = CAMPUSES[currentCampus];
+  if (!campus) return [];
+  const result = [];
+  campus.sections.forEach(sid => {
+    (ROOMS[sid] || []).forEach(r => result.push({ ...r, section: sid }));
+  });
+  return result;
+}
 function getFilteredRooms() {
-  let rooms = ROOMS[currentSection] || [];
+  let rooms = getCampusRooms();
   if (searchQ) rooms = rooms.filter(r => r.name.toLowerCase().includes(searchQ));
   if (currentShift !== 'all') rooms = rooms.filter(r => { const a = assignments[r.id]; return a && a.shift === currentShift; });
   return rooms;
@@ -751,7 +760,7 @@ function render() { renderSectionTabs(); updateStats(); renderRoomList(); }
 
 function updateStats() {
   document.getElementById('stats-date').innerHTML = formatDate(getToday());
-  const rooms = ROOMS[currentSection] || [];
+  const rooms = getCampusRooms();
   let totalItems = 0, doneItems = 0;
   rooms.forEach(r => {
     const p = getRoomProgress(r.id);
@@ -775,7 +784,16 @@ function renderRoomList() {
   empty.classList.remove('visible');
   const circ = 2 * Math.PI * 14;
 
+  let lastSection = null;
   list.innerHTML = rooms.map(room => {
+    let headerHtml = '';
+    if (room.section !== lastSection) {
+      const sec = SECTIONS[room.section];
+      headerHtml = '<div class="section-group-header">' +
+        '<span class="sgh-dot" style="background:' + (sec ? sec.themeColor : 'var(--muted)') + '"></span>' +
+        (sec ? sec.label : room.section) + '</div>';
+      lastSection = room.section;
+    }
     const p = getRoomProgress(room.id);
     const pct = p.total > 0 ? Math.round(p.done / p.total * 100) : 0;
     const isComplete = p.done === p.total && p.total > 0;
@@ -815,7 +833,7 @@ function renderRoomList() {
       '</div>';
     }
 
-    return '<div class="room-card' + (isComplete ? ' complete' : '') + (isExpanded ? ' expanded' : '') + '">' +
+    return headerHtml + '<div class="room-card' + (isComplete ? ' complete' : '') + (isExpanded ? ' expanded' : '') + '">' +
       '<div class="room-card-header" onclick="toggleRoom(\'' + room.id + '\')">' +
         '<div class="room-check-icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>' +
         '<div class="room-info">' +
@@ -969,7 +987,7 @@ function startMic() {
   recognition = new SR(); recognition.lang = 'en-AU'; recognition.interimResults = false;
   recognition.onresult = function (e) {
     const text = e.results[0][0].transcript.trim();
-    if (text) { if (!customItems[currentSection]) customItems[currentSection] = []; customItems[currentSection].push(text); saveCustomItems(); render(); showToast('Added: ' + text); }
+    if (text) { const sec = expandedRoomId ? getRoomSection(expandedRoomId) : CAMPUSES[currentCampus].sections[0]; if (!customItems[sec]) customItems[sec] = []; customItems[sec].push(text); saveCustomItems(); render(); showToast('Added: ' + text); }
   };
   recognition.onerror = function () { showToast('Could not hear, try again'); };
   recognition.onend = function () { document.getElementById('mic-fab').classList.remove('recording'); };
@@ -1057,10 +1075,19 @@ function deleteRoom(roomId) {
   saveRooms(); saveChecks(); saveAssignments(); render(); showToast('Room removed');
 }
 function addRoom() {
+  const campus = CAMPUSES[currentCampus];
+  if (!campus) return;
+  const secs = campus.sections;
+  const labels = secs.map((sid, i) => (i + 1) + ' = ' + SECTIONS[sid].label).join('\n');
+  const choice = prompt('Add to which section?\n\n' + labels);
+  if (choice === null) return;
+  const idx = parseInt(choice.trim(), 10) - 1;
+  if (isNaN(idx) || idx < 0 || idx >= secs.length) { showToast('Invalid choice'); return; }
+  const section = secs[idx];
   const name = prompt('New room name:');
   if (!name || !name.trim()) return;
-  ROOMS[currentSection].push({ id: currentSection.slice(0, 2) + Date.now(), name: name.trim() });
-  saveRooms(); render(); showToast(name.trim() + ' added');
+  ROOMS[section].push({ id: section.slice(0, 2) + Date.now(), name: name.trim() });
+  saveRooms(); render(); showToast(name.trim() + ' added to ' + SECTIONS[section].label);
 }
 function saveRooms() { try { localStorage.setItem('ncl_rooms_v1', JSON.stringify(ROOMS)); } catch (e) {} }
 function loadRooms() {
@@ -1194,11 +1221,11 @@ async function syncDown() {
 (function init() {
   try { const t = localStorage.getItem('ncl_theme'); if (t) document.documentElement.setAttribute('data-theme', t); } catch (e) {}
   updateThemeIcon();
-  try { const s = localStorage.getItem('ncl_section'); if (s && SECTIONS[s]) currentSection = s; } catch (e) {}
-  document.documentElement.setAttribute('data-section', currentSection);
+  try { const s = localStorage.getItem('ncl_section'); if (s && CAMPUSES[s]) currentCampus = s; } catch (e) {}
+  document.documentElement.setAttribute('data-section', currentCampus);
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', SECTIONS[currentSection].themeColor);
-  document.getElementById('logo-sub').textContent = SECTIONS[currentSection].label;
+  if (meta) meta.setAttribute('content', CAMPUSES[currentCampus].themeColor);
+  document.getElementById('logo-sub').textContent = CAMPUSES[currentCampus].label;
   loadRooms(); loadPresetChecklists(); loadChecks(); loadCustomItems(); loadStaff(); loadAssignments(); loadRoomExclusions(); loadRoomEstimates();
   render();
   initSupabase();
