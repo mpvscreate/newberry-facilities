@@ -841,10 +841,7 @@
            list="person-suggestions" oninput="renderQuickNames()" />
     <datalist id="person-suggestions"></datalist>
     <input type="date" id="voice-due" title="Due date" onchange="onDueDateChange()" />
-    <select id="room-select" onchange="onRoomChange()" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:8px 10px;color:var(--text);font-family:var(--font-body);font-size:13px;outline:none;cursor:pointer;flex-shrink:0">
-      <option value="">All rooms</option>
-    </select>
-    <div class="quick-dates" id="quick-dates-wrap">
+    <div class="quick-dates">
       <button type="button" class="qdate-chip" data-days="0" onclick="setQuickDate(0)">Today</button>
       <button type="button" class="qdate-chip" data-days="1" onclick="setQuickDate(1)">Tomorrow</button>
       <button type="button" class="qdate-chip" data-days="7" onclick="setQuickDate(7)">This week</button>
@@ -1027,7 +1024,7 @@ const SECTION_ICONS = {
 
 const SECTIONS = {
   garden:    { label: 'Garden',    subs: ['Hard Landscaping', 'Soft Landscaping', 'Equipment'], key: 'nvp_tasks_garden_v1',    themeColor: '#2e7d32' },
-  buildings: { label: 'Buildings', subs: ['Toddlers', 'Pre-Primary', 'Lower Elementary', 'Upper Elementary', 'Middle School', 'High School', 'Campus'], key: 'nvp_tasks_buildings_v1', themeColor: '#e65100' },
+  buildings: { label: 'Buildings', subs: ['Maintenance', 'Renovations', 'Improvements'],        key: 'nvp_tasks_buildings_v1', themeColor: '#e65100' },
   safety:    { label: 'Safety',    subs: ['Campus Safety', 'Fire Safety', 'Playground Safety'],  key: 'nvp_tasks_safety_v1',    themeColor: '#f9a825' },
   equipment: { label: 'Equipment', subs: ['Workshop', 'Maintenance', 'Garden'],                  key: 'nvp_tasks_equipment_v1', themeColor: '#00796b' }
 };
@@ -1106,7 +1103,7 @@ function switchSection(sectionId) {
   if (meta) meta.setAttribute('content', SECTIONS[sectionId].themeColor);
   document.getElementById('logo-sub').textContent = SECTIONS[sectionId].label;
   document.getElementById('print-header').textContent = 'Newberry Facilities — ' + SECTIONS[sectionId].label + ' Task List';
-  renderSectionTabs(); renderSubsectionBar(); updateManualPlaceholder(); updateStockToggleVisibility(); renderRoomSelector();
+  renderSectionTabs(); renderSubsectionBar(); updateManualPlaceholder(); updateStockToggleVisibility();
   document.querySelectorAll('.filter-btn[data-filter]').forEach(b => b.classList.toggle('active', b.dataset.filter === 'all'));
   const si = document.getElementById('search-input'); if (si) si.value = '';
   loadTasks(); loadNames();
@@ -1116,7 +1113,7 @@ function switchSection(sectionId) {
 }
 
 function setSub(sub) {
-  currentSub = sub; renderSubsectionBar(); updateManualPlaceholder(); renderRoomSelector();
+  currentSub = sub; renderSubsectionBar(); updateManualPlaceholder();
   if (viewMode === 'stock' && currentSection === 'equipment') renderStock(); else render();
 }
 
@@ -1124,9 +1121,7 @@ function getActiveSub() { return currentSub !== 'all' ? currentSub : SECTIONS[cu
 
 function updateManualPlaceholder() {
   const inp = document.getElementById('manual-input');
-  if (!inp) return;
-  const room = getSelectedRoom();
-  inp.placeholder = room ? 'Add task to ' + room + '...' : 'Add task to ' + getActiveSub() + '...';
+  if (inp) inp.placeholder = 'Add task to ' + getActiveSub() + '...';
 }
 
 /* Persistence */
@@ -1152,55 +1147,6 @@ function migrateOldTasks() {
     }
     localStorage.setItem('nvp_migrated_v2', '1');
   } catch(e) {}
-}
-
-const BUILDING_ROOMS = {
-  'Toddlers': ['Jasmine', 'Freesia'],
-  'Pre-Primary': ['Protea', 'Disa', 'Azalea', 'Cosmos'],
-  'Lower Elementary': ['Oak', 'Willow', 'Rooibos'],
-  'Upper Elementary': ['Breeze', 'Newton'],
-  'Middle School': ['Hamlet', 'Alpha', 'Mercury', 'Gravity'],
-  'High School': ['Iris', 'Sage', 'Delta', 'B5', 'B6', 'B7', 'Ivy', 'Eagle Owl', 'The Lab'],
-  'Campus': ['Reception', 'Staffroom G', 'Staffroom', 'Toilet 1', 'Toilet 2', 'Astro & Stoep']
-};
-
-function renderRoomSelector() {
-  const sel = document.getElementById('room-select');
-  const datePicker = document.getElementById('voice-due');
-  const dateChips = document.getElementById('quick-dates-wrap');
-  if (!sel || !datePicker) return;
-  if (currentSection !== 'buildings') {
-    sel.style.display = 'none';
-    datePicker.style.display = '';
-    if (dateChips) dateChips.style.display = '';
-    return;
-  }
-  sel.style.display = '';
-  datePicker.style.display = 'none';
-  if (dateChips) dateChips.style.display = 'none';
-  const sub = getActiveSub();
-  const rooms = sub === 'All' ? Object.values(BUILDING_ROOMS).flat() : (BUILDING_ROOMS[sub] || []);
-  let html = '<option value="">Select room...</option>';
-  if (sub === 'All') {
-    Object.entries(BUILDING_ROOMS).forEach(([grp, names]) => {
-      html += '<optgroup label="' + grp + '">';
-      names.forEach(r => html += '<option value="' + r + '">' + r + '</option>');
-      html += '</optgroup>';
-    });
-  } else {
-    rooms.forEach(r => html += '<option value="' + r + '">' + r + '</option>');
-  }
-  sel.innerHTML = html;
-}
-
-function getSelectedRoom() {
-  const sel = document.getElementById('room-select');
-  return sel ? sel.value : '';
-}
-
-function onRoomChange() {
-  updateManualPlaceholder();
-  render();
 }
 
 /* Names */
@@ -1375,8 +1321,7 @@ function parseAndAdd(text, person, pri, due) {
     .split(/[,;\n]+/).map(s => s.trim().replace(/^\d+[\.\)]\s*/, '').trim()).filter(s => s.length > 1);
   if (!raw.length) return;
   const sub = getActiveSub(), now = Date.now();
-  const room = getSelectedRoom();
-  const newTasks = raw.map(t => ({ id: uid(), text: room ? '[' + room + '] ' + t : t, done: false, person: person || '', priority: pri || 'med', dueDate: due || '', media: '', notes: '', subsection: sub, createdAt: now, updatedAt: now }));
+  const newTasks = raw.map(t => ({ id: uid(), text: t, done: false, person: person || '', priority: pri || 'med', dueDate: due || '', media: '', notes: '', subsection: sub, createdAt: now, updatedAt: now }));
   tasks = [...newTasks, ...tasks];
   if (navigator.vibrate) navigator.vibrate(40);
   saveTasks(); if (person) rememberName(person);
@@ -1489,10 +1434,8 @@ function exportTasks() {
 /* Derived data */
 const PRI = { high: 0, med: 1, low: 2 };
 function getFiltered() {
-  const room = getSelectedRoom();
   return tasks.filter(t => {
     if (currentSub !== 'all' && t.subsection !== currentSub) return false;
-    if (room && !t.text.startsWith('[' + room + ']')) return false;
     if (filter === 'active' && t.done) return false;
     if (filter === 'done' && !t.done) return false;
     if (filter === 'person' && t.person !== personFilt) return false;
@@ -2069,7 +2012,7 @@ function parseCSVLine(line) {
   if (meta) meta.setAttribute('content', SECTIONS[currentSection].themeColor);
   document.getElementById('logo-sub').textContent = SECTIONS[currentSection].label;
   document.getElementById('print-header').textContent = 'Newberry Facilities — ' + SECTIONS[currentSection].label + ' Task List';
-  renderSectionTabs(); renderSubsectionBar(); updateManualPlaceholder(); updateStockToggleVisibility(); renderRoomSelector();
+  renderSectionTabs(); renderSubsectionBar(); updateManualPlaceholder(); updateStockToggleVisibility();
   loadTasks(); loadNames(); initLang(); render();
   initSupabase();
   if (sb) { syncTasksDown().then(() => syncStockDown()); startAutoSync(); }
