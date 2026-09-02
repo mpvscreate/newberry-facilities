@@ -203,6 +203,11 @@ body {
   font-size: 9px; font-weight: 700; color: var(--muted);
 }
 
+.room-est {
+  font-size: 9px; font-weight: 600; color: var(--muted); white-space: nowrap;
+  flex-shrink: 0; cursor: default;
+}
+.edit-mode-active .room-est { cursor: pointer; color: var(--pk); text-decoration: underline dashed var(--pk-mid); }
 .room-chevron {
   width: 20px; height: 20px; color: var(--muted); flex-shrink: 0; transition: transform .2s;
 }
@@ -602,6 +607,7 @@ let staff = [];
 let assignments = {};
 let editMode = false;
 let roomExclusions = {};
+let roomEstimates = {};
 let toastTimer = null;
 let _syncDebounce = null;
 function debouncedSync() { clearTimeout(_syncDebounce); _syncDebounce = setTimeout(() => syncUp(), 2000); }
@@ -643,6 +649,20 @@ function loadAssignments() { try { const r = localStorage.getItem('ncl_assign_v1
 function saveAssignments() { try { localStorage.setItem('ncl_assign_v1', JSON.stringify(assignments)); } catch (e) {} debouncedSync(); }
 function loadRoomExclusions() { try { const r = localStorage.getItem('ncl_excl_v1'); if (r) roomExclusions = JSON.parse(r); } catch (e) { roomExclusions = {}; } }
 function saveRoomExclusions() { try { localStorage.setItem('ncl_excl_v1', JSON.stringify(roomExclusions)); } catch (e) {} }
+function loadRoomEstimates() { try { const r = localStorage.getItem('ncl_est_v1'); if (r) roomEstimates = JSON.parse(r); } catch (e) { roomEstimates = {}; } }
+function saveRoomEstimates() { try { localStorage.setItem('ncl_est_v1', JSON.stringify(roomEstimates)); } catch (e) {} }
+function getRoomEstimate(roomId) { return roomEstimates[roomId] || 15; }
+function editRoomEstimate(roomId, e) {
+  if (e) e.stopPropagation();
+  if (!editMode) return;
+  const current = getRoomEstimate(roomId);
+  const val = prompt('Estimated cleaning time (minutes):', current);
+  if (val === null) return;
+  const mins = parseInt(val, 10);
+  if (isNaN(mins) || mins < 1) { showToast('Enter a valid number'); return; }
+  roomEstimates[roomId] = mins;
+  saveRoomEstimates(); render(); showToast('Updated to ' + mins + ' min');
+}
 
 function getChecklistForRoom(roomId) {
   const section = getRoomSection(roomId);
@@ -805,6 +825,7 @@ function renderRoomList() {
             (a && a.staff ? '<span class="room-staff-badge">' + escHtml(a.staff) + '</span>' : '') +
           '</div>' +
         '</div>' +
+        '<span class="room-est" onclick="editRoomEstimate(\'' + room.id + '\', event)">~' + getRoomEstimate(room.id) + ' min</span>' +
         '<div class="room-progress-mini">' +
           '<svg viewBox="0 0 32 32"><circle class="track" cx="16" cy="16" r="14"/>' +
           '<circle class="fill" cx="16" cy="16" r="14" stroke-dasharray="' + circ + '" stroke-dashoffset="' + offset + '"/></svg>' +
@@ -1178,7 +1199,7 @@ async function syncDown() {
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.setAttribute('content', SECTIONS[currentSection].themeColor);
   document.getElementById('logo-sub').textContent = SECTIONS[currentSection].label;
-  loadRooms(); loadPresetChecklists(); loadChecks(); loadCustomItems(); loadStaff(); loadAssignments(); loadRoomExclusions();
+  loadRooms(); loadPresetChecklists(); loadChecks(); loadCustomItems(); loadStaff(); loadAssignments(); loadRoomExclusions(); loadRoomEstimates();
   render();
   initSupabase();
   if (sb) { syncDown(); startAutoSync(); }
