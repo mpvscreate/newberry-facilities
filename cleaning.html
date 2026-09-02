@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-section="classrooms" data-theme="light">
+<html lang="en" data-section="toddlers" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
@@ -62,12 +62,13 @@ body {
   --overlay: rgba(0,0,0,.55);
 }
 
-[data-section="classrooms"]  { --pk: #1565c0; --pk-light: rgba(21,101,192,.08); --pk-mid: rgba(21,101,192,.15); --glow: rgba(21,101,192,.35); }
-[data-section="bathrooms"]   { --pk: #00838f; --pk-light: rgba(0,131,143,.08); --pk-mid: rgba(0,131,143,.15); --glow: rgba(0,131,143,.35); }
-[data-section="kitchen"]     { --pk: #e65100; --pk-light: rgba(230,81,0,.08); --pk-mid: rgba(230,81,0,.15); --glow: rgba(230,81,0,.35); }
-[data-section="outdoor"]     { --pk: #2e7d32; --pk-light: rgba(46,125,50,.08); --pk-mid: rgba(46,125,50,.15); --glow: rgba(46,125,50,.35); }
-[data-section="common"]      { --pk: #6a1b9a; --pk-light: rgba(106,27,154,.08); --pk-mid: rgba(106,27,154,.15); --glow: rgba(106,27,154,.35); }
-[data-section="office"]      { --pk: #455a64; --pk-light: rgba(69,90,100,.08); --pk-mid: rgba(69,90,100,.15); --glow: rgba(69,90,100,.35); }
+[data-section="toddlers"]    { --pk: #e91e63; --pk-light: rgba(233,30,99,.08); --pk-mid: rgba(233,30,99,.15); --glow: rgba(233,30,99,.35); }
+[data-section="pp"]          { --pk: #9c27b0; --pk-light: rgba(156,39,176,.08); --pk-mid: rgba(156,39,176,.15); --glow: rgba(156,39,176,.35); }
+[data-section="le"]          { --pk: #2e7d32; --pk-light: rgba(46,125,50,.08); --pk-mid: rgba(46,125,50,.15); --glow: rgba(46,125,50,.35); }
+[data-section="ue"]          { --pk: #1565c0; --pk-light: rgba(21,101,192,.08); --pk-mid: rgba(21,101,192,.15); --glow: rgba(21,101,192,.35); }
+[data-section="ms"]          { --pk: #e65100; --pk-light: rgba(230,81,0,.08); --pk-mid: rgba(230,81,0,.15); --glow: rgba(230,81,0,.35); }
+[data-section="hs"]          { --pk: #00838f; --pk-light: rgba(0,131,143,.08); --pk-mid: rgba(0,131,143,.15); --glow: rgba(0,131,143,.35); }
+[data-section="campus"]      { --pk: #455a64; --pk-light: rgba(69,90,100,.08); --pk-mid: rgba(69,90,100,.15); --glow: rgba(69,90,100,.35); }
 
 .app-header {
   padding: calc(14px + env(safe-area-inset-top, 0px)) 16px 10px;
@@ -542,56 +543,63 @@ body {
 
 <script>
 const SECTION_ICONS = {
-  classrooms: '<svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
-  bathrooms: '<svg viewBox="0 0 24 24"><path d="M2 12h20v4a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4v-4z"/><path d="M6 12V5a2 2 0 0 1 2-2h1"/><circle cx="12" cy="5" r="1"/>',
-  kitchen: '<svg viewBox="0 0 24 24"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><line x1="7" y1="2" x2="7" y2="11"/><line x1="7" y1="15" x2="7" y2="22"/><path d="M17 2v5a3 3 0 0 0 3 3h0"/><line x1="17" y1="10" x2="17" y2="22"/>',
-  outdoor: '<svg viewBox="0 0 24 24"><path d="M12 22c-4-2-8-6-8-11a8 8 0 0 1 16 0c0 5-4 9-8 11z"/><path d="M12 2v10"/><path d="M8 8c2 1 4 1 4 4"/><path d="M16 8c-2 1-4 1-4 4"/>',
-  common: '<svg viewBox="0 0 24 24"><rect x="3" y="7" width="8" height="15" rx="1"/><rect x="13" y="3" width="8" height="19" rx="1"/><line x1="6" y1="10" x2="8" y2="10"/><line x1="6" y1="13" x2="8" y2="13"/><line x1="16" y1="6" x2="18" y2="6"/><line x1="16" y1="9" x2="18" y2="9"/>',
-  office: '<svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>'
+  toddlers: '<svg viewBox="0 0 24 24"><circle cx="12" cy="4" r="2"/><path d="M12 6v6"/><path d="M9 9h6"/><path d="M10 12l-2 8"/><path d="M14 12l2 8"/>',
+  pp: '<svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z"/><circle cx="12" cy="9" r="2.5"/>',
+  le: '<svg viewBox="0 0 24 24"><path d="M12 22c-4-2-8-6-8-11a8 8 0 0 1 16 0c0 5-4 9-8 11z"/><path d="M12 2v10"/><path d="M8 8c2 1 4 1 4 4"/><path d="M16 8c-2 1-4 1-4 4"/>',
+  ue: '<svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
+  ms: '<svg viewBox="0 0 24 24"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5"/><line x1="12" y1="22" x2="12" y2="15.5"/><polyline points="22 8.5 12 15.5 2 8.5"/>',
+  hs: '<svg viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 2 3 3 6 3s6-1 6-3v-5"/>',
+  campus: '<svg viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="9" y1="6" x2="15" y2="6"/><line x1="9" y1="10" x2="15" y2="10"/><line x1="9" y1="14" x2="15" y2="14"/><line x1="9" y1="18" x2="15" y2="18"/>'
 };
 const SECTIONS = {
-  classrooms: { label: 'Classrooms', themeColor: '#1565c0', estMin: 15 },
-  bathrooms:  { label: 'Bathrooms',  themeColor: '#00838f', estMin: 20 },
-  kitchen:    { label: 'Kitchen',    themeColor: '#e65100', estMin: 25 },
-  outdoor:    { label: 'Outdoor',    themeColor: '#2e7d32', estMin: 15 },
-  common:     { label: 'Common',     themeColor: '#6a1b9a', estMin: 20 },
-  office:     { label: 'Office',     themeColor: '#455a64', estMin: 15 }
+  toddlers: { label: 'Toddlers',          themeColor: '#e91e63', estMin: 15 },
+  pp:       { label: 'Pre-Primary',        themeColor: '#9c27b0', estMin: 15 },
+  le:       { label: 'Lower Elementary',   themeColor: '#2e7d32', estMin: 15 },
+  ue:       { label: 'Upper Elementary',    themeColor: '#1565c0', estMin: 15 },
+  ms:       { label: 'Middle School',       themeColor: '#e65100', estMin: 15 },
+  hs:       { label: 'High School',         themeColor: '#00838f', estMin: 15 },
+  campus:   { label: 'Campus',             themeColor: '#455a64', estMin: 20 }
 };
 const ROOMS = {
-  classrooms: Array.from({ length: 38 }, (_, i) => ({ id: 'cr' + (i + 1), name: 'Classroom ' + (i + 1) })),
-  bathrooms: [
-    { id: 'bt1', name: 'Staff Bathroom' }, { id: 'bt2', name: "Children's Block A" },
-    { id: 'bt3', name: "Children's Block B" }, { id: 'bt4', name: "Children's Block C" },
-    { id: 'bt5', name: 'Accessible Bathroom' }
+  toddlers: [
+    { id: 'td1', name: 'Jasmine' }, { id: 'td2', name: 'Freesia' }
   ],
-  kitchen: [
-    { id: 'kt1', name: 'Main Kitchen' }, { id: 'kt2', name: 'Canteen' }, { id: 'kt3', name: 'Staff Kitchen' }
+  pp: [
+    { id: 'pp1', name: 'Protea' }, { id: 'pp2', name: 'Disa' },
+    { id: 'pp3', name: 'Azalea' }, { id: 'pp4', name: 'Cosmos' }
   ],
-  outdoor: [
-    { id: 'od1', name: 'Front Yard' }, { id: 'od2', name: 'Back Yard' },
-    { id: 'od3', name: 'Playground A' }, { id: 'od4', name: 'Playground B' },
-    { id: 'od5', name: 'Car Park' }, { id: 'od6', name: 'Garden Beds' }
+  le: [
+    { id: 'le1', name: 'Oak' }, { id: 'le2', name: 'Willow' }, { id: 'le3', name: 'Rooibos' }
   ],
-  common: [
-    { id: 'cm1', name: 'Main Hall' }, { id: 'cm2', name: 'Library' },
-    { id: 'cm3', name: 'Staff Room' }, { id: 'cm4', name: 'Reception' },
-    { id: 'cm5', name: 'Corridor Block A' }, { id: 'cm6', name: 'Corridor Block B' }
+  ue: [
+    { id: 'ue1', name: 'Breeze' }, { id: 'ue2', name: 'Newton' }
   ],
-  office: [
-    { id: 'of1', name: 'Main Office' }, { id: 'of2', name: "Principal's Office" },
-    { id: 'of3', name: 'Admin Room' }, { id: 'of4', name: 'Meeting Room' }
+  ms: [
+    { id: 'ms1', name: 'Hamlet' }, { id: 'ms2', name: 'Alpha' },
+    { id: 'ms3', name: 'Mercury' }, { id: 'ms4', name: 'Gravity' }
+  ],
+  hs: [
+    { id: 'hs1', name: 'Iris' }, { id: 'hs2', name: 'Sage' }, { id: 'hs3', name: 'Delta' },
+    { id: 'hs4', name: 'B5' }, { id: 'hs5', name: 'B6' }, { id: 'hs6', name: 'B7' },
+    { id: 'hs7', name: 'Ivy' }, { id: 'hs8', name: 'Eagle Owl' }, { id: 'hs9', name: 'The Lab' }
+  ],
+  campus: [
+    { id: 'ca1', name: 'Reception' }, { id: 'ca2', name: 'Staffroom G' },
+    { id: 'ca3', name: 'Staffroom' }, { id: 'ca4', name: 'Toilet 1' },
+    { id: 'ca5', name: 'Toilet 2' }, { id: 'ca6', name: 'Astro & Stoep' }
   ]
 };
 const CHECKLISTS = {
-  classrooms: ['Floors swept & mopped','Tables & desks wiped','Chairs arranged','Whiteboard cleaned','Bins emptied','Windows & sills dusted','Door handles sanitised','Light switches wiped'],
-  bathrooms: ['Toilets cleaned & sanitised','Sinks & taps cleaned','Mirrors wiped','Floors mopped','Soap & paper restocked','Bins emptied','Door handles sanitised','Air freshener checked'],
-  kitchen: ['Benches wiped & sanitised','Floors swept & mopped','Appliances wiped down','Fridge cleaned & organised','Bins emptied','Dishes washed & put away','Stovetop cleaned','Pantry tidied'],
-  outdoor: ['Pathways swept','Garden beds tidied','Play equipment wiped','Sandpit raked & covered','Bins emptied','Tables & benches wiped','Gates checked & secure','Leaf litter cleared'],
-  common: ['Floors swept & mopped','Furniture wiped','Windows cleaned','Bins emptied','Notice boards tidy','Door handles sanitised','Light switches wiped','Shelves & surfaces dusted'],
-  office: ['Desks wiped','Floors vacuumed','Bins emptied','Printer area tidied','Kitchen corner cleaned','Door handles sanitised','Surfaces dusted','Filing area organised']
+  toddlers: ['Floors swept & mopped','Tables & desks wiped','Chairs arranged','Whiteboard cleaned','Bins emptied','Windows & sills dusted','Door handles sanitised','Light switches wiped'],
+  pp: ['Floors swept & mopped','Tables & desks wiped','Chairs arranged','Whiteboard cleaned','Bins emptied','Windows & sills dusted','Door handles sanitised','Light switches wiped'],
+  le: ['Floors swept & mopped','Tables & desks wiped','Chairs arranged','Whiteboard cleaned','Bins emptied','Windows & sills dusted','Door handles sanitised','Light switches wiped'],
+  ue: ['Floors swept & mopped','Tables & desks wiped','Chairs arranged','Whiteboard cleaned','Bins emptied','Windows & sills dusted','Door handles sanitised','Light switches wiped'],
+  ms: ['Floors swept & mopped','Tables & desks wiped','Chairs arranged','Whiteboard cleaned','Bins emptied','Windows & sills dusted','Door handles sanitised','Light switches wiped'],
+  hs: ['Floors swept & mopped','Tables & desks wiped','Chairs arranged','Whiteboard cleaned','Bins emptied','Windows & sills dusted','Door handles sanitised','Light switches wiped'],
+  campus: ['Floors swept & mopped','Surfaces wiped & sanitised','Bins emptied','Windows cleaned','Door handles sanitised','Light switches wiped','Furniture & fittings checked','Supplies restocked']
 };
 
-let currentSection = 'classrooms';
+let currentSection = 'toddlers';
 let currentShift = 'all';
 let searchQ = '';
 let expandedRoomId = null;
