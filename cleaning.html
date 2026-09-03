@@ -538,6 +538,26 @@ body {
   </div>
 </div>
 
+<div class="panel-overlay" id="dialog-overlay" onclick="closeDialog(event)">
+  <div class="panel" onclick="event.stopPropagation()" style="max-width:340px">
+    <div class="panel-header">
+      <span class="panel-title" id="dialog-title"></span>
+      <button class="modal-close" onclick="closeDialog()">&times;</button>
+    </div>
+    <div class="panel-body">
+      <div id="dialog-message" style="font-size:13px;color:var(--text-secondary);margin-bottom:10px"></div>
+      <div id="dialog-select-wrap" style="display:none;margin-bottom:10px">
+        <select id="dialog-select" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);font-size:13px;font-family:var(--font-body);outline:none"></select>
+      </div>
+      <input type="text" id="dialog-input" style="display:none;width:100%;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-size:13px;font-family:var(--font-body);outline:none;margin-bottom:10px" onkeydown="if(event.key==='Enter')dialogOk()">
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn btn-ghost btn-sm" onclick="closeDialog()">Cancel</button>
+        <button class="btn btn-pk btn-sm" id="dialog-ok-btn" onclick="dialogOk()">OK</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="panel-overlay" id="schedule-overlay" onclick="closeSchedulePanel(event)">
   <div class="panel" onclick="event.stopPropagation()">
     <div class="panel-header">
@@ -549,6 +569,44 @@ body {
 </div>
 
 <script>
+let _dialogResolve = null;
+function showDialog(opts) {
+  document.getElementById('dialog-title').textContent = opts.title || 'Confirm';
+  document.getElementById('dialog-message').textContent = opts.message || '';
+  document.getElementById('dialog-message').style.display = opts.message ? '' : 'none';
+  const inp = document.getElementById('dialog-input');
+  const sel = document.getElementById('dialog-select');
+  const selWrap = document.getElementById('dialog-select-wrap');
+  const okBtn = document.getElementById('dialog-ok-btn');
+  inp.style.display = 'none'; selWrap.style.display = 'none';
+  if (opts.input) { inp.style.display = ''; inp.value = opts.defaultValue || ''; inp.placeholder = opts.placeholder || ''; }
+  if (opts.options) {
+    selWrap.style.display = '';
+    sel.innerHTML = opts.options.map((o, i) => '<option value="' + i + '">' + escHtml(o) + '</option>').join('');
+  }
+  okBtn.textContent = opts.okLabel || 'OK';
+  if (opts.danger) { okBtn.className = 'btn btn-sm'; okBtn.style.background = 'var(--red)'; okBtn.style.color = '#fff'; }
+  else { okBtn.className = 'btn btn-pk btn-sm'; okBtn.style.background = ''; okBtn.style.color = ''; }
+  document.getElementById('dialog-overlay').classList.add('open');
+  if (opts.input) setTimeout(() => { inp.focus(); inp.select(); }, 100);
+  return new Promise(resolve => { _dialogResolve = resolve; });
+}
+function dialogOk() {
+  const inp = document.getElementById('dialog-input');
+  const sel = document.getElementById('dialog-select');
+  const selWrap = document.getElementById('dialog-select-wrap');
+  let result = true;
+  if (inp.style.display !== 'none') result = inp.value;
+  if (selWrap.style.display !== 'none') result = { selected: parseInt(sel.value, 10), text: inp.style.display !== 'none' ? inp.value : null };
+  document.getElementById('dialog-overlay').classList.remove('open');
+  if (_dialogResolve) { _dialogResolve(result); _dialogResolve = null; }
+}
+function closeDialog(e) {
+  if (e && e.target !== document.getElementById('dialog-overlay')) return;
+  document.getElementById('dialog-overlay').classList.remove('open');
+  if (_dialogResolve) { _dialogResolve(null); _dialogResolve = null; }
+}
+
 const SECTIONS = {
   toddlers: { label: 'Toddlers',          themeColor: '#e91e63' },
   pp:       { label: 'Pre-Primary',        themeColor: '#9c27b0' },
@@ -658,13 +716,13 @@ function saveRoomExclusions() { try { localStorage.setItem('ncl_excl_v1', JSON.s
 function loadRoomEstimates() { try { const r = localStorage.getItem('ncl_est_v1'); if (r) roomEstimates = JSON.parse(r); } catch (e) { roomEstimates = {}; } }
 function saveRoomEstimates() { try { localStorage.setItem('ncl_est_v1', JSON.stringify(roomEstimates)); } catch (e) {} }
 function getRoomEstimate(roomId) { return roomEstimates[roomId] || 15; }
-function editRoomEstimate(roomId, e) {
+async function editRoomEstimate(roomId, e) {
   if (e) e.stopPropagation();
   if (!editMode) return;
   const current = getRoomEstimate(roomId);
-  const val = prompt('Estimated cleaning time (minutes):', current);
+  const val = await showDialog({ title: 'Estimate', message: 'Cleaning time (minutes):', input: true, defaultValue: String(current) });
   if (val === null) return;
-  const mins = parseInt(val, 10);
+  const mins = parseInt(val.trim(), 10);
   if (isNaN(mins) || mins < 1) { showToast('Enter a valid number'); return; }
   roomEstimates[roomId] = mins;
   saveRoomEstimates(); render(); showToast('Updated to ' + mins + ' min');
@@ -949,16 +1007,22 @@ function addStaff() {
   staff.push({ name, id: Date.now().toString() }); input.value = '';
   saveStaff(); renderStaffList(); showToast(name + ' added');
 }
-function removeStaff(idx) {
+async function removeStaff(idx) {
   const name = staff[idx].name;
-  if (!confirm('Remove "' + name + '"? This will also unassign them from all rooms.')) return;
-  staff.splice(idx, 1);
-  Object.keys(assignments).forEach(rid => { if (assignments[rid].staff === name) delete assignments[rid]; });
+  const ok = await showDialog({ title: 'Remove Staff', message: 'Remove "' + name + '"? This will also unassign them from all rooms.', okLabel: 'Remove', danger: true });
+  if (!ok) return;
+  const removed = staff.splice(idx, 1)[0];
+  const unassignedRooms = [];
+  Object.keys(assignments).forEach(rid => { if (assignments[rid].staff === name) { delete assignments[rid]; unassignedRooms.push(rid); } });
   saveStaff(); saveAssignments(); renderStaffList(); render(); showToast(name + ' removed');
+  if (sb && removed.id) {
+    sb.from('cleaning_staff').update({ deleted: true, updated_at: Date.now() }).eq('id', removed.id).then(() => {});
+    unassignedRooms.forEach(rid => { sb.from('cleaning_assignments').delete().eq('room_id', rid).then(() => {}); });
+  }
 }
-function editStaff(idx) {
+async function editStaff(idx) {
   const oldName = staff[idx].name;
-  const newName = prompt('Edit staff name:', oldName);
+  const newName = await showDialog({ title: 'Edit Staff', input: true, defaultValue: oldName, placeholder: 'Staff name' });
   if (newName === null || !newName.trim() || newName.trim() === oldName) return;
   const trimmed = newName.trim();
   if (staff.some((s, i) => i !== idx && s.name.toLowerCase() === trimmed.toLowerCase())) { showToast('Name already exists'); return; }
@@ -1081,44 +1145,42 @@ function toggleEditMode() {
   document.getElementById('edit-mode-btn').classList.toggle('active', editMode);
   render(); showToast(editMode ? 'Edit mode on' : 'Edit mode off');
 }
-function renameRoom(roomId) {
+async function renameRoom(roomId) {
   const room = findRoom(roomId); if (!room) return;
-  const name = prompt('Rename room:', room.name);
+  const name = await showDialog({ title: 'Rename Room', input: true, defaultValue: room.name, placeholder: 'Room name' });
   if (name === null || !name.trim()) return;
   room.name = name.trim(); saveRooms(); render(); showToast('Room renamed');
 }
-function deleteRoom(roomId) {
+async function deleteRoom(roomId) {
   const room = findRoom(roomId); if (!room) return;
-  if (!confirm('Remove "' + room.name + '"?')) return;
+  const ok = await showDialog({ title: 'Remove Room', message: 'Remove "' + room.name + '"?', okLabel: 'Remove', danger: true });
+  if (!ok) return;
   const section = getRoomSection(roomId);
   ROOMS[section] = ROOMS[section].filter(r => r.id !== roomId);
   delete checks[roomId]; delete assignments[roomId];
   if (expandedRoomId === roomId) expandedRoomId = null;
   saveRooms(); saveChecks(); saveAssignments(); render(); showToast('Room removed');
 }
-function addRoom() {
+async function addRoom() {
   const campus = CAMPUSES[currentCampus];
   if (!campus) return;
   const secs = campus.sections;
-  const labels = secs.map((sid, i) => (i + 1) + ' = ' + SECTIONS[sid].label).join('\n');
-  const choice = prompt('Add to which section?\n\n' + labels);
-  if (choice === null) return;
-  const idx = parseInt(choice.trim(), 10) - 1;
-  if (isNaN(idx) || idx < 0 || idx >= secs.length) { showToast('Invalid choice'); return; }
-  const section = secs[idx];
-  const name = prompt('New room name:');
-  if (!name || !name.trim()) return;
-  ROOMS[section].push({ id: section.slice(0, 2) + Date.now(), name: name.trim() });
-  saveRooms(); render(); showToast(name.trim() + ' added to ' + SECTIONS[section].label);
+  const labels = secs.map(sid => SECTIONS[sid].label);
+  const result = await showDialog({ title: 'Add Room', options: labels, input: true, placeholder: 'Room name', okLabel: 'Add' });
+  if (result === null || !result.text || !result.text.trim()) return;
+  const section = secs[result.selected];
+  const name = result.text.trim();
+  ROOMS[section].push({ id: section.slice(0, 2) + Date.now(), name: name });
+  saveRooms(); render(); showToast(name + ' added to ' + SECTIONS[section].label);
 }
 function saveRooms() { try { localStorage.setItem('ncl_rooms_v1', JSON.stringify(ROOMS)); } catch (e) {} }
 function loadRooms() {
   try { const raw = localStorage.getItem('ncl_rooms_v1'); if (raw) { const saved = JSON.parse(raw); for (const [k, v] of Object.entries(saved)) { if (ROOMS[k]) ROOMS[k] = v; } } } catch (e) {}
 }
 
-function renameChecklistItem(roomId, idx) {
+async function renameChecklistItem(roomId, idx) {
   const items = getChecklistForRoom(roomId);
-  const name = prompt('Edit item:', items[idx]);
+  const name = await showDialog({ title: 'Edit Item', input: true, defaultValue: items[idx], placeholder: 'Item name' });
   if (name === null || !name.trim()) return;
   const section = getRoomSection(roomId);
   const preset = CHECKLISTS[section] || [];
@@ -1126,7 +1188,7 @@ function renameChecklistItem(roomId, idx) {
   else { const ci = idx - preset.length; if (customItems[section] && customItems[section][ci] !== undefined) { customItems[section][ci] = name.trim(); saveCustomItems(); } }
   render(); showToast('Item updated');
 }
-function deleteChecklistItem(roomId, idx) {
+async function deleteChecklistItem(roomId, idx) {
   const items = getChecklistForRoom(roomId);
   const itemName = items[idx];
   if (!itemName) return;
@@ -1134,12 +1196,14 @@ function deleteChecklistItem(roomId, idx) {
   const room = findRoom(roomId);
   const roomLabel = room ? room.name : roomId;
   const sectionLabel = SECTIONS[section] ? SECTIONS[section].label : section;
-  const choice = prompt(
-    'Remove "' + itemName + '"?\n\nType 1 = This room only (' + roomLabel + ')\nType 2 = All ' + sectionLabel + ' rooms'
-  );
-  if (choice === null) return;
-  const opt = choice.trim();
-  if (opt === '1') {
+  const result = await showDialog({
+    title: 'Remove Item', message: 'Remove "' + itemName + '"?',
+    options: ['This room only (' + roomLabel + ')', 'All ' + sectionLabel + ' rooms'],
+    okLabel: 'Remove', danger: true
+  });
+  if (result === null) return;
+  const opt = result.selected;
+  if (opt === 0) {
     if (!roomExclusions[roomId]) roomExclusions[roomId] = [];
     if (!roomExclusions[roomId].includes(itemName)) roomExclusions[roomId].push(itemName);
     saveRoomExclusions();
@@ -1148,7 +1212,7 @@ function deleteChecklistItem(roomId, idx) {
       saveChecks();
     }
     render(); showToast('Removed from ' + roomLabel);
-  } else if (opt === '2') {
+  } else {
     const allPreset = CHECKLISTS[section] || [];
     const presetIdx = allPreset.indexOf(itemName);
     if (presetIdx >= 0) {
@@ -1168,8 +1232,6 @@ function deleteChecklistItem(roomId, idx) {
       }
     });
     saveChecks(); render(); showToast('Removed from all ' + sectionLabel);
-  } else {
-    showToast('Enter 1 or 2');
   }
 }
 function addChecklistItem(roomId) {
