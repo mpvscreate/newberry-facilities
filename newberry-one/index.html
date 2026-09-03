@@ -1341,32 +1341,45 @@ function initPWA() {
 async function updateNotifBtn() {
   const btn = document.getElementById('notif-btn');
   if (!('PushManager' in window) || !('Notification' in window)) { btn.classList.add('hidden'); return; }
-  const granted = Notification.permission === 'granted';
-  document.getElementById('bell-icon').style.display = granted ? 'none' : '';
-  document.getElementById('bell-active-icon').style.display = granted ? '' : 'none';
-  if (granted) btn.classList.add('active');
+  let active = false;
+  if (Notification.permission === 'granted' && 'serviceWorker' in navigator) {
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      active = !!sub;
+    } catch(e) {}
+  }
+  document.getElementById('bell-icon').style.display = active ? 'none' : '';
+  document.getElementById('bell-active-icon').style.display = active ? '' : 'none';
+  if (active) btn.classList.add('active');
   else btn.classList.remove('active');
+  btn.title = active ? 'Disable notifications' : 'Enable notifications';
 }
 
-async function subscribePush() {
+async function togglePush() {
   if (!('PushManager' in window)) { showToast('Push not supported', true); return; }
-  const perm = await Notification.requestPermission();
-  if (perm !== 'granted') { showToast('Notifications blocked', true); updateNotifBtn(); return; }
   try {
     const reg = await navigator.serviceWorker.ready;
-    let sub = await reg.pushManager.getSubscription();
-    if (!sub) {
-      sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64ToUint8(VAPID_PUB) });
+    const existing = await reg.pushManager.getSubscription();
+    if (existing) {
+      const endpoint = existing.endpoint;
+      await existing.unsubscribe();
+      if (sb) await sb.from('push_subscriptions').delete().eq('endpoint', endpoint);
+      showToast('Notifications disabled');
+    } else {
+      const perm = await Notification.requestPermission();
+      if (perm !== 'granted') { showToast('Notifications blocked', true); updateNotifBtn(); return; }
+      const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64ToUint8(VAPID_PUB) });
+      const json = sub.toJSON();
+      if (sb && json.endpoint && json.keys) {
+        await sb.from('push_subscriptions').upsert(
+          { endpoint: json.endpoint, p256dh: json.keys.p256dh, auth: json.keys.auth },
+          { onConflict: 'endpoint' }
+        );
+      }
+      showToast('Notifications enabled');
     }
-    const json = sub.toJSON();
-    if (sb && json.endpoint && json.keys) {
-      await sb.from('push_subscriptions').upsert(
-        { endpoint: json.endpoint, p256dh: json.keys.p256dh, auth: json.keys.auth },
-        { onConflict: 'endpoint' }
-      );
-    }
-    showToast('Notifications enabled');
-  } catch(e) { console.warn('Push sub error:', e); showToast('Could not subscribe', true); }
+  } catch(e) { console.warn('Push toggle error:', e); showToast('Could not update notifications', true); }
   updateNotifBtn();
 }
 
@@ -1435,7 +1448,7 @@ function bindEvents() {
     if (tab) switchDept(tab.dataset.dept);
   });
 
-  document.getElementById('notif-btn').addEventListener('click', subscribePush);
+  document.getElementById('notif-btn').addEventListener('click', togglePush);
   document.getElementById('theme-btn').addEventListener('click', toggleTheme);
   document.getElementById('auth-btn').addEventListener('click', () => {
     if (authLevel) signOut(); else openPinModal();
