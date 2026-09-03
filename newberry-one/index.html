@@ -1274,7 +1274,7 @@ function sharePin(deptKey) {
   const pin = document.getElementById('cfg-hod-' + deptKey).value.trim();
   if (!pin) { showToast('No PIN set', true); return; }
   const name = DEPTS[deptKey].name;
-  const text = 'Your Newberry One PIN for ' + name + ' is: ' + pin + '\n\nOpen the app: https://newberry-one.vercel.app';
+  const text = 'Your Newberry One PIN for ' + name + ' is: ' + pin + '\n\nTip: Tap the bell icon to switch notifications on or off.\n\nOpen the app: https://newberry-one.vercel.app';
   if (navigator.share) {
     navigator.share({ title: 'Newberry One — ' + name + ' PIN', text: text }).catch(() => {});
   } else {
