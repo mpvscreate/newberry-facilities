@@ -192,7 +192,8 @@
       background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg);
       padding: 16px; margin-bottom: 10px;
       transition: background .3s, border-color .3s, box-shadow .2s;
-      box-shadow: var(--shadow); cursor: default; position: relative;
+      box-shadow: var(--shadow); cursor: pointer; position: relative;
+      -webkit-tap-highlight-color: transparent;
     }
     .event-card:hover { box-shadow: var(--shadow-hover); }
     .event-date-badge {
@@ -213,7 +214,8 @@
       background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg);
       padding: 16px; margin-bottom: 10px;
       transition: background .3s, border-color .3s, box-shadow .2s;
-      box-shadow: var(--shadow); cursor: default; position: relative;
+      box-shadow: var(--shadow); cursor: pointer; position: relative;
+      -webkit-tap-highlight-color: transparent;
     }
     .ann-card:hover { box-shadow: var(--shadow-hover); }
     .ann-card.pinned { border-left: 3px solid var(--pk); }
@@ -242,6 +244,9 @@
     }
     .ann-actions button:hover { border-color: var(--pk); color: var(--pk); background: var(--pk-soft); }
     .ann-actions .btn-delete:hover { border-color: var(--rec); color: var(--rec); background: rgba(220,53,69,.06); }
+    .ann-card.seen, .event-card.seen { background: var(--surface); border-color: var(--surface); box-shadow: none; opacity: .55; }
+    .ann-card.seen .ann-title, .event-card.seen .event-title { color: var(--text-secondary); }
+    .event-card.seen .event-date-badge { background: var(--muted); }
 
     /* EMPTY STATE */
     #empty-state {
@@ -734,7 +739,8 @@ let announcements = [], config = {};
 let pinBuffer = '', editingId = null, deletingId = null, selectedCat = 'info';
 
 const LS_ANN = 'nbc_announcements', LS_CONFIG = 'nbc_config';
-const LS_DEPT = 'nbc_current_dept', LS_THEME = 'nbc_theme';
+const LS_DEPT = 'nbc_current_dept', LS_THEME = 'nbc_theme', LS_SEEN = 'nbc_seen';
+let seenIds = new Set();
 
 let _lsOk = true;
 try { localStorage.getItem('_t'); } catch(e) { _lsOk = false; }
@@ -754,6 +760,7 @@ function init() {
 function loadLocal() {
   try { const r = lsGet(LS_ANN); if (r) announcements = JSON.parse(r); } catch(e) { announcements = []; }
   try { const r = lsGet(LS_CONFIG); if (r) config = JSON.parse(r); } catch(e) {}
+  try { const r = lsGet(LS_SEEN); if (r) seenIds = new Set(JSON.parse(r)); } catch(e) {}
   if (!config.master_pin) {
     config = {
       master_pin: '0000',
@@ -914,16 +921,16 @@ function updateAuthUI() {
 /* RENDER */
 function renderTabs() {
   const el = document.getElementById('dept-tabs');
-  const counts = {};
-  DEPT_KEYS.forEach(k => { counts[k] = announcements.filter(a => a.department === k).length; });
-  const total = announcements.length;
+  const unread = {};
+  DEPT_KEYS.forEach(k => { unread[k] = announcements.filter(a => a.department === k && !seenIds.has(a.id)).length; });
+  const totalUnread = announcements.filter(a => !seenIds.has(a.id)).length;
 
   let html = '<button class="dept-tab' + (currentDept === 'all' ? ' active' : '') + '" data-dept="all">' +
-    ALL_ICON + '<span>All</span>' + (total ? '<span class="tab-count">' + total + '</span>' : '') + '</button>';
+    ALL_ICON + '<span>All</span>' + (totalUnread ? '<span class="tab-count">' + totalUnread + '</span>' : '') + '</button>';
 
   html += DEPT_KEYS.map(key => {
     const d = DEPTS[key], active = key === currentDept ? ' active' : '';
-    const cnt = counts[key] ? '<span class="tab-count">' + counts[key] + '</span>' : '';
+    const cnt = unread[key] ? '<span class="tab-count">' + unread[key] + '</span>' : '';
     return '<button class="dept-tab' + active + '" data-dept="' + key + '">' +
       d.icon + '<span>' + d.name + '</span>' + cnt + '</button>';
   }).join('');
@@ -960,7 +967,8 @@ function render() {
         const d = parseEventDate(ev.eventDate);
         const cat = ev.category || 'info';
         const showDept = isAll && DEPTS[ev.department];
-        return '<div class="event-card' + (ev.eventDate < today ? ' past' : '') + '" data-id="' + esc(ev.id) + '">' +
+        const seenCls = isSeen(ev.id) ? ' seen' : '';
+        return '<div class="event-card' + (ev.eventDate < today ? ' past' : '') + seenCls + '" data-id="' + esc(ev.id) + '">' +
           '<div class="event-date-badge"><div class="edb-day">' + d.day + '</div><div class="edb-mon">' + d.mon + '</div></div>' +
           '<div class="event-info"><div class="event-title">' + esc(ev.title) + '</div>' +
           (ev.eventTime ? '<div class="event-time">' + formatTime(ev.eventTime) + '</div>' : '') +
@@ -980,7 +988,8 @@ function render() {
         const cat = a.category || 'info';
         const showDept = isAll && DEPTS[a.department];
         const cardClass = cat === 'urgent' ? ' cat-card-urgent' : (a.pinned ? ' pinned' : '');
-        return '<div class="ann-card' + cardClass + '" data-id="' + esc(a.id) + '">' +
+        const seenCls = isSeen(a.id) ? ' seen' : '';
+        return '<div class="ann-card' + cardClass + seenCls + '" data-id="' + esc(a.id) + '">' +
           '<div class="ann-header"><div class="ann-title">' + esc(a.title) + '</div>' +
           (a.pinned ? '<span class="ann-pin-icon" title="Pinned">&#128204;</span>' : '') + '</div>' +
           '<div class="ann-badges">' +
@@ -1019,6 +1028,14 @@ function formatTime(t) {
   if (!t) return '';
   const [h, mn] = t.split(':').map(Number);
   return (h % 12 || 12) + ':' + String(mn).padStart(2, '0') + ' ' + (h >= 12 ? 'PM' : 'AM');
+}
+function isSeen(id) { return seenIds.has(id); }
+function toggleSeen(id) {
+  if (seenIds.has(id)) seenIds.delete(id); else seenIds.add(id);
+  lsSet(LS_SEEN, JSON.stringify([...seenIds]));
+  const card = document.querySelector('[data-id="' + id + '"]');
+  if (card) card.classList.toggle('seen', seenIds.has(id));
+  renderTabs();
 }
 function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
@@ -1376,6 +1393,13 @@ function bindEvents() {
   // Install
   document.getElementById('install-btn').addEventListener('click', installApp);
   document.getElementById('install-dismiss').addEventListener('click', dismissInstall);
+
+  // Tap card to mark seen
+  document.getElementById('content').addEventListener('click', e => {
+    if (e.target.closest('.ann-actions')) return;
+    const card = e.target.closest('.ann-card, .event-card');
+    if (card && card.dataset.id) toggleSeen(card.dataset.id);
+  });
 
   // Close modals on overlay
   document.querySelectorAll('.modal-overlay').forEach(ov => {
