@@ -1480,18 +1480,23 @@ function setSearch(q) { searchQ = q.toLowerCase().trim(); render(); }
 /* Export */
 function exportTasks() {
   const sectionLabel = SECTIONS[currentSection].label;
-  const visible = getFiltered();
-  const lines = visible.map((t, i) =>
-    (i + 1) + '. [' + (t.done ? '✓' : ' ') + '] ' + t.text +
-    (t.subsection ? ' {' + t.subsection + '}' : '') +
-    (t.person ? ' (@' + t.person + ')' : '') +
-    (t.dueDate ? ' [due:' + t.dueDate + ']' : '') +
-    (t.priority !== 'med' ? ' [' + t.priority.toUpperCase() + ']' : '')
+  const visible = getFiltered().filter(t => !t.exported);
+  if (!visible.length) { showToast('No new tasks to export', true); return; }
+  const header = 'Task\tStatus\tPriority\tAssigned\tDue\tSubsection\tSection';
+  const lines = visible.map(t =>
+    t.text + '\t' + (t.done ? 'Done' : 'Active') + '\t' + (t.priority || 'med').toUpperCase() + '\t' +
+    (t.person || '') + '\t' + (t.dueDate || '') + '\t' + (t.subsection || '') + '\t' + sectionLabel
   ).join('\n');
-  const done = tasks.filter(t => t.done).length;
-  const full = 'Newberry Facilities — ' + sectionLabel + ' Tasks\n' + '─'.repeat(30) + '\n' + lines + '\n' + '─'.repeat(30) + '\n' + done + '/' + tasks.length + ' done';
-  if (navigator.share) navigator.share({ title: sectionLabel + ' Task List', text: full }).catch(() => {});
-  else navigator.clipboard.writeText(full).then(() => showToast('Copied!')).catch(() => showToast('Could not copy', true));
+  const full = header + '\n' + lines;
+  const doExport = (ok) => {
+    if (!ok) return;
+    const now = Date.now();
+    tasks = tasks.map(t => visible.some(v => v.id === t.id) ? { ...t, exported: true, exportedAt: now } : t);
+    saveTasks();
+    showToast(visible.length + ' task' + (visible.length > 1 ? 's' : '') + ' exported');
+  };
+  if (navigator.share) navigator.share({ title: sectionLabel + ' Tasks', text: full }).then(() => doExport(true)).catch(() => {});
+  else navigator.clipboard.writeText(full).then(() => doExport(true)).catch(() => showToast('Could not copy', true));
 }
 
 /* Derived data */
@@ -2027,12 +2032,18 @@ function renderStock() {
 }
 
 function exportStock() {
-  const filtered = currentSub === 'all' ? stockItems : stockItems.filter(s => s.subsection === currentSub);
-  if (!filtered.length) { showToast('No items to export', true); return; }
-  const csv = 'Item,Quantity,Subsection\n' + filtered.map(s => '"' + s.name.replace(/"/g, '""') + '",' + s.qty + ',"' + (s.subsection || '').replace(/"/g, '""') + '"').join('\n');
-  const filename = 'StockTake_' + (currentSub === 'all' ? 'All' : currentSub).replace(/\s+/g, '_') + '_' + new Date().toISOString().slice(0, 10) + '.csv';
-  if (navigator.share) navigator.share({ title: 'Stock Take', files: [new File([csv], filename, { type: 'text/csv' })] }).catch(() => fallbackCopyCSV(csv));
-  else fallbackCopyCSV(csv);
+  const filtered = (currentSub === 'all' ? stockItems : stockItems.filter(s => s.subsection === currentSub)).filter(s => !s.exported);
+  if (!filtered.length) { showToast('No new stock items to export', true); return; }
+  const csv = 'Item\tQuantity\tSubsection\n' + filtered.map(s => s.name + '\t' + s.qty + '\t' + (s.subsection || '')).join('\n');
+  const doMark = (ok) => {
+    if (!ok) return;
+    const now = Date.now(), ids = new Set(filtered.map(s => s.id));
+    stockItems = stockItems.map(s => ids.has(s.id) ? { ...s, exported: true, exportedAt: now } : s);
+    saveStock();
+    showToast(filtered.length + ' item' + (filtered.length > 1 ? 's' : '') + ' exported');
+  };
+  if (navigator.share) navigator.share({ title: 'Stock Take', text: csv }).then(() => doMark(true)).catch(() => {});
+  else navigator.clipboard.writeText(csv).then(() => doMark(true)).catch(() => showToast('Could not copy', true));
 }
 function fallbackCopyCSV(csv) { navigator.clipboard.writeText(csv).then(() => showToast('CSV copied')).catch(() => showToast('Could not copy', true)); }
 
