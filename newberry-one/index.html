@@ -223,7 +223,10 @@
     .ann-card.cat-card-urgent { border-left: 3px solid var(--cat-urgent); }
     .ann-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
     .ann-title { font-size: 16px; font-weight: 700; color: var(--text); word-break: break-word; flex: 1; line-height: 1.3; }
-    .ann-pin-icon { color: var(--pk); font-size: 14px; flex-shrink: 0; line-height: 1; }
+    .ann-pin-icon {
+      position: absolute; top: 10px; right: 28px;
+      color: var(--pk); font-size: 14px; line-height: 1; z-index: 1;
+    }
     .ann-badges { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
     .ann-content {
       font-size: 14px; color: var(--text-secondary); margin-top: 8px;
@@ -1008,9 +1011,9 @@ function render() {
         const showDept = isAll && DEPTS[ev.department];
         const seenCls = isSeen(ev.id) ? ' seen' : ' unread';
         return '<div class="event-card' + (ev.eventDate < today ? ' past' : '') + seenCls + '" data-id="' + esc(ev.id) + '">' +
+          (ev.pinned ? '<span class="ann-pin-icon" title="Pinned">&#128204;</span>' : '') +
           '<div class="event-date-badge"><div class="edb-day">' + d.day + '</div><div class="edb-mon">' + d.mon + '</div></div>' +
-          '<div class="event-info"><div class="event-title">' + esc(ev.title) +
-          (ev.pinned ? '<span class="ann-pin-icon" title="Pinned">&#128204;</span>' : '') + '</div>' +
+          '<div class="event-info"><div class="event-title">' + esc(ev.title) + '</div>' +
           (ev.eventTime ? '<div class="event-time">' + formatTime(ev.eventTime) + '</div>' : '') +
           (ev.content ? '<div class="event-content">' + esc(ev.content) + '</div>' : '') +
           '<div class="event-badges">' +
@@ -1030,8 +1033,8 @@ function render() {
         const cardClass = cat === 'urgent' ? ' cat-card-urgent' : (a.pinned ? ' pinned' : '');
         const seenCls = isSeen(a.id) ? ' seen' : ' unread';
         return '<div class="ann-card' + cardClass + seenCls + '" data-id="' + esc(a.id) + '">' +
-          '<div class="ann-header"><div class="ann-title">' + esc(a.title) + '</div>' +
-          (a.pinned ? '<span class="ann-pin-icon" title="Pinned">&#128204;</span>' : '') + '</div>' +
+          (a.pinned ? '<span class="ann-pin-icon" title="Pinned">&#128204;</span>' : '') +
+          '<div class="ann-header"><div class="ann-title">' + esc(a.title) + '</div></div>' +
           '<div class="ann-badges">' +
           (cat !== 'info' ? '<span class="cat-badge cat-' + cat + '">' + CATS[cat] + '</span>' : '') +
           (showDept ? '<span class="ann-dept-label">' + esc(DEPTS[a.department].name) + '</span>' : '') +
