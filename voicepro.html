@@ -1151,10 +1151,17 @@ function migrateOldTasks() {
 
 /* Names */
 let savedNames = [];
+const DEFAULT_NAMES = {
+  buildings: ['Azelea','Cosmos','Freesia','Jasmine','Newton','Breeze','Oak','Willow','Rooibos','B1 Hamlet','B2 Alpha','Mercury','Yellowwood','Mountain','Sage','Iris','Delta','Staffroom','Ivy','B11 Eagle Owl','B8 Gravity','B4','Office','Workshop','Shed','Outside Toilet']
+};
 function namesKey() { return 'nvp_names_' + currentSection + '_v1'; }
 function loadNames() {
   savedNames = [];
   try { const raw = localStorage.getItem(namesKey()); if (raw) savedNames = JSON.parse(raw); } catch(e) {}
+  if (!savedNames.length && DEFAULT_NAMES[currentSection]) {
+    savedNames = DEFAULT_NAMES[currentSection].slice();
+    try { localStorage.setItem(namesKey(), JSON.stringify(savedNames)); } catch(e) {}
+  }
   tasks.forEach(t => { if (t.person) rememberName(t.person, false); });
   refreshNameSuggestions();
 }
