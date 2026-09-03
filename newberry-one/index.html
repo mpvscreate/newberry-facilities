@@ -982,7 +982,7 @@ function render() {
     });
 
   const events = deptAnn.filter(a => a.isEvent && a.eventDate);
-  const notices = deptAnn.filter(a => !a.isEvent);
+  const notices = deptAnn.filter(a => !a.isEvent || (a.isEvent && !a.eventDate));
   const evEl = document.getElementById('events-section');
   const annEl = document.getElementById('announcements-section');
   const empty = document.getElementById('empty-state');
@@ -995,7 +995,11 @@ function render() {
   empty.classList.remove('visible');
 
   if (events.length) {
-    const sorted = [...events].sort((a, b) => (a.eventDate || '').localeCompare(b.eventDate || ''));
+    const sorted = [...events].sort((a, b) => {
+      if (a.pinned && !b.pinned) return -1;
+      if (!a.pinned && b.pinned) return 1;
+      return (a.eventDate || '').localeCompare(b.eventDate || '');
+    });
     const today = new Date().toISOString().slice(0, 10);
     evEl.innerHTML = '<div class="section-label">Upcoming Events</div>' +
       sorted.map(ev => {
