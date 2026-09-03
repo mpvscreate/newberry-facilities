@@ -263,17 +263,14 @@
       display: flex; align-items: center; justify-content: space-between;
       height: var(--footer-h); padding: 0 20px;
     }
-    .auth-badge {
-      font-size: 12px; font-weight: 600; color: var(--text-secondary);
-      display: flex; align-items: center; gap: 8px;
+    .quote-ticker {
+      flex: 1; min-width: 0; overflow: hidden;
+      font-family: var(--font-disp); font-size: 12px; font-style: italic;
+      color: var(--muted); line-height: 1.4;
     }
-    .auth-badge .badge-dot {
-      width: 8px; height: 8px; border-radius: 50%; background: var(--pk);
-      box-shadow: 0 0 6px var(--glow);
+    .quote-ticker span {
+      display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-    .auth-badge.viewing .badge-dot { background: var(--border); box-shadow: none; }
-    .footer-actions { display: flex; gap: 8px; align-items: center; }
-
     .fab {
       width: 44px; height: 44px; border-radius: 12px;
       background: var(--pk); border: none; color: #fff;
@@ -309,13 +306,7 @@
       50% { box-shadow: 0 0 0 12px rgba(220,53,69,0); }
     }
 
-    .footer-btn {
-      padding: 7px 16px; border-radius: 8px; border: 1px solid var(--border);
-      background: transparent; color: var(--text-secondary); font-size: 12px; font-weight: 600;
-      cursor: pointer; transition: all .15s; font-family: var(--font-body);
-      -webkit-tap-highlight-color: transparent;
-    }
-    .footer-btn:hover { border-color: var(--pk); color: var(--pk); }
+    .footer-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
 
     /* VOICE BAR */
     .voice-bar {
@@ -588,12 +579,8 @@
 
   <footer class="bottom-bar">
     <div class="bottom-bar-inner">
-      <div class="auth-badge viewing" id="auth-badge">
-        <span class="badge-dot"></span>
-        <span id="auth-label">View Only</span>
-      </div>
+      <div class="quote-ticker" id="quote-ticker"><span></span></div>
       <div class="footer-actions">
-        <button class="footer-btn hidden" id="signout-btn">Sign Out</button>
         <button class="fab hidden" id="add-btn" title="Add announcement">
           <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         </button>
@@ -764,6 +751,7 @@ function init() {
   renderTabs(); render();
   initSupabase(); bindEvents(); syncDown();
   initPWA();
+  initQuotes();
 }
 
 function loadLocal() {
@@ -902,32 +890,23 @@ function signOut() {
 }
 
 function updateAuthUI() {
-  const badge = document.getElementById('auth-badge');
-  const label = document.getElementById('auth-label');
   const addBtn = document.getElementById('add-btn');
   const micBtn = document.getElementById('mic-btn');
-  const signoutBtn = document.getElementById('signout-btn');
   const settingsBtn = document.getElementById('settings-btn');
   const lockIcon = document.getElementById('lock-icon');
   const unlockIcon = document.getElementById('unlock-icon');
   const authBtn = document.getElementById('auth-btn');
 
   if (authLevel) {
-    badge.classList.remove('viewing');
-    label.textContent = authLevel === 'master' ? 'Master Access' : 'HOD: ' + DEPTS[authDept].name;
     addBtn.classList.remove('hidden');
     micBtn.classList.remove('hidden');
-    signoutBtn.classList.remove('hidden');
     lockIcon.style.display = 'none';
     unlockIcon.style.display = 'block';
     authBtn.classList.add('active');
     settingsBtn.classList.toggle('hidden', authLevel !== 'master');
   } else {
-    badge.classList.add('viewing');
-    label.textContent = 'View Only';
     addBtn.classList.add('hidden');
     micBtn.classList.add('hidden');
-    signoutBtn.classList.add('hidden');
     settingsBtn.classList.add('hidden');
     lockIcon.style.display = 'block';
     unlockIcon.style.display = 'none';
@@ -1317,6 +1296,34 @@ function dismissInstall() {
   lsSet('nbc_install_dismissed', '1');
 }
 
+/* QUOTES */
+const QUOTES = [
+  "The child is both a hope and a promise for mankind.",
+  "Free the child's potential, and you will transform him into the world.",
+  "The greatest sign of success for a teacher is to be able to say, 'The children are now working as if I did not exist.'",
+  "Education is a natural process carried out by the child and is not acquired by listening to words but by experiences in the environment.",
+  "The hands are the instruments of man's intelligence.",
+  "Children are human beings to whom respect is due, superior to us by reason of their innocence.",
+  "Play is the work of the child.",
+  "Never help a child with a task at which he feels he can succeed.",
+  "The child who concentrates is immensely happy.",
+  "Joy, feeling one's own value, being appreciated and loved by others, feeling useful and capable of production are all factors of enormous value for the human soul.",
+  "One test of the correctness of educational procedure is the happiness of the child.",
+  "The environment must be rich in motives which lend interest to activity and invite the child to conduct his own experiences.",
+  "To assist a child we must provide him with an environment which will enable him to develop freely.",
+  "The first essential for the child's development is concentration.",
+  "We discovered that education is not something which the teacher does, but that it is a natural process which develops spontaneously in the human being."
+];
+let quoteIdx = Math.floor(Math.random() * QUOTES.length);
+
+function initQuotes() {
+  const el = document.getElementById('quote-ticker');
+  if (!el) return;
+  function show() { el.querySelector('span').textContent = '“' + QUOTES[quoteIdx % QUOTES.length] + '” — Maria Montessori'; quoteIdx++; }
+  show();
+  setInterval(show, 15000);
+}
+
 /* TOAST */
 let toastTimer = null;
 function showToast(msg, isError) {
@@ -1340,7 +1347,6 @@ function bindEvents() {
   });
   document.getElementById('sync-btn').addEventListener('click', () => { syncDown(); showToast('Syncing...'); });
   document.getElementById('add-btn').addEventListener('click', openAdd);
-  document.getElementById('signout-btn').addEventListener('click', signOut);
   document.getElementById('settings-btn').addEventListener('click', openSettings);
 
   // PIN
