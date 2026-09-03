@@ -208,6 +208,8 @@
     }
     .task-toolbar .person-input:focus { border-color: var(--asp); }
     .task-toolbar .person-input::placeholder { color: var(--muted); }
+    .toolbar-row { display: flex; gap: 8px; align-items: center; width: 100%; flex-wrap: nowrap; }
+    .toolbar-row .person-input { flex: 1; min-width: 0; }
 
     /* Quick date chips (inline in toolbar) */
     .quick-dates { display: flex; flex-wrap: wrap; gap: 5px; width: 100%; }
@@ -831,16 +833,18 @@
 
   <!-- Compact task toolbar (priority + person + due date) -->
   <div class="task-toolbar no-print" id="task-toolbar">
-    <select id="voice-priority">
-      <option value="high">&#128308; High</option>
-      <option value="med" selected>&#128993; Med</option>
-      <option value="low">&#128994; Low</option>
-    </select>
-    <input class="person-input" id="voice-person" type="text"
-           placeholder="&#128100; Assign to..." autocomplete="off"
-           list="person-suggestions" oninput="renderQuickNames()" />
-    <datalist id="person-suggestions"></datalist>
-    <input type="date" id="voice-due" title="Due date" onchange="onDueDateChange()" />
+    <div class="toolbar-row">
+      <select id="voice-priority">
+        <option value="high">&#128308; High</option>
+        <option value="med" selected>&#128993; Med</option>
+        <option value="low">&#128994; Low</option>
+      </select>
+      <input class="person-input" id="voice-person" type="text"
+             placeholder="&#128100; Assign to..." autocomplete="off"
+             list="person-suggestions" oninput="renderQuickNames()" />
+      <datalist id="person-suggestions"></datalist>
+      <input type="date" id="voice-due" title="Due date" onchange="onDueDateChange()" />
+    </div>
     <div class="quick-dates">
       <button type="button" class="qdate-chip" data-days="0" onclick="setQuickDate(0)">Today</button>
       <button type="button" class="qdate-chip" data-days="1" onclick="setQuickDate(1)">Tomorrow</button>
