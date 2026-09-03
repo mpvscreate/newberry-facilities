@@ -210,6 +210,9 @@
     .task-toolbar .person-input::placeholder { color: var(--muted); }
     .toolbar-row { display: flex; gap: 8px; align-items: center; width: 100%; flex-wrap: nowrap; }
     .toolbar-row .person-input { flex: 1; min-width: 0; }
+    .toolbar-row select.icon-only { width: 44px; padding: 8px 4px; text-align: center; appearance: none; -webkit-appearance: none; }
+    .toolbar-row input[type="date"] { width: 40px; padding: 8px 6px; color: transparent !important; position: relative; }
+    .toolbar-row input[type="date"]::-webkit-calendar-picker-indicator { opacity: 1; cursor: pointer; margin: 0 auto; }
 
     /* Quick date chips (inline in toolbar) */
     .quick-dates { display: flex; flex-wrap: wrap; gap: 5px; width: 100%; }
@@ -834,10 +837,10 @@
   <!-- Compact task toolbar (priority + person + due date) -->
   <div class="task-toolbar no-print" id="task-toolbar">
     <div class="toolbar-row">
-      <select id="voice-priority">
-        <option value="high">&#128308; High</option>
-        <option value="med" selected>&#128993; Med</option>
-        <option value="low">&#128994; Low</option>
+      <select id="voice-priority" class="icon-only">
+        <option value="high">&#128308;</option>
+        <option value="med" selected>&#128993;</option>
+        <option value="low">&#128994;</option>
       </select>
       <input class="person-input" id="voice-person" type="text"
              placeholder="&#128100; Assign to..." autocomplete="off"
