@@ -1009,7 +1009,8 @@ function render() {
         const seenCls = isSeen(ev.id) ? ' seen' : ' unread';
         return '<div class="event-card' + (ev.eventDate < today ? ' past' : '') + seenCls + '" data-id="' + esc(ev.id) + '">' +
           '<div class="event-date-badge"><div class="edb-day">' + d.day + '</div><div class="edb-mon">' + d.mon + '</div></div>' +
-          '<div class="event-info"><div class="event-title">' + esc(ev.title) + '</div>' +
+          '<div class="event-info"><div class="event-title">' + esc(ev.title) +
+          (ev.pinned ? '<span class="ann-pin-icon" title="Pinned">&#128204;</span>' : '') + '</div>' +
           (ev.eventTime ? '<div class="event-time">' + formatTime(ev.eventTime) + '</div>' : '') +
           (ev.content ? '<div class="event-content">' + esc(ev.content) + '</div>' : '') +
           '<div class="event-badges">' +
