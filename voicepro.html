@@ -208,6 +208,21 @@
     }
     .task-toolbar .person-input:focus { border-color: var(--asp); }
     .task-toolbar .person-input::placeholder { color: var(--muted); }
+    .collapse-header {
+      display: flex; align-items: center; justify-content: space-between; cursor: pointer;
+      padding: 8px 14px; margin-bottom: 0; user-select: none; -webkit-user-select: none;
+      background: var(--card); border: 1.5px solid var(--border); border-radius: var(--radius);
+      box-shadow: var(--shadow-sm); transition: background .35s, border-color .35s;
+      font-family: var(--font-body); font-size: 12px; font-weight: 600; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .06em;
+    }
+    .collapse-header .chevron { transition: transform .25s; font-size: 14px; }
+    .collapse-header.open .chevron { transform: rotate(180deg); }
+    .collapse-header.open { border-radius: var(--radius) var(--radius) 0 0; border-bottom: none; }
+    .collapse-body { overflow: hidden; max-height: 0; transition: max-height .3s ease; }
+    .collapse-body.open { max-height: 800px; }
+    .collapse-body > .stats-ring-wrap { border-radius: 0 0 var(--radius) var(--radius); margin-top: 0; }
+    .collapse-body > .task-toolbar { border-radius: 0 0 var(--radius) var(--radius); margin-top: 0; }
     .toolbar-row { display: flex; gap: 8px; align-items: center; width: 100%; flex-wrap: nowrap; }
     .toolbar-row .person-input { flex: 1; min-width: 0; }
     .toolbar-row select.icon-only { width: 44px; padding: 8px 4px; text-align: center; appearance: none; -webkit-appearance: none; }
@@ -813,29 +828,41 @@
     <div id="stock-list"></div>
   </div>
 
-  <!-- Stats ring -->
-  <div class="stats-ring-wrap no-print" id="stats-bar" style="display:none">
-    <svg class="ring-svg" viewBox="0 0 100 100">
-      <defs>
-        <linearGradient id="ring-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" style="stop-color: var(--pk)"/>
-          <stop offset="100%" style="stop-color: var(--asp)"/>
-        </linearGradient>
-      </defs>
-      <circle class="ring-track" cx="50" cy="50" r="38"/>
-      <circle class="ring-fill" id="progress-ring" cx="50" cy="50" r="38"/>
-      <text class="ring-pct" id="stat-pct" x="50" y="46">0%</text>
-      <text class="ring-sub" x="50" y="61">complete</text>
-    </svg>
-    <div class="ring-stats">
-      <div class="rstat"><span class="rstat-num" id="stat-total">0</span><span class="rstat-label">Total</span></div>
-      <div class="rstat"><span class="rstat-num red" id="stat-pending">0</span><span class="rstat-label">Pending</span></div>
-      <div class="rstat"><span class="rstat-num asp" id="stat-done">0</span><span class="rstat-label">Done</span></div>
+  <!-- Stats ring (collapsible) -->
+  <div class="no-print" id="stats-wrap" style="display:none">
+    <div class="collapse-header open" onclick="toggleCollapse('stats')">
+      <span>Progress</span><span class="chevron">&#9660;</span>
+    </div>
+    <div class="collapse-body open" id="stats-body">
+      <div class="stats-ring-wrap" id="stats-bar">
+        <svg class="ring-svg" viewBox="0 0 100 100">
+          <defs>
+            <linearGradient id="ring-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color: var(--pk)"/>
+              <stop offset="100%" style="stop-color: var(--asp)"/>
+            </linearGradient>
+          </defs>
+          <circle class="ring-track" cx="50" cy="50" r="38"/>
+          <circle class="ring-fill" id="progress-ring" cx="50" cy="50" r="38"/>
+          <text class="ring-pct" id="stat-pct" x="50" y="46">0%</text>
+          <text class="ring-sub" x="50" y="61">complete</text>
+        </svg>
+        <div class="ring-stats">
+          <div class="rstat"><span class="rstat-num" id="stat-total">0</span><span class="rstat-label">Total</span></div>
+          <div class="rstat"><span class="rstat-num red" id="stat-pending">0</span><span class="rstat-label">Pending</span></div>
+          <div class="rstat"><span class="rstat-num asp" id="stat-done">0</span><span class="rstat-label">Done</span></div>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- Compact task toolbar (priority + person + due date) -->
-  <div class="task-toolbar no-print" id="task-toolbar">
+  <!-- Compact task toolbar (collapsible) -->
+  <div class="no-print" id="toolbar-wrap">
+    <div class="collapse-header open" onclick="toggleCollapse('toolbar')">
+      <span>Task Settings</span><span class="chevron">&#9660;</span>
+    </div>
+    <div class="collapse-body open" id="toolbar-body">
+      <div class="task-toolbar" id="task-toolbar">
     <div class="toolbar-row">
       <select id="voice-priority" class="icon-only">
         <option value="high">&#128308;</option>
@@ -855,6 +882,8 @@
       <button type="button" class="qdate-chip clear-chip" id="qdate-clear" onclick="clearQuickDate()">&#10005; Clear</button>
     </div>
     <div class="quick-names" id="quick-names"></div>
+      </div>
+    </div>
   </div>
 
   <!-- Manual add -->
@@ -1098,6 +1127,26 @@ function renderSubsectionBar() {
   document.getElementById('subsection-bar').innerHTML =
     '<button class="sub-chip' + (currentSub === 'all' ? ' active' : '') + '" onclick="setSub(\'all\')">All</button>' +
     subs.map(s => '<button class="sub-chip' + (currentSub === s ? ' active' : '') + '" onclick="setSub(\'' + escJs(s) + '\')">' + escHtml(s) + '</button>').join('');
+}
+
+function toggleCollapse(id) {
+  const bodyId = id + '-body';
+  const body = document.getElementById(bodyId);
+  const header = body.previousElementSibling;
+  body.classList.toggle('open');
+  header.classList.toggle('open');
+  try { localStorage.setItem('nvp_collapse_' + id, body.classList.contains('open') ? '1' : '0'); } catch(e) {}
+}
+function restoreCollapse() {
+  ['stats', 'toolbar'].forEach(id => {
+    try {
+      const v = localStorage.getItem('nvp_collapse_' + id);
+      if (v === '0') {
+        const body = document.getElementById(id + '-body');
+        if (body) { body.classList.remove('open'); body.previousElementSibling.classList.remove('open'); }
+      }
+    } catch(e) {}
+  });
 }
 
 function switchSection(sectionId) {
@@ -1475,7 +1524,7 @@ function render() {
   const pct = tasks.length ? Math.round(doneCount / tasks.length * 100) : 0;
   const hasTasks = tasks.length > 0;
 
-  document.getElementById('stats-bar').style.display = hasTasks ? 'flex' : 'none';
+  document.getElementById('stats-wrap').style.display = hasTasks ? '' : 'none';
   document.getElementById('filter-row').style.display = hasTasks ? 'flex' : 'none';
   document.getElementById('shortcuts-hint').style.display = hasTasks ? 'block' : 'none';
 
@@ -1920,9 +1969,9 @@ function setViewMode(mode) {
   document.getElementById('view-stock-btn').classList.toggle('active', mode === 'stock');
   document.getElementById('stocktake-view').classList.toggle('visible', mode === 'stock');
   const hide = mode === 'stock';
-  document.getElementById('task-toolbar').style.display = hide ? 'none' : '';
+  document.getElementById('toolbar-wrap').style.display = hide ? 'none' : '';
   document.querySelector('.manual-row').style.display = hide ? 'none' : '';
-  document.getElementById('stats-bar').style.display = hide ? 'none' : (tasks.length > 0 ? 'flex' : 'none');
+  document.getElementById('stats-wrap').style.display = hide ? 'none' : (tasks.length > 0 ? '' : 'none');
   document.getElementById('filter-row').style.display = hide ? 'none' : (tasks.length > 0 ? 'flex' : 'none');
   document.getElementById('section-label').style.display = hide ? 'none' : '';
   document.getElementById('task-list').style.display = hide ? 'none' : '';
@@ -1940,7 +1989,7 @@ function updateStockToggleVisibility() {
     document.getElementById('stocktake-view').classList.remove('visible');
     document.getElementById('view-tasks-btn').classList.add('active');
     document.getElementById('view-stock-btn').classList.remove('active');
-    document.getElementById('task-toolbar').style.display = '';
+    document.getElementById('toolbar-wrap').style.display = '';
     document.querySelector('.manual-row').style.display = '';
     document.getElementById('mic-fab').style.display = '';
   }
@@ -2027,7 +2076,7 @@ function parseCSVLine(line) {
   document.getElementById('logo-sub').textContent = SECTIONS[currentSection].label;
   document.getElementById('print-header').textContent = 'Newberry Facilities — ' + SECTIONS[currentSection].label + ' Task List';
   renderSectionTabs(); renderSubsectionBar(); updateManualPlaceholder(); updateStockToggleVisibility();
-  loadTasks(); loadNames(); initLang(); render();
+  loadTasks(); loadNames(); initLang(); restoreCollapse(); render();
   initSupabase();
   if (sb) { syncTasksDown().then(() => syncStockDown()); startAutoSync(); }
 })();
