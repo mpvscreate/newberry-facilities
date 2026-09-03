@@ -953,6 +953,10 @@ function renderTabs() {
       d.icon + '<span>' + d.name + '</span>' + cnt + '</button>';
   }).join('');
   el.innerHTML = html;
+  if ('setAppBadge' in navigator) {
+    if (totalUnread > 0) navigator.setAppBadge(totalUnread).catch(() => {});
+    else navigator.clearAppBadge().catch(() => {});
+  }
 }
 
 function render() {
