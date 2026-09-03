@@ -1,7 +1,7 @@
 const CACHE = 'newberry-one-v4';
 const PRECACHE = [
   './',
-  './connect.html',
+  './index.html',
   './manifest.json'
 ];
 
