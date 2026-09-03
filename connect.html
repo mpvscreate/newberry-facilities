@@ -508,6 +508,15 @@
       transition: border-color .15s, box-shadow .15s;
     }
     .pin-field-input:focus { border-color: var(--pk); box-shadow: 0 0 0 3px var(--pk-soft); }
+    .pin-share-btn {
+      display: flex; align-items: center; justify-content: center;
+      width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--surface); cursor: pointer; color: var(--pk); flex-shrink: 0;
+      transition: all .15s; -webkit-tap-highlight-color: transparent;
+    }
+    .pin-share-btn:hover { background: var(--pk-soft); border-color: var(--pk); }
+    .pin-share-btn:active { transform: scale(.92); }
+    .pin-share-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
     /* TOAST */
     #toast {
@@ -715,7 +724,7 @@
   <!-- SETTINGS MODAL -->
   <div class="modal-overlay" id="settings-overlay">
     <div class="modal" style="max-width:440px">
-      <div class="modal-head">Settings</div>
+      <div class="modal-head">PIN Management</div>
       <div class="modal-body" style="max-height:60vh;overflow-y:auto">
         <div class="settings-section">
           <div class="settings-section-title">Master PIN</div>
@@ -1238,13 +1247,34 @@ function doDelete() {
 /* SETTINGS */
 function openSettings() {
   document.getElementById('cfg-master-pin').value = config.master_pin || '0000';
+  const shareIcon = '<svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>';
   const container = document.getElementById('hod-pin-fields');
   container.innerHTML = DEPT_KEYS.map(k =>
     '<div class="pin-field"><span class="pin-field-label">' + DEPTS[k].name + '</span>' +
     '<input class="pin-field-input" id="cfg-hod-' + k + '" type="text" maxlength="4" pattern="[0-9]*" inputmode="numeric" value="' +
-    esc(config['hod_pin_' + k] || '') + '" /></div>'
+    esc(config['hod_pin_' + k] || '') + '" />' +
+    '<button class="pin-share-btn" data-dept="' + k + '" title="Share PIN">' + shareIcon + '</button></div>'
   ).join('');
+  container.addEventListener('click', e => {
+    const btn = e.target.closest('.pin-share-btn');
+    if (btn) sharePin(btn.dataset.dept);
+  });
   openModal('settings-overlay');
+}
+
+function sharePin(deptKey) {
+  const pin = document.getElementById('cfg-hod-' + deptKey).value.trim();
+  if (!pin) { showToast('No PIN set', true); return; }
+  const name = DEPTS[deptKey].name;
+  const text = 'Your Newberry One PIN for ' + name + ' is: ' + pin + '\n\nOpen the app: https://newberry-one.vercel.app';
+  if (navigator.share) {
+    navigator.share({ title: 'Newberry One — ' + name + ' PIN', text: text }).catch(() => {});
+  } else {
+    navigator.clipboard.writeText(text).then(
+      () => showToast('PIN copied to clipboard'),
+      () => showToast('Could not copy', true)
+    );
+  }
 }
 
 function saveSettings() {
