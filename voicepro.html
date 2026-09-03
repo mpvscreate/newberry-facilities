@@ -830,10 +830,10 @@
 
   <!-- Stats ring (collapsible) -->
   <div class="no-print" id="stats-wrap" style="display:none">
-    <div class="collapse-header open" onclick="toggleCollapse('stats')">
+    <div class="collapse-header" onclick="toggleCollapse('stats')">
       <span>Progress</span><span class="chevron">&#9660;</span>
     </div>
-    <div class="collapse-body open" id="stats-body">
+    <div class="collapse-body" id="stats-body">
       <div class="stats-ring-wrap" id="stats-bar">
         <svg class="ring-svg" viewBox="0 0 100 100">
           <defs>
@@ -1141,10 +1141,10 @@ function restoreCollapse() {
   ['stats', 'toolbar'].forEach(id => {
     try {
       const v = localStorage.getItem('nvp_collapse_' + id);
-      if (v === '0') {
-        const body = document.getElementById(id + '-body');
-        if (body) { body.classList.remove('open'); body.previousElementSibling.classList.remove('open'); }
-      }
+      const body = document.getElementById(id + '-body');
+      if (!body) return;
+      if (v === '1') { body.classList.add('open'); body.previousElementSibling.classList.add('open'); }
+      else if (v === '0') { body.classList.remove('open'); body.previousElementSibling.classList.remove('open'); }
     } catch(e) {}
   });
 }
