@@ -556,6 +556,10 @@
         <button class="icon-btn hidden" id="settings-btn" title="Settings">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         </button>
+        <button class="icon-btn" id="notif-btn" title="Enable notifications">
+          <svg id="bell-icon" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <svg id="bell-active-icon" viewBox="0 0 24 24" style="display:none"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" fill="currentColor"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        </button>
         <button class="icon-btn" id="theme-btn" title="Toggle theme">
           <svg id="theme-icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
           <svg id="theme-icon-moon" viewBox="0 0 24 24" style="display:none"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
@@ -1078,6 +1082,7 @@ function addAnnouncement(data) {
     createdAt: now, updatedAt: now
   });
   saveAnnouncements(); render(); renderTabs(); syncUp();
+  triggerPush(data.title, data.content || '', data.department, data.category || 'info');
   showToast('Announcement added');
 }
 
@@ -1304,6 +1309,16 @@ function stopRecording() {
 
 /* PWA */
 let deferredPrompt = null;
+const VAPID_PUB = 'BAWNEUBsmCyKzVdzfI1Q7Ut9T-lVOIZhTnJfZ5lXXQ4n1XNA3XwAOqkEubFDnxygqKbSAvdhTX0Q_t072M4dkhc';
+
+function urlB64ToUint8(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(base64);
+  const arr = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+  return arr;
+}
 
 function initPWA() {
   if ('serviceWorker' in navigator) {
@@ -1320,6 +1335,45 @@ function initPWA() {
     document.getElementById('install-banner').classList.remove('visible');
     deferredPrompt = null;
   });
+  updateNotifBtn();
+}
+
+async function updateNotifBtn() {
+  const btn = document.getElementById('notif-btn');
+  if (!('PushManager' in window) || !('Notification' in window)) { btn.classList.add('hidden'); return; }
+  const granted = Notification.permission === 'granted';
+  document.getElementById('bell-icon').style.display = granted ? 'none' : '';
+  document.getElementById('bell-active-icon').style.display = granted ? '' : 'none';
+  if (granted) btn.classList.add('active');
+  else btn.classList.remove('active');
+}
+
+async function subscribePush() {
+  if (!('PushManager' in window)) { showToast('Push not supported', true); return; }
+  const perm = await Notification.requestPermission();
+  if (perm !== 'granted') { showToast('Notifications blocked', true); updateNotifBtn(); return; }
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64ToUint8(VAPID_PUB) });
+    }
+    const json = sub.toJSON();
+    if (sb && json.endpoint && json.keys) {
+      await sb.from('push_subscriptions').upsert(
+        { endpoint: json.endpoint, p256dh: json.keys.p256dh, auth: json.keys.auth },
+        { onConflict: 'endpoint' }
+      );
+    }
+    showToast('Notifications enabled');
+  } catch(e) { console.warn('Push sub error:', e); showToast('Could not subscribe', true); }
+  updateNotifBtn();
+}
+
+async function triggerPush(title, body, department, category) {
+  if (!sb) return;
+  try { await sb.functions.invoke('send-push', { body: { title, body, department, category } }); }
+  catch(e) { console.warn('Push send error:', e); }
 }
 
 function installApp() {
@@ -1381,6 +1435,7 @@ function bindEvents() {
     if (tab) switchDept(tab.dataset.dept);
   });
 
+  document.getElementById('notif-btn').addEventListener('click', subscribePush);
   document.getElementById('theme-btn').addEventListener('click', toggleTheme);
   document.getElementById('auth-btn').addEventListener('click', () => {
     if (authLevel) signOut(); else openPinModal();
