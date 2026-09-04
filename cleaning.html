@@ -117,16 +117,14 @@ body {
 .overflow-item svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
 
 .section-tabs {
-  display: flex; gap: 3px; padding: 4px 16px 6px;
-  overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  display: flex; gap: 3px; padding: 4px 10px 6px;
 }
-.section-tabs::-webkit-scrollbar { display: none; }
 .section-tab {
-  flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px;
-  padding: 8px 12px; border: none; background: transparent; border-radius: 10px;
-  cursor: pointer; font-family: var(--font-body); font-size: 10px; font-weight: 700;
-  color: var(--muted); text-transform: uppercase; letter-spacing: .5px;
-  transition: all .22s; user-select: none; white-space: nowrap;
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px;
+  padding: 8px 6px; border: none; background: transparent; border-radius: 10px;
+  cursor: pointer; font-family: var(--font-body); font-size: 9.5px; font-weight: 700;
+  color: var(--muted); text-transform: uppercase; letter-spacing: .3px;
+  transition: all .22s; user-select: none; text-align: center; line-height: 1.2;
 }
 .section-tab:hover { color: var(--text); background: var(--badge-bg); }
 .section-tab.active { background: var(--pk); color: #fff; box-shadow: 0 3px 12px var(--glow); }
@@ -668,9 +666,9 @@ const CHECKLISTS = {
 
 const CAMPUSES = {
   ppcamp: { label: 'PP Campus', themeColor: '#9c27b0', sections: ['toddlers', 'pp'] },
-  lower: { label: 'Lower Campus', themeColor: '#e91e63', sections: ['le', 'ue'] },
-  upper: { label: 'Upper Campus', themeColor: '#1565c0', sections: ['ms', 'hs'] },
-  support: { label: 'Support Buildings', themeColor: '#546e7a', sections: ['campus'] }
+  lower: { label: 'Lower', themeColor: '#e91e63', sections: ['le', 'ue'] },
+  upper: { label: 'Upper', themeColor: '#1565c0', sections: ['ms', 'hs'] },
+  support: { label: 'Support', themeColor: '#546e7a', sections: ['campus'] }
 };
 let currentCampus = 'ppcamp';
 let currentShift = 'all';
