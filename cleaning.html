@@ -1422,6 +1422,7 @@ async function syncDown() {
   render();
   initSupabase();
   if (sb) { syncDown(); startAutoSync(); }
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('/cleaning-sw.js');
 })();
 </script>
 </body>
