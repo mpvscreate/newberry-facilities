@@ -156,7 +156,13 @@ button, .panel, .face-btn, .age-btn, .j-chip, .modal-action-btn,
   content:''; position:absolute; inset:-3px; border-radius:50%;
 }
 .face-btn:hover { transform:scale(1.2); box-shadow:0 3px 10px rgba(0,0,0,0.25); }
-.face-btn.active { border-color:var(--text); box-shadow:0 0 0 3px rgba(0,0,0,0.12); }
+.face-btn.active { border-color:#fff; transform:scale(1.15); }
+.face-btn.active[data-face="0"] { box-shadow:0 0 0 3px rgba(192,98,47,0.4), 0 3px 12px rgba(192,98,47,0.5); }
+.face-btn.active[data-face="1"] { box-shadow:0 0 0 3px rgba(74,127,165,0.4), 0 3px 12px rgba(74,127,165,0.5); }
+.face-btn.active[data-face="2"] { box-shadow:0 0 0 3px rgba(106,170,94,0.4), 0 3px 12px rgba(106,170,94,0.5); }
+.face-btn.active[data-face="3"] { box-shadow:0 0 0 3px rgba(232,184,75,0.4), 0 3px 12px rgba(232,184,75,0.5); }
+.face-btn.active[data-face="4"] { box-shadow:0 0 0 3px rgba(155,107,181,0.4), 0 3px 12px rgba(155,107,181,0.5); }
+.face-btn.active[data-face="5"] { box-shadow:0 0 0 3px rgba(95,158,143,0.4), 0 3px 12px rgba(95,158,143,0.5); }
 .face-btn[data-face="0"] { background:var(--autumn); }
 .face-btn[data-face="1"] { background:var(--winter); }
 .face-btn[data-face="2"] { background:var(--spring); }
@@ -212,7 +218,61 @@ button, .panel, .face-btn, .age-btn, .j-chip, .modal-action-btn,
 /* ── PARTICLES ── */
 #particles { position:fixed; inset:0; pointer-events:none; z-index:45; overflow:hidden; top:58px; }
 .particle { position:absolute; pointer-events:none; user-select:none; animation:fall linear forwards; font-size:1.2rem; }
-@keyframes fall { 0%{transform:translateY(-40px) rotate(0deg);opacity:.9} 100%{transform:translateY(110vh) rotate(720deg);opacity:0} }
+@keyframes fall { 0%{transform:translateY(-40px) rotate(0deg) translateX(0);opacity:.9} 50%{transform:translateY(55vh) rotate(360deg) translateX(30px);opacity:.7} 100%{transform:translateY(110vh) rotate(720deg) translateX(-20px);opacity:0} }
+
+/* ── AMBIENT SCENE GLOW ── */
+#scene-glow {
+  position:absolute; inset:0; pointer-events:none;
+  background:radial-gradient(ellipse 60% 50% at 50% 50%, var(--glow-color, transparent) 0%, transparent 70%);
+  opacity:0.35; transition:background 1s ease, opacity 1s ease;
+}
+html.dark #scene-glow { opacity:0.25; }
+:root {
+  --glow-autumn: rgba(192,98,47,0.3);
+  --glow-winter: rgba(74,127,165,0.3);
+  --glow-spring: rgba(106,170,94,0.3);
+  --glow-summer: rgba(232,184,75,0.3);
+  --glow-companion: rgba(155,107,181,0.3);
+  --glow-indigenous: rgba(95,158,143,0.3);
+}
+
+/* ── CUBE ENTRANCE ── */
+@keyframes cubeEnter { 0%{opacity:0;transform:rotateX(-25deg) rotateY(35deg) scale(0.7)} 100%{opacity:1;transform:rotateX(-25deg) rotateY(35deg) scale(1)} }
+#cube-wrapper.entering { animation:cubeEnter .8s cubic-bezier(.34,1.56,.64,1) forwards; }
+
+/* ── PANEL SHINE SWEEP ── */
+.panel::before {
+  content:''; position:absolute; inset:0; border-radius:inherit;
+  background:linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.35) 45%, rgba(255,255,255,0.1) 50%, transparent 55%);
+  opacity:0; transition:opacity .3s; pointer-events:none; z-index:1;
+}
+.panel:hover::before { opacity:1; }
+html.dark .panel::before {
+  background:linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.15) 45%, rgba(255,255,255,0.05) 50%, transparent 55%);
+}
+
+/* ── SEASON NOW INDICATOR ── */
+.face-btn.is-now::after {
+  content:''; position:absolute; bottom:-5px; left:50%; transform:translateX(-50%);
+  width:5px; height:5px; border-radius:50%;
+  background:var(--text); animation:nowPulse 2s ease-in-out infinite;
+}
+@keyframes nowPulse { 0%,100%{opacity:1;transform:translateX(-50%) scale(1)} 50%{opacity:0.4;transform:translateX(-50%) scale(0.7)} }
+
+/* ── FACE LABEL TOAST ── */
+#face-label {
+  position:fixed; bottom:72px; left:50%; transform:translateX(-50%);
+  font-size:0.72rem; font-weight:700; color:var(--text);
+  background:var(--nav-bg); backdrop-filter:blur(8px);
+  padding:4px 14px; border-radius:16px; border:1px solid var(--border);
+  opacity:0; transition:opacity .3s; pointer-events:none; z-index:51;
+  white-space:nowrap; letter-spacing:0.04em; text-transform:uppercase;
+}
+#face-label.show { opacity:1; }
+
+/* ── HINT IMPROVEMENTS ── */
+#hint { transition:opacity .6s; }
+#hint.faded { opacity:0; }
 
 /* ── 3D CUBE ── */
 #cube-stage {
@@ -269,12 +329,9 @@ body.is-dragging-cube .panel:active {
 .cube-face[data-season="indigenous"]{ box-shadow:0 0 0 4px var(--indigenous); }
 
 .panel {
+  position:relative;
   border-radius:7px;
   display:flex; flex-direction:column; align-items:center; justify-content:center;
-  /* grab (not pointer): the 9 panels tile the entire face, so a pointer here
-     would mask the cube's drag affordance completely — the cube would read as
-     a wall of buttons and rotating would be undiscoverable. Panels still open
-     on click; the hover lift + hint line carry the "clickable" signal. */
   cursor:grab; text-align:center; padding:3px 2px;
   border:1.5px solid rgba(255,255,255,0.25);
   box-shadow:0 2px 6px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.4);
@@ -1104,8 +1161,10 @@ html.dark .edit-field select { background:rgba(200,169,122,0.08); color:#ede8e0;
 /* ── Reduced motion — respect OS accessibility setting ── */
 @media (prefers-reduced-motion: reduce) {
   .particle { display:none; }
-  #modal, #edit-modal, #journey-card, .ad-slide-enter { animation:none !important; }
+  #modal, #edit-modal, #journey-card, .ad-slide-enter, #cube-wrapper.entering { animation:none !important; }
   .panel, .face-btn, .search-card { transition:none !important; }
+  .face-btn.is-now::after { animation:none; }
+  #scene-glow { transition:none; }
 }
 
 /* ── MOBILE AGE STRIP ── */
@@ -1196,20 +1255,21 @@ html.dark .edit-field select { background:rgba(200,169,122,0.08); color:#ede8e0;
   /* Scene top fallback — JS updateLayout() overrides with exact value */
   #scene, #particles { top:100px; }
 
-  /* Smaller cube */
-  #cube-wrapper, .cube-face { width:270px; height:270px; }
-  .cube-face:nth-child(1) { transform:translateZ(135px); }
-  .cube-face:nth-child(2) { transform:rotateY(180deg) translateZ(135px); }
-  .cube-face:nth-child(3) { transform:rotateY(-90deg) translateZ(135px); }
-  .cube-face:nth-child(4) { transform:rotateY(90deg)  translateZ(135px); }
-  .cube-face:nth-child(5) { transform:rotateX(90deg)  translateZ(135px); }
-  .cube-face:nth-child(6) { transform:rotateX(-90deg) translateZ(135px); }
+  /* Mobile cube — fill more screen */
+  #cube-wrapper, .cube-face { width:300px; height:300px; }
+  .cube-face:nth-child(1) { transform:translateZ(150px); }
+  .cube-face:nth-child(2) { transform:rotateY(180deg) translateZ(150px); }
+  .cube-face:nth-child(3) { transform:rotateY(-90deg) translateZ(150px); }
+  .cube-face:nth-child(4) { transform:rotateY(90deg)  translateZ(150px); }
+  .cube-face:nth-child(5) { transform:rotateX(90deg)  translateZ(150px); }
+  .cube-face:nth-child(6) { transform:rotateX(-90deg) translateZ(150px); }
 
   /* Face nav closer to bottom safe area */
   #face-nav { bottom:10px; padding:5px 10px; gap:5px; }
   .face-btn  { width:26px; height:26px; font-size:0.9rem; }
-  .face-btn::before { inset:-2px; } /* narrower gap on mobile — smaller hit-slop to avoid overlap */
+  .face-btn::before { inset:-2px; }
   #hint      { display:none; }
+  #face-label { bottom:52px; font-size:0.65rem; padding:3px 10px; }
 
   /* Modal full-width on mobile */
   #modal { border-radius:16px; padding:20px 16px; }
@@ -1339,6 +1399,7 @@ html.dark #intro-overlay { background:rgba(0,0,0,0.62); }
 
 <!-- ══ SCENE ══ -->
 <div id="scene">
+  <div id="scene-glow"></div>
   <div id="cube-stage">
     <div id="cube-wrapper"></div>
   </div>
@@ -1355,7 +1416,8 @@ html.dark #intro-overlay { background:rgba(0,0,0,0.62); }
   <button class="face-btn" data-face="5" title="Indigenous &amp; Pollinator" aria-label="Indigenous and Pollinator Planting">🐝</button>
 </div>
 
-<div id="hint">Drag to rotate · Click a panel to explore · Use buttons below to jump to a face</div>
+<div id="face-label"></div>
+<div id="hint">Drag to rotate · Tap a panel to explore</div>
 
 <!-- ══ PLANT DETAIL MODAL ══ -->
 <div id="modal-overlay">
@@ -2682,12 +2744,29 @@ const FACE_ROTATIONS = [
 
 let baseRX = -25, baseRY = 35;
 
+const sceneGlow = document.getElementById('scene-glow');
+const faceLabel = document.getElementById('face-label');
+const SEASON_LABELS = {autumn:'Autumn',winter:'Winter',spring:'Spring',summer:'Summer',companion:'Companion',indigenous:'Indigenous'};
+let faceLabelTimer = null;
+
+function updateSceneGlow(season) {
+  sceneGlow.style.setProperty('--glow-color', 'var(--glow-' + season + ')');
+}
+function showFaceLabel(season) {
+  faceLabel.textContent = SEASON_LABELS[season] || season;
+  faceLabel.classList.add('show');
+  clearTimeout(faceLabelTimer);
+  faceLabelTimer = setTimeout(() => faceLabel.classList.remove('show'), 1500);
+}
+
 function rotateToCubeFace(fi) {
   const [rx, ry] = FACE_ROTATIONS[fi];
   baseRX = rx;
   baseRY = ry;
   cubeEl.style.transition = 'transform .6s ease';
   cubeEl.style.transform = 'rotateX(' + baseRX + 'deg) rotateY(' + baseRY + 'deg) scale(' + cubeScale + ')';
+  updateSceneGlow(FACE_ORDER[fi]);
+  showFaceLabel(FACE_ORDER[fi]);
 }
 
 // Remember the last face across visits (#3) and keep the URL hash bookmarkable
@@ -2699,15 +2778,33 @@ function onFaceChanged() {
 }
 window.addEventListener('pagehide', saveFace);
 
+// Mark the real-world current season button
+(function markNowSeason() {
+  const m = new Date().getMonth() + 1;
+  const nowIdx = (m >= 3 && m <= 5) ? 0 : (m >= 6 && m <= 8) ? 1 : (m >= 9 && m <= 11) ? 2 : 3;
+  const btns = document.querySelectorAll('.face-btn');
+  if (btns[nowIdx]) btns[nowIdx].classList.add('is-now');
+})();
+
+// Auto-dismiss hint after first interaction
+const hintEl = document.getElementById('hint');
+function dismissHint() {
+  if (hintEl && !hintEl.classList.contains('faded')) {
+    hintEl.classList.add('faded');
+    setTimeout(() => { hintEl.style.display = 'none'; }, 600);
+  }
+}
+
 document.querySelectorAll('.face-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.face-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     const fi = parseInt(btn.dataset.face);
-    currentFaceIdx = fi;          // keep swipe tracker in sync
+    currentFaceIdx = fi;
     rotateToCubeFace(fi);
     spawnParticles(FACE_ORDER[fi]);
     onFaceChanged();
+    dismissHint();
   });
 });
 
@@ -2756,7 +2853,7 @@ function scheduleRotation() {
 cubeEl.addEventListener('mousedown', e => {
   if (e.button !== 0) return;   // left-click only — ignore right/middle click
   isDragging = false; pointerDown = true; lastX = e.clientX; lastY = e.clientY;
-  cubeEl.style.transition = 'none'; stopIdle();   // kill auto-rotate the instant the button goes down
+  cubeEl.style.transition = 'none'; stopIdle(); dismissHint();
   document.body.classList.add('is-dragging-cube');
   e.preventDefault();           // stop stray text/image selection while dragging
 });
@@ -2805,7 +2902,7 @@ window.addEventListener('blur', () => {
    outside the cube's visible bounds — no need to move those to `window`. */
 cubeEl.addEventListener('touchstart', e => {
   pointerDown = true;
-  stopIdle();   // kill auto-rotate the instant a finger touches down
+  stopIdle(); dismissHint();
   cubeEl.style.transition = 'none';
 
   if (e.touches.length === 1) {
@@ -5187,9 +5284,14 @@ searchInput.addEventListener('input', () => renderSearch(searchInput.value));
   }
   currentFaceIdx = fi;
   document.querySelectorAll('.face-btn').forEach((b, i) => b.classList.toggle('active', i === fi));
-  if (fi === 0) return;                     // Autumn is the default rendered orientation
-  // brief pause, then an intro spin to the chosen face
+  updateSceneGlow(FACE_ORDER[fi]);
+  if (!REDUCED_MOTION) cubeEl.classList.add('entering');
+  if (fi === 0) {
+    if (!REDUCED_MOTION) setTimeout(() => cubeEl.classList.remove('entering'), 850);
+    return;
+  }
   setTimeout(() => {
+    cubeEl.classList.remove('entering');
     rotateToCubeFace(fi);
     if (!REDUCED_MOTION) spawnParticles(FACE_ORDER[fi]);
   }, REDUCED_MOTION ? 0 : 500);
