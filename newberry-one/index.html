@@ -979,6 +979,8 @@ function render() {
   const isAll = currentDept === 'all';
   const deptAnn = (isAll ? announcements : announcements.filter(a => a.department === currentDept))
     .sort((a, b) => {
+      const aSeen = seenIds.has(a.id), bSeen = seenIds.has(b.id);
+      if (aSeen !== bSeen) return aSeen ? 1 : -1;
       if (a.pinned && !b.pinned) return -1;
       if (!a.pinned && b.pinned) return 1;
       return (b.createdAt || 0) - (a.createdAt || 0);
@@ -999,6 +1001,8 @@ function render() {
 
   if (events.length) {
     const sorted = [...events].sort((a, b) => {
+      const aSeen = seenIds.has(a.id), bSeen = seenIds.has(b.id);
+      if (aSeen !== bSeen) return aSeen ? 1 : -1;
       if (a.pinned && !b.pinned) return -1;
       if (!a.pinned && b.pinned) return 1;
       return (a.eventDate || '').localeCompare(b.eventDate || '');
@@ -1077,12 +1081,17 @@ function toggleSeen(id) {
   if (seenIds.has(id)) seenIds.delete(id); else seenIds.add(id);
   lsSet(LS_SEEN, JSON.stringify([...seenIds]));
   const card = document.querySelector('[data-id="' + id + '"]');
+  const seen = seenIds.has(id);
   if (card) {
-    const seen = seenIds.has(id);
     card.classList.toggle('seen', seen);
     card.classList.toggle('unread', !seen);
   }
   renderTabs();
+  if (seen) {
+    setTimeout(() => { render(); renderTabs(); }, 500);
+  } else {
+    render();
+  }
 }
 function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
