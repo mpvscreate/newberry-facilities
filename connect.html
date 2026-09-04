@@ -384,8 +384,8 @@
     .modal-overlay.open { display: flex; }
     .modal {
       background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg);
-      width: 100%; max-width: 400px; max-height: calc(100vh - 40px); overflow-y: auto; box-shadow: var(--shadow-modal);
-      overflow: hidden; transition: background .3s, border-color .3s;
+      width: 100%; max-width: 400px; max-height: calc(100dvh - 40px); overflow-y: auto;
+      box-shadow: var(--shadow-modal); transition: background .3s, border-color .3s;
     }
     .modal-head {
       padding: 20px 24px 0; font-family: var(--font-disp); font-size: 18px;
@@ -408,20 +408,20 @@
     .modal-btn.danger:hover { opacity: .85; }
 
     /* PIN */
-    .pin-display { display: flex; gap: 14px; justify-content: center; margin: 14px 0; }
+    .pin-display { display: flex; gap: 12px; justify-content: center; margin: 10px 0; }
     .pin-dot {
-      width: 14px; height: 14px; border-radius: 50%;
+      width: 12px; height: 12px; border-radius: 50%;
       border: 2px solid var(--border); background: transparent;
       transition: background .12s, border-color .12s;
     }
     .pin-dot.filled { background: var(--pk); border-color: var(--pk); }
     .pin-dot.error { border-color: var(--rec); background: var(--rec); animation: shake .4s; }
     .pin-keypad {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
-      max-width: 220px; margin: 0 auto;
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
+      max-width: 200px; margin: 0 auto;
     }
     .pin-key {
-      height: 48px; border-radius: var(--radius); border: 1px solid var(--border);
+      height: 44px; border-radius: var(--radius); border: 1px solid var(--border);
       background: var(--surface); color: var(--text); font-size: 18px; font-weight: 600;
       cursor: pointer; transition: all .1s; font-family: var(--font-body);
       display: flex; align-items: center; justify-content: center;
@@ -429,10 +429,10 @@
     }
     .pin-key:hover { background: var(--pk-soft); border-color: var(--pk); }
     .pin-key:active { transform: scale(.93); }
-    .pin-key svg { width: 20px; height: 20px; stroke: var(--muted); fill: none; stroke-width: 2; stroke-linecap: round; }
+    .pin-key svg { width: 18px; height: 18px; stroke: var(--muted); fill: none; stroke-width: 2; stroke-linecap: round; }
     .pin-key.enter-key { background: var(--pk); color: #fff; border-color: var(--pk); }
     .pin-key.enter-key svg { stroke: #fff; }
-    .pin-hint { text-align: center; font-size: 13px; color: var(--muted); margin-top: 14px; font-weight: 500; }
+    .pin-hint { text-align: center; font-size: 13px; color: var(--muted); margin-top: 10px; font-weight: 500; }
     @keyframes shake {
       0%,100% { transform: translateX(0); }
       20%,60% { transform: translateX(-6px); }
