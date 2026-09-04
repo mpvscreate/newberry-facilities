@@ -1,6 +1,6 @@
 {
-  "name": "Newberry Planting Cube",
-  "short_name": "Planting Cube",
+  "name": "Master Cube",
+  "short_name": "Master Cube",
   "description": "A living guide to what grows each season at Newberry House",
   "start_url": "./index.html",
   "display": "standalone",
