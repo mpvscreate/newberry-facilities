@@ -783,7 +783,7 @@ function lsSet(k, v) { try { if (_lsOk) localStorage.setItem(k, v); } catch(e) {
 
 function init() {
   setTheme(lsGet(LS_THEME) || 'light');
-  loadLocal();
+  loadLocal(); cleanExpired();
   switchDept(lsGet(LS_DEPT) || 'all');
   renderTabs(); render();
   initSupabase(); bindEvents(); syncDown();
@@ -843,7 +843,7 @@ async function syncDown() {
         createdAt: r.created_at, updatedAt: r.updated_at
       }));
       announcements = mergeById(announcements, remote);
-      saveAnnouncements(); render(); renderTabs();
+      saveAnnouncements(); cleanExpired(); render(); renderTabs();
     }
     setSyncStatus('online');
   } catch(e) { console.warn('Sync down:', e); setSyncStatus('error'); }
@@ -1095,6 +1095,25 @@ function toggleSeen(id) {
 }
 function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+
+/* AUTO-DELETE EXPIRED */
+function cleanExpired() {
+  const today = new Date().toISOString().slice(0, 10);
+  const expired = announcements.filter(a => {
+    if (a.isEvent && a.eventDate) return a.eventDate < today;
+    const created = new Date(a.createdAt).toISOString().slice(0, 10);
+    return created < today;
+  });
+  if (!expired.length) return;
+  expired.forEach(a => {
+    seenIds.delete(a.id);
+    syncDeleteAnn(a.id);
+  });
+  const expiredIds = new Set(expired.map(a => a.id));
+  announcements = announcements.filter(a => !expiredIds.has(a.id));
+  lsSet(LS_SEEN, JSON.stringify([...seenIds]));
+  saveAnnouncements(); render(); renderTabs();
+}
 
 /* CRUD */
 function addAnnouncement(data) {
