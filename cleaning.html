@@ -72,7 +72,9 @@ body {
 .app-header {
   padding: calc(14px + env(safe-area-inset-top, 0px)) 16px 10px;
   display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 90; background: var(--bg);
 }
+.section-tabs { position: sticky; top: calc(52px + env(safe-area-inset-top, 0px)); z-index: 89; background: var(--bg); }
 .logo { display: flex; flex-direction: column; }
 .logo-title {
   font-family: var(--font-head); font-size: 23px; font-weight: 400;
@@ -626,7 +628,8 @@ const ROOMS = {
   ],
   pp: [
     { id: 'pp1', name: 'Protea' }, { id: 'pp2', name: 'Disa' },
-    { id: 'pp3', name: 'Azalea' }, { id: 'pp4', name: 'Cosmos' }
+    { id: 'pp3', name: 'Azalea' }, { id: 'pp4', name: 'Cosmos' },
+    { id: 'pp5', name: 'Toilet Block' }
   ],
   le: [
     { id: 'le1', name: 'Oak' }, { id: 'le2', name: 'Willow' }, { id: 'le3', name: 'Rooibos' }
@@ -1200,7 +1203,20 @@ async function addRoom() {
 }
 function saveRooms() { try { localStorage.setItem('ncl_rooms_v1', JSON.stringify(ROOMS)); } catch (e) {} debouncedSync(); }
 function loadRooms() {
-  try { const raw = localStorage.getItem('ncl_rooms_v1'); if (raw) { const saved = JSON.parse(raw); for (const [k, v] of Object.entries(saved)) { if (ROOMS[k]) ROOMS[k] = v; } } } catch (e) {}
+  try {
+    const raw = localStorage.getItem('ncl_rooms_v1');
+    if (raw) {
+      const saved = JSON.parse(raw);
+      for (const [k, v] of Object.entries(saved)) {
+        if (!ROOMS[k]) continue;
+        const savedNames = new Set(v.map(r => r.name.toLowerCase()));
+        const missing = ROOMS[k].filter(r => !savedNames.has(r.name.toLowerCase()));
+        const merged = [...v, ...missing];
+        const seen = new Set();
+        ROOMS[k] = merged.filter(r => { const n = r.name.toLowerCase(); if (seen.has(n)) return false; seen.add(n); return true; });
+      }
+    }
+  } catch (e) {}
 }
 
 async function renameChecklistItem(roomId, idx) {
@@ -1337,7 +1353,8 @@ async function syncDown() {
         for (const [k, v] of Object.entries(remoteRooms)) {
           if (!ROOMS[k]) { ROOMS[k] = v; continue; }
           const localIds = new Set(ROOMS[k].map(r => r.id));
-          v.forEach(r => { if (!localIds.has(r.id)) ROOMS[k].push(r); });
+          const localNames = new Set(ROOMS[k].map(r => r.name.toLowerCase()));
+          v.forEach(r => { if (!localIds.has(r.id) && !localNames.has(r.name.toLowerCase())) ROOMS[k].push(r); });
           ROOMS[k].forEach((r, i) => { const remote = v.find(rv => rv.id === r.id); if (remote) ROOMS[k][i].name = remote.name; });
         }
         saveRooms();
