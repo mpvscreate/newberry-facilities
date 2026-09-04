@@ -618,8 +618,7 @@ function closeDialog(e) {
 }
 
 const SECTIONS = {
-  toddlers: { label: 'Toddlers',          themeColor: '#e91e63' },
-  pp:       { label: 'Pre-Primary',        themeColor: '#9c27b0' },
+  pp:       { label: 'PP Campus',          themeColor: '#9c27b0' },
   le:       { label: 'Lower Elementary',   themeColor: '#2e7d32' },
   ue:       { label: 'Upper Elementary',    themeColor: '#1565c0' },
   ms:       { label: 'Middle School',       themeColor: '#e65100' },
@@ -627,13 +626,11 @@ const SECTIONS = {
   campus:   { label: 'Campus',             themeColor: '#455a64' }
 };
 const ROOMS = {
-  toddlers: [
-    { id: 'td1', name: 'Jasmine' }, { id: 'td2', name: 'Freesia' }
-  ],
   pp: [
-    { id: 'pp1', name: 'Protea' }, { id: 'pp2', name: 'Disa' },
-    { id: 'pp3', name: 'Azalea' }, { id: 'pp4', name: 'Cosmos' },
-    { id: 'pp5', name: 'Toilet Block' }
+    { id: 'pp1', name: 'Jasmine' }, { id: 'pp2', name: 'Freesia' },
+    { id: 'pp3', name: 'Protea' }, { id: 'pp4', name: 'Disa' },
+    { id: 'pp5', name: 'Azalea' }, { id: 'pp6', name: 'Cosmos' },
+    { id: 'pp7', name: 'Toilet Block' }
   ],
   le: [
     { id: 'le1', name: 'Oak' }, { id: 'le2', name: 'Willow' }, { id: 'le3', name: 'Rooibos' }
@@ -657,7 +654,6 @@ const ROOMS = {
   ]
 };
 const CHECKLISTS = {
-  toddlers: ['Floors swept & mopped','Tables & desks wiped','Chairs arranged','Whiteboard cleaned','Bins emptied','Windows & sills dusted','Door handles sanitised','Light switches wiped'],
   pp: ['Floors swept & mopped','Tables & desks wiped','Chairs arranged','Whiteboard cleaned','Bins emptied','Windows & sills dusted','Door handles sanitised','Light switches wiped'],
   le: ['Floors swept & mopped','Tables & desks wiped','Chairs arranged','Whiteboard cleaned','Bins emptied','Windows & sills dusted','Door handles sanitised','Light switches wiped'],
   ue: ['Floors swept & mopped','Tables & desks wiped','Chairs arranged','Whiteboard cleaned','Bins emptied','Windows & sills dusted','Door handles sanitised','Light switches wiped'],
@@ -667,7 +663,7 @@ const CHECKLISTS = {
 };
 
 const CAMPUSES = {
-  lower: { label: 'Lower Campus', themeColor: '#e91e63', sections: ['toddlers', 'pp', 'le', 'ue'] },
+  lower: { label: 'Lower Campus', themeColor: '#e91e63', sections: ['pp', 'le', 'ue'] },
   upper: { label: 'Upper Campus', themeColor: '#1565c0', sections: ['ms', 'hs'] },
   support: { label: 'Support Buildings', themeColor: '#546e7a', sections: ['campus'] }
 };
