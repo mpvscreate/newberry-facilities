@@ -330,6 +330,12 @@ body {
 }
 .panel-title { font-family: var(--font-head); font-size: 17px; font-weight: 400; }
 .panel-body { padding: 8px 16px 16px; }
+.help-section { margin-bottom: 16px; }
+.help-section h3 { font-size: 13px; font-weight: 700; color: var(--pk); margin: 0 0 6px; text-transform: uppercase; letter-spacing: .3px; }
+.help-section p, .help-section li { font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; margin: 0; }
+.help-section ul { padding-left: 16px; margin: 4px 0 0; }
+.help-section li { margin-bottom: 4px; }
+.help-section li strong { color: var(--text); }
 .staff-row {
   display: flex; align-items: center; gap: 10px;
   padding: 8px 0; border-bottom: 1px solid var(--border-light);
@@ -470,6 +476,10 @@ body {
           <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
           Print
         </button>
+        <button class="overflow-item" onclick="openHelpPanel();closeOverflowMenu()">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          How to Use
+        </button>
         <button class="overflow-item" onclick="toggleTheme();closeOverflowMenu()">
           <svg id="theme-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
           Toggle Theme
@@ -525,6 +535,73 @@ body {
         <option value="morning">Morning</option>
         <option value="afternoon">Afternoon</option>
       </select>
+    </div>
+  </div>
+</div>
+
+<div class="panel-overlay" id="help-overlay" onclick="closeHelpPanel(event)">
+  <div class="panel" onclick="event.stopPropagation()" style="max-width:440px">
+    <div class="panel-header">
+      <span class="panel-title">How to Use</span>
+      <button class="modal-close" onclick="closeHelpPanel()">&times;</button>
+    </div>
+    <div class="panel-body">
+      <div class="help-section">
+        <h3>Campus Tabs</h3>
+        <p>Switch between <strong>PP Campus</strong>, <strong>Lower</strong>, <strong>Upper</strong>, and <strong>Support</strong> using the tabs at the top. Each tab shows only the rooms belonging to that campus.</p>
+      </div>
+      <div class="help-section">
+        <h3>Rooms &amp; Checklists</h3>
+        <ul>
+          <li>Tap a <strong>room card</strong> to expand it and see the cleaning checklist.</li>
+          <li>Tick off each item as it is completed. Progress is shown as a percentage on the card.</li>
+          <li>Use <strong>+ Add Item</strong> at the bottom of an expanded checklist to add custom tasks for that section.</li>
+          <li>Use <strong>+ Add Room</strong> at the bottom of the room list to create additional rooms.</li>
+          <li>Long-press or use the edit icon on a checklist item to rename or remove it.</li>
+        </ul>
+      </div>
+      <div class="help-section">
+        <h3>Staff &amp; Assignments</h3>
+        <ul>
+          <li>Tap the <strong>people icon</strong> in the header to manage staff members (add or remove).</li>
+          <li>On each room card, tap <strong>Assign</strong> to assign a staff member and a shift (Morning or Afternoon).</li>
+          <li>Assigned staff names appear on the room card for easy tracking.</li>
+        </ul>
+      </div>
+      <div class="help-section">
+        <h3>Shifts &amp; Filtering</h3>
+        <ul>
+          <li>Use the <strong>All / Morning / Afternoon</strong> filter chips to view rooms by shift.</li>
+          <li>Use the <strong>Search</strong> bar to find rooms quickly by name.</li>
+        </ul>
+      </div>
+      <div class="help-section">
+        <h3>Schedule</h3>
+        <p>Open the <strong>&#8942; &gt; Schedule</strong> menu to set estimated cleaning times per room. These time estimates appear on each room card.</p>
+      </div>
+      <div class="help-section">
+        <h3>Export &amp; Print</h3>
+        <ul>
+          <li><strong>&#8942; &gt; Export CSV</strong> downloads the day's checklist data as a spreadsheet file.</li>
+          <li><strong>&#8942; &gt; Print</strong> opens a print-friendly view of the current campus checklist.</li>
+        </ul>
+      </div>
+      <div class="help-section">
+        <h3>Cloud Sync</h3>
+        <p>Data syncs automatically to the cloud every 30 seconds. Staff, rooms, checklists, and assignments stay in sync across all devices using the app.</p>
+      </div>
+      <div class="help-section">
+        <h3>Install as App</h3>
+        <ul>
+          <li><strong>iPhone/iPad:</strong> Tap the Share button in Safari, then "Add to Home Screen".</li>
+          <li><strong>Android:</strong> Tap the browser menu (&#8942;), then "Add to Home screen" or "Install app".</li>
+          <li><strong>PC (Chrome/Edge):</strong> Click the install icon in the address bar, or use the browser menu &gt; "Install app".</li>
+        </ul>
+      </div>
+      <div class="help-section">
+        <h3>Dark Mode</h3>
+        <p>Use <strong>&#8942; &gt; Toggle Theme</strong> to switch between light and dark mode.</p>
+      </div>
     </div>
   </div>
 </div>
@@ -996,6 +1073,9 @@ function onAssignChange() {
   else { delete assignments[assignRoomId]; }
   saveAssignments(); render();
 }
+
+function openHelpPanel() { document.getElementById('help-overlay').classList.add('open'); }
+function closeHelpPanel(e) { if (e && e.target !== document.getElementById('help-overlay')) return; document.getElementById('help-overlay').classList.remove('open'); }
 
 function openStaffPanel() {
   renderStaffList();
