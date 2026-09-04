@@ -1375,7 +1375,7 @@ const SUPABASE_URL = 'https://oikwudpqmbnssttatlhc.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9pa3d1ZHBxbWJuc3N0dGF0bGhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxMTMzODEsImV4cCI6MjA5NTY4OTM4MX0.p6I9qlvre5TjF3qOVjAIBus3_PNrbvCF2cMXHe3uiXw';
 let sb = null, syncInterval = null;
 function initSupabase() { try { if (window.supabase && window.supabase.createClient) sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); } catch (e) { sb = null; } }
-function startAutoSync() { if (syncInterval) clearInterval(syncInterval); syncInterval = setInterval(() => { syncUp(); syncDown(); }, 30000); }
+function startAutoSync() { if (syncInterval) clearInterval(syncInterval); syncInterval = setInterval(async () => { await syncDown(); syncUp(); }, 30000); }
 
 async function syncUp() {
   if (!sb) return;
@@ -1477,10 +1477,12 @@ async function syncDown() {
       saveChecks();
       try { localStorage.setItem('ncl_times_v1', JSON.stringify(allTimes)); } catch (e) {}
     }
-    const { data: staffData } = await sb.from('cleaning_staff').select('*').eq('deleted', false);
+    const { data: staffData } = await sb.from('cleaning_staff').select('*');
     if (staffData) {
-      const m = new Map(staff.map(s => [s.id, s]));
-      staffData.forEach(r => { if (!m.has(r.id) && !deletedStaffIds.has(r.id)) staff.push({ id: r.id, name: r.name }); });
+      staffData.filter(r => r.deleted).forEach(r => deletedStaffIds.add(r.id));
+      staffData.filter(r => !r.deleted && !deletedStaffIds.has(r.id)).forEach(r => {
+        if (!staff.some(s => s.id === r.id)) staff.push({ id: r.id, name: r.name });
+      });
       staff = staff.filter(s => !deletedStaffIds.has(s.id));
       saveStaff();
     }
