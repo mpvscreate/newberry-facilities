@@ -272,14 +272,16 @@ html.dark .panel::before {
 
 /* ── FACE LABEL TOAST ── */
 #face-label {
-  position:fixed; bottom:72px; left:50%; transform:translateX(-50%);
-  font-size:0.72rem; font-weight:700; color:var(--text);
-  background:var(--nav-bg); backdrop-filter:blur(8px);
-  padding:4px 14px; border-radius:16px; border:1px solid var(--border);
-  opacity:0; transition:opacity .3s; pointer-events:none; z-index:51;
-  white-space:nowrap; letter-spacing:0.04em; text-transform:uppercase;
+  position:fixed; bottom:80px; left:50%; transform:translateX(-50%) translateY(6px);
+  font-size:1.1rem; font-weight:800; color:#fff;
+  background:rgba(50,42,35,.88); backdrop-filter:blur(12px);
+  padding:7px 26px; border-radius:22px;
+  box-shadow:0 4px 18px rgba(0,0,0,.18);
+  opacity:0; transition:opacity .25s, transform .3s cubic-bezier(.34,1.4,.64,1); pointer-events:none; z-index:55;
+  white-space:nowrap; letter-spacing:0.14em; text-transform:uppercase;
 }
-#face-label.show { opacity:1; }
+#face-label.show { opacity:1; transform:translateX(-50%) translateY(0); }
+#face-label.show ~ #hint { opacity:0; }
 
 /* ── HINT IMPROVEMENTS ── */
 #hint { transition:opacity .6s; }
@@ -1280,7 +1282,7 @@ html.dark .edit-field select { background:rgba(200,169,122,0.08); color:#ede8e0;
   .face-btn  { width:26px; height:26px; font-size:0.9rem; }
   .face-btn::before { inset:-2px; }
   #hint      { display:none; }
-  #face-label { bottom:52px; font-size:0.65rem; padding:3px 10px; }
+  #face-label { bottom:60px; font-size:0.95rem; padding:6px 20px; }
 
   /* Modal full-width on mobile */
   #modal { border-radius:16px; padding:20px 16px; }
