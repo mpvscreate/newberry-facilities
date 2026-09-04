@@ -1,0 +1,16 @@
+{
+  "name": "Newberry Cleaning",
+  "short_name": "Cleaning",
+  "start_url": "/cleaning.html",
+  "display": "standalone",
+  "background_color": "#1b7e1b",
+  "theme_color": "#1b7e1b",
+  "icons": [
+    {
+      "src": "cleaning-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
