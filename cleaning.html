@@ -667,11 +667,12 @@ const CHECKLISTS = {
 };
 
 const CAMPUSES = {
-  lower: { label: 'Lower Campus', themeColor: '#e91e63', sections: ['toddlers', 'pp', 'le', 'ue'] },
+  ppcamp: { label: 'PP Campus', themeColor: '#9c27b0', sections: ['toddlers', 'pp'] },
+  lower: { label: 'Lower Campus', themeColor: '#e91e63', sections: ['le', 'ue'] },
   upper: { label: 'Upper Campus', themeColor: '#1565c0', sections: ['ms', 'hs'] },
   support: { label: 'Support Buildings', themeColor: '#546e7a', sections: ['campus'] }
 };
-let currentCampus = 'lower';
+let currentCampus = 'ppcamp';
 let currentShift = 'all';
 let searchQ = '';
 let expandedRoomId = null;
