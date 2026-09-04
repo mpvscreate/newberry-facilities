@@ -384,7 +384,7 @@
     .modal-overlay.open { display: flex; }
     .modal {
       background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg);
-      width: 100%; max-width: 400px; box-shadow: var(--shadow-modal);
+      width: 100%; max-width: 400px; max-height: calc(100vh - 40px); overflow-y: auto; box-shadow: var(--shadow-modal);
       overflow: hidden; transition: background .3s, border-color .3s;
     }
     .modal-head {
@@ -408,7 +408,7 @@
     .modal-btn.danger:hover { opacity: .85; }
 
     /* PIN */
-    .pin-display { display: flex; gap: 14px; justify-content: center; margin: 20px 0; }
+    .pin-display { display: flex; gap: 14px; justify-content: center; margin: 14px 0; }
     .pin-dot {
       width: 14px; height: 14px; border-radius: 50%;
       border: 2px solid var(--border); background: transparent;
@@ -418,11 +418,11 @@
     .pin-dot.error { border-color: var(--rec); background: var(--rec); animation: shake .4s; }
     .pin-keypad {
       display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
-      max-width: 240px; margin: 0 auto;
+      max-width: 220px; margin: 0 auto;
     }
     .pin-key {
-      height: 54px; border-radius: var(--radius); border: 1px solid var(--border);
-      background: var(--surface); color: var(--text); font-size: 20px; font-weight: 600;
+      height: 48px; border-radius: var(--radius); border: 1px solid var(--border);
+      background: var(--surface); color: var(--text); font-size: 18px; font-weight: 600;
       cursor: pointer; transition: all .1s; font-family: var(--font-body);
       display: flex; align-items: center; justify-content: center;
       -webkit-tap-highlight-color: transparent;
