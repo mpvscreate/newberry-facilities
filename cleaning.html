@@ -198,6 +198,10 @@ body {
   font-size: 9px; font-weight: 600; color: var(--pk);
   background: var(--pk-light); border-radius: 10px; padding: 1px 6px;
 }
+.room-done-time {
+  font-size: 9px; font-weight: 600; color: var(--green);
+  background: var(--green-light); border-radius: 10px; padding: 1px 6px;
+}
 
 .room-progress-mini { width: 36px; height: 36px; position: relative; flex-shrink: 0; }
 .room-progress-mini svg { width: 100%; height: 100%; transform: rotate(-90deg); }
@@ -706,15 +710,15 @@ function saveChecks() {
   debouncedSync();
 }
 function loadCustomItems() { try { const r = localStorage.getItem('ncl_custom_v1'); if (r) customItems = JSON.parse(r); } catch (e) { customItems = {}; } }
-function saveCustomItems() { try { localStorage.setItem('ncl_custom_v1', JSON.stringify(customItems)); } catch (e) {} }
+function saveCustomItems() { try { localStorage.setItem('ncl_custom_v1', JSON.stringify(customItems)); } catch (e) {} debouncedSync(); }
 function loadStaff() { try { const r = localStorage.getItem('ncl_staff_v1'); if (r) staff = JSON.parse(r); } catch (e) { staff = []; } }
 function saveStaff() { try { localStorage.setItem('ncl_staff_v1', JSON.stringify(staff)); } catch (e) {} debouncedSync(); }
 function loadAssignments() { try { const r = localStorage.getItem('ncl_assign_v1'); if (r) assignments = JSON.parse(r); } catch (e) { assignments = {}; } }
 function saveAssignments() { try { localStorage.setItem('ncl_assign_v1', JSON.stringify(assignments)); } catch (e) {} debouncedSync(); }
 function loadRoomExclusions() { try { const r = localStorage.getItem('ncl_excl_v1'); if (r) roomExclusions = JSON.parse(r); } catch (e) { roomExclusions = {}; } }
-function saveRoomExclusions() { try { localStorage.setItem('ncl_excl_v1', JSON.stringify(roomExclusions)); } catch (e) {} }
+function saveRoomExclusions() { try { localStorage.setItem('ncl_excl_v1', JSON.stringify(roomExclusions)); } catch (e) {} debouncedSync(); }
 function loadRoomEstimates() { try { const r = localStorage.getItem('ncl_est_v1'); if (r) roomEstimates = JSON.parse(r); } catch (e) { roomEstimates = {}; } }
-function saveRoomEstimates() { try { localStorage.setItem('ncl_est_v1', JSON.stringify(roomEstimates)); } catch (e) {} }
+function saveRoomEstimates() { try { localStorage.setItem('ncl_est_v1', JSON.stringify(roomEstimates)); } catch (e) {} debouncedSync(); }
 function getRoomEstimate(roomId) { return roomEstimates[roomId] || 15; }
 async function editRoomEstimate(roomId, e) {
   if (e) e.stopPropagation();
@@ -769,6 +773,17 @@ function getRoomProgress(roomId) {
   const total = getChecklistForRoom(roomId).length;
   const done = checks[roomId] ? checks[roomId].filter(i => i < total).length : 0;
   return { done, total };
+}
+function getRoomCompletedAt(roomId) {
+  try {
+    const raw = localStorage.getItem('ncl_times_v1'); if (!raw) return '';
+    const times = JSON.parse(raw); const today = getToday();
+    const rt = times[today] && times[today][roomId];
+    if (!rt) return '';
+    let latest = '';
+    Object.values(rt).forEach(t => { if (t > latest) latest = t; });
+    return latest;
+  } catch (e) { return ''; }
 }
 
 function renderSectionTabs() {
@@ -909,6 +924,7 @@ function renderRoomList() {
           '<div class="room-subtitle">' +
             '<span class="room-fraction">' + p.done + '/' + p.total + '</span>' +
             (a && a.staff ? '<span class="room-staff-badge">' + escHtml(a.staff) + '</span>' : '') +
+            (isComplete ? '<span class="room-done-time">' + (getRoomCompletedAt(room.id) || '') + '</span>' : '') +
           '</div>' +
         '</div>' +
         '<span class="room-est" onclick="editRoomEstimate(\'' + room.id + '\', event)">~' + getRoomEstimate(room.id) + ' min</span>' +
@@ -1118,7 +1134,7 @@ function showToast(msg) {
 function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 function findRoom(roomId) { for (const rooms of Object.values(ROOMS)) { const r = rooms.find(r => r.id === roomId); if (r) return r; } return null; }
 
-function exportCSV() {
+async function exportCSV() {
   const headers = ['Section','Room','Checklist Item','Status','Completed At','Assigned To','Shift'];
   const rows = [headers];
   for (const [sid, rooms] of Object.entries(ROOMS)) {
@@ -1133,8 +1149,15 @@ function exportCSV() {
   }
   const csv = rows.map(r => r.map(c => '"' + String(c).replace(/"/g,'""') + '"').join(',')).join('\n');
   const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const fileName = 'NewberryCleaning_' + getToday() + '.csv';
+  if (navigator.share && navigator.canShare) {
+    const file = new File([blob], fileName, { type: 'text/csv' });
+    if (navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file], title: 'Cleaning Report' }); showToast('Shared'); return; } catch (e) { if (e.name === 'AbortError') return; }
+    }
+  }
   const url = URL.createObjectURL(blob); const a = document.createElement('a');
-  a.href = url; a.download = 'NewberryCleaning_' + getToday() + '.csv';
+  a.href = url; a.download = fileName;
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url); showToast('CSV exported');
 }
@@ -1173,7 +1196,7 @@ async function addRoom() {
   ROOMS[section].push({ id: section.slice(0, 2) + Date.now(), name: name });
   saveRooms(); render(); showToast(name + ' added to ' + SECTIONS[section].label);
 }
-function saveRooms() { try { localStorage.setItem('ncl_rooms_v1', JSON.stringify(ROOMS)); } catch (e) {} }
+function saveRooms() { try { localStorage.setItem('ncl_rooms_v1', JSON.stringify(ROOMS)); } catch (e) {} debouncedSync(); }
 function loadRooms() {
   try { const raw = localStorage.getItem('ncl_rooms_v1'); if (raw) { const saved = JSON.parse(raw); for (const [k, v] of Object.entries(saved)) { if (ROOMS[k]) ROOMS[k] = v; } } } catch (e) {}
 }
@@ -1242,7 +1265,7 @@ function addChecklistItem(roomId) {
   customItems[section].push(text); input.value = '';
   saveCustomItems(); render(); showToast('Item added');
 }
-function savePresetChecklists() { try { localStorage.setItem('ncl_presets_v1', JSON.stringify(CHECKLISTS)); } catch (e) {} }
+function savePresetChecklists() { try { localStorage.setItem('ncl_presets_v1', JSON.stringify(CHECKLISTS)); } catch (e) {} debouncedSync(); }
 function loadPresetChecklists() {
   try { const raw = localStorage.getItem('ncl_presets_v1'); if (raw) { const saved = JSON.parse(raw); for (const [k, v] of Object.entries(saved)) { if (CHECKLISTS[k]) CHECKLISTS[k] = v; } } } catch (e) {}
 }
@@ -1271,6 +1294,32 @@ async function syncUp() {
     if (staffRows.length > 0) await sb.from('cleaning_staff').upsert(staffRows, { onConflict: 'id' });
     const assignRows = Object.entries(assignments).map(([roomId, a]) => ({ room_id: roomId, staff_name: a.staff || '', shift: a.shift || 'morning', updated_at: Date.now() }));
     if (assignRows.length > 0) await sb.from('cleaning_assignments').upsert(assignRows, { onConflict: 'room_id' });
+    await sb.from('cleaning_config').upsert({
+      id: 'shared_config',
+      rooms: JSON.stringify(ROOMS),
+      checklists: JSON.stringify(CHECKLISTS),
+      custom_items: JSON.stringify(customItems),
+      room_exclusions: JSON.stringify(roomExclusions),
+      room_estimates: JSON.stringify(roomEstimates),
+      updated_at: Date.now()
+    }, { onConflict: 'id' });
+    let totalItems = 0, doneItems = 0, completedRooms = 0, totalRooms = 0;
+    for (const rooms of Object.values(ROOMS)) {
+      rooms.forEach(r => {
+        totalRooms++;
+        const p = getRoomProgress(r.id);
+        totalItems += p.total; doneItems += p.done;
+        if (p.done === p.total && p.total > 0) completedRooms++;
+      });
+    }
+    await sb.from('cleaning_daily_summary').upsert({
+      id: today, date: today,
+      total_rooms: totalRooms, completed_rooms: completedRooms,
+      total_items: totalItems, completed_items: doneItems,
+      pct: totalItems > 0 ? Math.round(doneItems / totalItems * 100) : 0,
+      assignments: JSON.stringify(assignments),
+      updated_at: Date.now()
+    }, { onConflict: 'id' });
   } catch (e) { console.warn('Sync up failed:', e); }
 }
 
@@ -1278,6 +1327,37 @@ async function syncDown() {
   if (!sb) return;
   try {
     const today = getToday();
+    const { data: configData } = await sb.from('cleaning_config').select('*').eq('id', 'shared_config').single();
+    if (configData) {
+      try {
+        const remoteRooms = JSON.parse(configData.rooms || '{}');
+        for (const [k, v] of Object.entries(remoteRooms)) {
+          if (!ROOMS[k]) { ROOMS[k] = v; continue; }
+          const localIds = new Set(ROOMS[k].map(r => r.id));
+          v.forEach(r => { if (!localIds.has(r.id)) ROOMS[k].push(r); });
+          ROOMS[k].forEach((r, i) => { const remote = v.find(rv => rv.id === r.id); if (remote) ROOMS[k][i].name = remote.name; });
+        }
+        saveRooms();
+        const remoteChecklists = JSON.parse(configData.checklists || '{}');
+        for (const [k, v] of Object.entries(remoteChecklists)) { if (CHECKLISTS[k]) CHECKLISTS[k] = v; }
+        savePresetChecklists();
+        const remoteCustom = JSON.parse(configData.custom_items || '{}');
+        for (const [k, v] of Object.entries(remoteCustom)) {
+          if (!customItems[k]) customItems[k] = [];
+          v.forEach(item => { if (!customItems[k].includes(item)) customItems[k].push(item); });
+        }
+        saveCustomItems();
+        const remoteExcl = JSON.parse(configData.room_exclusions || '{}');
+        for (const [k, v] of Object.entries(remoteExcl)) {
+          if (!roomExclusions[k]) roomExclusions[k] = [];
+          v.forEach(item => { if (!roomExclusions[k].includes(item)) roomExclusions[k].push(item); });
+        }
+        saveRoomExclusions();
+        const remoteEst = JSON.parse(configData.room_estimates || '{}');
+        Object.assign(roomEstimates, remoteEst);
+        saveRoomEstimates();
+      } catch (e) { console.warn('Config merge failed:', e); }
+    }
     const { data: checkData } = await sb.from('cleaning_checks').select('*').eq('date', today);
     if (checkData && checkData.length > 0) {
       const timesRaw = localStorage.getItem('ncl_times_v1');
