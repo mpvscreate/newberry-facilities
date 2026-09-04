@@ -217,8 +217,19 @@ button, .panel, .face-btn, .age-btn, .j-chip, .modal-action-btn,
 
 /* ── PARTICLES ── */
 #particles { position:fixed; inset:0; pointer-events:none; z-index:45; overflow:hidden; top:58px; }
-.particle { position:absolute; pointer-events:none; user-select:none; animation:fall linear forwards; font-size:1.2rem; }
-@keyframes fall { 0%{transform:translateY(-40px) rotate(0deg) translateX(0);opacity:.9} 50%{transform:translateY(55vh) rotate(360deg) translateX(30px);opacity:.7} 100%{transform:translateY(110vh) rotate(720deg) translateX(-20px);opacity:0} }
+.particle {
+  position:absolute; pointer-events:none; user-select:none; font-size:1.2rem;
+  animation:particleFall var(--dur, 6s) linear forwards,
+            particleSway var(--sway-dur, 3s) ease-in-out infinite alternate;
+}
+@keyframes particleFall {
+  0%   { transform:translateY(-40px) rotate(0deg); opacity:.9; }
+  100% { transform:translateY(110vh) rotate(var(--spin, 720deg)); opacity:0; }
+}
+@keyframes particleSway {
+  0%   { translate:var(--sway-a, -25px) 0; }
+  100% { translate:var(--sway-b, 25px) 0; }
+}
 
 /* ── AMBIENT SCENE GLOW ── */
 #scene-glow {
@@ -3032,10 +3043,18 @@ function spawnParticles(season) {
       p.className = 'particle';
       p.textContent = emojis[Math.floor(Math.random() * emojis.length)];
       p.style.left = (Math.random() * 100) + 'vw';
-      p.style.animationDuration = (2 + Math.random() * 3) + 's';
+      const dur = 3 + Math.random() * 4;
+      const swayA = -(15 + Math.random() * 30);
+      const swayB = 15 + Math.random() * 30;
+      p.style.setProperty('--dur', dur + 's');
+      p.style.setProperty('--sway-dur', (1.5 + Math.random() * 2) + 's');
+      p.style.setProperty('--sway-a', swayA + 'px');
+      p.style.setProperty('--sway-b', swayB + 'px');
+      p.style.setProperty('--spin', (360 + Math.random() * 720) + 'deg');
+      p.style.fontSize = (0.9 + Math.random() * 0.6) + 'rem';
       p.style.animationDelay = (Math.random() * 0.5) + 's';
       particleContainer.appendChild(p);
-      setTimeout(() => p.remove(), 6000);
+      setTimeout(() => p.remove(), (dur + 1) * 1000);
     }, i * 80);
   }
 }
