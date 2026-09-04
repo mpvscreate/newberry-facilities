@@ -672,6 +672,7 @@ let assignRoomId = null;
 let checks = {};
 let customItems = {};
 let staff = [];
+let deletedStaffIds = new Set();
 let assignments = {};
 let editMode = false;
 let roomExclusions = {};
@@ -711,8 +712,8 @@ function saveChecks() {
 }
 function loadCustomItems() { try { const r = localStorage.getItem('ncl_custom_v1'); if (r) customItems = JSON.parse(r); } catch (e) { customItems = {}; } }
 function saveCustomItems() { try { localStorage.setItem('ncl_custom_v1', JSON.stringify(customItems)); } catch (e) {} debouncedSync(); }
-function loadStaff() { try { const r = localStorage.getItem('ncl_staff_v1'); if (r) staff = JSON.parse(r); } catch (e) { staff = []; } }
-function saveStaff() { try { localStorage.setItem('ncl_staff_v1', JSON.stringify(staff)); } catch (e) {} debouncedSync(); }
+function loadStaff() { try { const r = localStorage.getItem('ncl_staff_v1'); if (r) staff = JSON.parse(r); } catch (e) { staff = []; } try { const d = localStorage.getItem('ncl_deleted_staff'); if (d) deletedStaffIds = new Set(JSON.parse(d)); } catch (e) {} }
+function saveStaff() { try { localStorage.setItem('ncl_staff_v1', JSON.stringify(staff)); localStorage.setItem('ncl_deleted_staff', JSON.stringify([...deletedStaffIds])); } catch (e) {} debouncedSync(); }
 function loadAssignments() { try { const r = localStorage.getItem('ncl_assign_v1'); if (r) assignments = JSON.parse(r); } catch (e) { assignments = {}; } }
 function saveAssignments() { try { localStorage.setItem('ncl_assign_v1', JSON.stringify(assignments)); } catch (e) {} debouncedSync(); }
 function loadRoomExclusions() { try { const r = localStorage.getItem('ncl_excl_v1'); if (r) roomExclusions = JSON.parse(r); } catch (e) { roomExclusions = {}; } }
@@ -1028,6 +1029,7 @@ async function removeStaff(idx) {
   const ok = await showDialog({ title: 'Remove Staff', message: 'Remove "' + name + '"? This will also unassign them from all rooms.', okLabel: 'Remove', danger: true });
   if (!ok) return;
   const removed = staff.splice(idx, 1)[0];
+  if (removed.id) deletedStaffIds.add(removed.id);
   const unassignedRooms = [];
   Object.keys(assignments).forEach(rid => { if (assignments[rid].staff === name) { delete assignments[rid]; unassignedRooms.push(rid); } });
   saveStaff(); saveAssignments(); renderStaffList(); render(); showToast(name + ' removed');
@@ -1290,8 +1292,9 @@ async function syncUp() {
         checked_indices: JSON.stringify(indices), check_times: JSON.stringify(roomTimes), updated_at: Date.now() });
     }
     if (checkRows.length > 0) await sb.from('cleaning_checks').upsert(checkRows, { onConflict: 'id' });
-    const staffRows = staff.map(s => ({ id: s.id, name: s.name, updated_at: Date.now(), deleted: false }));
+    const staffRows = staff.filter(s => !deletedStaffIds.has(s.id)).map(s => ({ id: s.id, name: s.name, updated_at: Date.now(), deleted: false }));
     if (staffRows.length > 0) await sb.from('cleaning_staff').upsert(staffRows, { onConflict: 'id' });
+    for (const did of deletedStaffIds) { await sb.from('cleaning_staff').update({ deleted: true, updated_at: Date.now() }).eq('id', did); }
     const assignRows = Object.entries(assignments).map(([roomId, a]) => ({ room_id: roomId, staff_name: a.staff || '', shift: a.shift || 'morning', updated_at: Date.now() }));
     if (assignRows.length > 0) await sb.from('cleaning_assignments').upsert(assignRows, { onConflict: 'room_id' });
     await sb.from('cleaning_config').upsert({
@@ -1375,7 +1378,12 @@ async function syncDown() {
       try { localStorage.setItem('ncl_times_v1', JSON.stringify(allTimes)); } catch (e) {}
     }
     const { data: staffData } = await sb.from('cleaning_staff').select('*').eq('deleted', false);
-    if (staffData) { const m = new Map(staff.map(s => [s.id, s])); staffData.forEach(r => { if (!m.has(r.id)) staff.push({ id: r.id, name: r.name }); }); saveStaff(); }
+    if (staffData) {
+      const m = new Map(staff.map(s => [s.id, s]));
+      staffData.forEach(r => { if (!m.has(r.id) && !deletedStaffIds.has(r.id)) staff.push({ id: r.id, name: r.name }); });
+      staff = staff.filter(s => !deletedStaffIds.has(s.id));
+      saveStaff();
+    }
     const { data: assignData } = await sb.from('cleaning_assignments').select('*');
     if (assignData) { assignData.forEach(r => { if (!assignments[r.room_id] && r.staff_name) assignments[r.room_id] = { staff: r.staff_name, shift: r.shift }; }); saveAssignments(); }
     render();
