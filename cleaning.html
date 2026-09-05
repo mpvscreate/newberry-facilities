@@ -237,10 +237,28 @@ body {
 .checklist-item {
   display: flex; align-items: center; gap: 10px;
   padding: 9px 12px; border-bottom: 1px solid var(--border-light);
-  cursor: pointer; transition: background .12s; user-select: none;
+  cursor: pointer; transition: background .12s, transform .15s; user-select: none;
+  position: relative; overflow: hidden;
 }
 .checklist-item:last-child { border-bottom: none; }
 .checklist-item:active { background: var(--pk-light); }
+.checklist-item .swipe-hint {
+  position: absolute; left: 0; top: 0; bottom: 0; width: 0;
+  background: var(--green); display: flex; align-items: center; justify-content: flex-end;
+  padding-right: 8px; color: #fff; font-size: 10px; font-weight: 700;
+  transition: width .15s; pointer-events: none; border-radius: 0 8px 8px 0;
+}
+.mark-all-btn {
+  padding: 3px 8px; border: none; border-radius: 6px; font-size: 9px; font-weight: 700;
+  background: var(--green); color: #fff; cursor: pointer; white-space: nowrap;
+  opacity: 0.85; transition: opacity .15s;
+}
+.mark-all-btn:hover { opacity: 1; }
+.room-card.complete .mark-all-btn { display: none; }
+.staff-progress { display: flex; align-items: center; gap: 6px; margin-top: 2px; }
+.staff-progress-bar { flex: 1; height: 4px; background: var(--badge-bg); border-radius: 2px; overflow: hidden; max-width: 80px; }
+.staff-progress-fill { height: 100%; background: var(--green); border-radius: 2px; transition: width .3s; }
+.staff-progress-pct { font-size: 9px; color: var(--muted); font-weight: 600; }
 .check-box {
   width: 20px; height: 20px; border-radius: 6px; border: 1.5px solid var(--border);
   flex-shrink: 0; display: flex; align-items: center; justify-content: center;
@@ -975,7 +993,9 @@ function renderRoomList() {
         const checked = isChecked(room.id, idx);
         const time = checked ? getCheckTime(room.id, idx) : '';
         return '<div class="checklist-item' + (checked ? ' checked' : '') +
-          '" onclick="event.stopPropagation();onCheckItem(\'' + room.id + '\',' + idx + ')">' +
+          '" data-room-id="' + room.id + '" data-idx="' + idx + '"' +
+          ' onclick="event.stopPropagation();onCheckItem(\'' + room.id + '\',' + idx + ')">' +
+          '<div class="swipe-hint">&#10003;</div>' +
           '<div class="check-box"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>' +
           '<span class="check-label">' + escHtml(item) + '</span>' +
           (time ? '<span class="check-time">' + time + '</span>' : '') +
@@ -1011,6 +1031,7 @@ function renderRoomList() {
             (isComplete ? '<span class="room-done-time">' + (getRoomCompletedAt(room.id) || '') + '</span>' : '') +
           '</div>' +
         '</div>' +
+        (!isComplete ? '<button class="mark-all-btn" onclick="event.stopPropagation();checkAll(\'' + room.id + '\')">&#10003; All</button>' : '') +
         '<span class="room-est" onclick="editRoomEstimate(\'' + room.id + '\', event)">~' + getRoomEstimate(room.id) + ' min</span>' +
         '<div class="room-progress-mini">' +
           '<svg viewBox="0 0 32 32"><circle class="track" cx="16" cy="16" r="14"/>' +
@@ -1039,6 +1060,37 @@ function onCheckItem(roomId, idx) {
   toggleCheck(roomId, idx);
   renderRoomList(); updateStats(); renderSectionTabs();
 }
+
+let _swipeStartX = 0, _swipeEl = null, _swipeRoomId = '', _swipeIdx = -1;
+function initSwipe() {
+  document.addEventListener('touchstart', function(e) {
+    const item = e.target.closest('.checklist-item');
+    if (!item || item.classList.contains('checked')) { _swipeEl = null; return; }
+    _swipeStartX = e.touches[0].clientX;
+    _swipeEl = item;
+    _swipeRoomId = item.dataset.roomId || '';
+    _swipeIdx = parseInt(item.dataset.idx, 10);
+  }, { passive: true });
+  document.addEventListener('touchmove', function(e) {
+    if (!_swipeEl) return;
+    const dx = e.touches[0].clientX - _swipeStartX;
+    if (dx > 10) {
+      const hint = _swipeEl.querySelector('.swipe-hint');
+      if (hint) hint.style.width = Math.min(dx, 80) + 'px';
+    }
+  }, { passive: true });
+  document.addEventListener('touchend', function() {
+    if (!_swipeEl) return;
+    const hint = _swipeEl.querySelector('.swipe-hint');
+    if (hint && parseInt(hint.style.width) >= 60) {
+      onCheckItem(_swipeRoomId, _swipeIdx);
+    } else if (hint) {
+      hint.style.width = '0';
+    }
+    _swipeEl = null;
+  });
+}
+initSwipe();
 function checkAll(roomId) {
   const items = getChecklistForRoom(roomId);
   checks[roomId] = items.map((_, i) => i);
@@ -1092,13 +1144,22 @@ function renderStaffList() {
     return;
   }
   document.getElementById('staff-list').innerHTML = staff.map((s, i) => {
-    let totalMin = 0;
+    let totalMin = 0, doneRooms = 0;
     const assignedRooms = Object.entries(assignments).filter(([, a]) => a.staff === s.name);
-    assignedRooms.forEach(([rid]) => { totalMin += getRoomEstimate(rid); });
+    assignedRooms.forEach(([rid]) => {
+      totalMin += getRoomEstimate(rid);
+      const p = getRoomProgress(rid);
+      if (p.done === p.total && p.total > 0) doneRooms++;
+    });
     const count = assignedRooms.length;
-    return '<div class="staff-row"><span class="staff-name">' + escHtml(s.name) + '</span>' +
-      '<span class="staff-count">' + count + ' room' + (count !== 1 ? 's' : '') +
-      (totalMin > 0 ? ' · ~' + totalMin + ' min' : '') + '</span>' +
+    const pct = count > 0 ? Math.round(doneRooms / count * 100) : 0;
+    return '<div class="staff-row"><div style="flex:1;min-width:0"><span class="staff-name">' + escHtml(s.name) + '</span>' +
+      '<div class="staff-progress">' +
+        '<span class="staff-count">' + doneRooms + '/' + count + ' room' + (count !== 1 ? 's' : '') +
+        (totalMin > 0 ? ' · ~' + totalMin + ' min' : '') + '</span>' +
+        (count > 0 ? '<span class="staff-progress-bar"><span class="staff-progress-fill" style="width:' + pct + '%"></span></span>' +
+        '<span class="staff-progress-pct">' + pct + '%</span>' : '') +
+      '</div></div>' +
       '<button class="staff-edit" onclick="editStaff(' + i + ')" title="Edit name">&#9998;</button>' +
       '<button class="staff-remove" onclick="removeStaff(' + i + ')" title="Remove">&times;</button></div>';
   }).join('');
@@ -1500,7 +1561,13 @@ async function syncDown() {
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.setAttribute('content', CAMPUSES[currentCampus].themeColor);
   document.getElementById('logo-sub').textContent = CAMPUSES[currentCampus].label;
+  const lastDate = localStorage.getItem('ncl_last_date');
   loadRooms(); loadPresetChecklists(); loadChecks(); loadCustomItems(); loadStaff(); loadAssignments(); loadRoomExclusions(); loadRoomEstimates();
+  const today = getToday();
+  if (lastDate && lastDate !== today) {
+    setTimeout(() => showToast('New day — checklists reset'), 500);
+  }
+  try { localStorage.setItem('ncl_last_date', today); } catch (e) {}
   render();
   initSupabase();
   if (sb) { syncDown(); startAutoSync(); }
