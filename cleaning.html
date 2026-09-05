@@ -467,9 +467,12 @@ body {
 .toast-msg { flex: 1; }
 .toast-undo {
   background: none; border: none; color: var(--pk, #1b7e1b); font-weight: 700;
-  font-size: 12px; cursor: pointer; padding: 0; text-transform: uppercase; letter-spacing: .3px;
-  font-family: var(--font-body);
+  font-size: 13px; cursor: pointer; padding: 8px 12px; margin: -8px -12px -8px 0;
+  text-transform: uppercase; letter-spacing: .3px; font-family: var(--font-body);
+  -webkit-tap-highlight-color: rgba(0,0,0,.1); touch-action: manipulation;
+  display: none;
 }
+.toast-undo.visible { display: block; }
 
 .mic-fab {
   position: fixed; bottom: 20px; right: 16px; width: 52px; height: 52px;
@@ -569,7 +572,7 @@ body {
   <div class="empty-msg" id="empty-msg">No rooms match your search.</div>
 </div>
 
-<div class="toast" id="toast"><span class="toast-msg" id="toast-msg"></span><button class="toast-undo" id="toast-undo" onclick="doUndo()" hidden>UNDO</button></div>
+<div class="toast" id="toast"><span class="toast-msg" id="toast-msg"></span><button class="toast-undo" id="toast-undo">UNDO</button></div>
 
 <button class="mic-fab" id="mic-fab" title="Hold to speak">
   <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
@@ -1463,22 +1466,27 @@ function toggleOverflowMenu(e) { e.stopPropagation(); document.getElementById('o
 function closeOverflowMenu() { document.getElementById('overflow-menu').classList.remove('open'); }
 document.addEventListener('click', closeOverflowMenu);
 
-let _undoFn = null;
 function showToast(msg, undoFn) {
   const el = document.getElementById('toast');
   document.getElementById('toast-msg').textContent = msg;
   const undoBtn = document.getElementById('toast-undo');
-  _undoFn = undoFn || null;
-  undoBtn.hidden = !_undoFn;
+  undoBtn._undoFn = undoFn || null;
+  undoBtn.classList.toggle('visible', !!undoFn);
   el.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { el.classList.remove('show'); _undoFn = null; }, undoFn ? 5000 : 2500);
+  toastTimer = setTimeout(() => { el.classList.remove('show'); undoBtn._undoFn = null; }, undoFn ? 5000 : 2500);
 }
-function doUndo() {
-  if (_undoFn) { _undoFn(); _undoFn = null; }
-  const el = document.getElementById('toast'); el.classList.remove('show');
+document.getElementById('toast').addEventListener('click', function(e) {
+  const btn = e.target.closest('.toast-undo');
+  if (!btn || !btn._undoFn) return;
+  e.stopPropagation();
+  const fn = btn._undoFn;
+  btn._undoFn = null;
+  const el = document.getElementById('toast');
+  el.classList.remove('show');
   clearTimeout(toastTimer);
-}
+  fn();
+});
 
 function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 function findRoom(roomId) { for (const rooms of Object.values(ROOMS)) { const r = rooms.find(r => r.id === roomId); if (r) return r; } return null; }
