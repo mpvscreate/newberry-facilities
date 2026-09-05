@@ -593,7 +593,7 @@ body {
         <h3>Carpet Cleaning Tracker</h3>
         <ul>
           <li>Found under the <strong>Special</strong> tab. Lists all carpeted rooms with cleaning status.</li>
-          <li>Each room shows <strong>last cleaned date</strong> and <strong>days until next due</strong> (90-day cycle).</li>
+          <li>Each room shows <strong>last cleaned date</strong> and <strong>next due</strong> (6-month cycle, 2x per year). Dates are only updated manually.</li>
           <li>Status badges show <strong style="color:#2e7d32">green</strong> (ok), <strong style="color:#e65100">orange</strong> (due within 14 days), or <strong style="color:#c62828">red</strong> (overdue).</li>
           <li>Expand a room and tap <strong>Mark Cleaned</strong> to record today's date.</li>
         </ul>
@@ -890,16 +890,16 @@ function loadCarpetDates() { try { const r = localStorage.getItem('ncl_carpet_v1
 function saveCarpetDates() { try { localStorage.setItem('ncl_carpet_v1', JSON.stringify(carpetDates)); } catch (e) {} debouncedSync(); }
 function getCarpetStatus(roomId) {
   const d = carpetDates[roomId];
-  if (!d) return { lastCleaned: null, nextDue: null, status: 'overdue', label: 'Never cleaned' };
+  if (!d) return { lastCleaned: null, nextDue: null, status: 'overdue', label: 'Not yet recorded' };
   const last = new Date(d);
-  const next = new Date(last); next.setDate(next.getDate() + 90);
+  const next = new Date(last); next.setDate(next.getDate() + 182);
   const now = new Date();
   const daysLeft = Math.ceil((next - now) / 86400000);
   let status = 'ok';
   if (daysLeft < 0) status = 'overdue';
-  else if (daysLeft <= 14) status = 'due-soon';
-  const fmtDate = (dt) => dt.toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' });
-  return { lastCleaned: fmtDate(last), nextDue: fmtDate(next), status, label: daysLeft < 0 ? 'Overdue by ' + Math.abs(daysLeft) + 'd' : 'Due in ' + daysLeft + 'd' };
+  else if (daysLeft <= 30) status = 'due-soon';
+  const fmtDate = (dt) => dt.toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' });
+  return { lastCleaned: fmtDate(last), nextDue: fmtDate(next), status, label: 'Cleaned ' + fmtDate(last) };
 }
 function markCarpetCleaned(roomId) {
   carpetDates[roomId] = getToday();
