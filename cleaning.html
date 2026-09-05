@@ -1092,7 +1092,7 @@ function getFilteredRooms() {
   let rooms = getCampusRooms();
   if (currentSubSection !== 'all') rooms = rooms.filter(r => r.section === currentSubSection);
   if (searchQ) rooms = rooms.filter(r => r.name.toLowerCase().includes(searchQ));
-  if (currentShift !== 'all') rooms = rooms.filter(r => { const a = assignments[r.id]; return !a || !a.shift || a.shift === currentShift; });
+  if (currentShift !== 'all') rooms = rooms.filter(r => { const a = assignments[r.id]; const shift = (a && a.shift) || 'afternoon'; return shift === currentShift; });
   return rooms;
 }
 
