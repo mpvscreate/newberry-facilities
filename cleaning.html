@@ -7,8 +7,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Cleaning">
-<link rel="apple-touch-icon" href="cleaning-icon.png">
-<link rel="icon" type="image/png" sizes="192x192" href="cleaning-icon.png">
+<link rel="apple-touch-icon" href="cleaning-icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="cleaning-icon-192.png">
 <link rel="manifest" href="cleaning-manifest.json">
 <title>Newberry Cleaning</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -69,9 +69,11 @@ body {
   --overlay: rgba(0,0,0,.6);
 }
 
+[data-section="ppcamp"]      { --pk: #9c27b0; --pk-light: rgba(156,39,176,.08); --pk-mid: rgba(156,39,176,.15); --glow: rgba(156,39,176,.35); }
 [data-section="lower"]       { --pk: #e91e63; --pk-light: rgba(233,30,99,.08); --pk-mid: rgba(233,30,99,.15); --glow: rgba(233,30,99,.35); }
 [data-section="upper"]       { --pk: #1565c0; --pk-light: rgba(21,101,192,.08); --pk-mid: rgba(21,101,192,.15); --glow: rgba(21,101,192,.35); }
 [data-section="support"]     { --pk: #546e7a; --pk-light: rgba(84,110,122,.08); --pk-mid: rgba(84,110,122,.15); --glow: rgba(84,110,122,.35); }
+[data-section="special"]     { --pk: #ff6f00; --pk-light: rgba(255,111,0,.08); --pk-mid: rgba(255,111,0,.15); --glow: rgba(255,111,0,.35); }
 
 .app-header {
   padding: calc(14px + env(safe-area-inset-top, 0px)) 16px 10px;
@@ -459,8 +461,15 @@ body {
   box-shadow: 0 8px 24px rgba(0,0,0,.15); opacity: 0; transition: all .25s;
   z-index: 2000; pointer-events: none; white-space: nowrap;
   backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  display: flex; align-items: center; gap: 10px;
 }
-.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+.toast-msg { flex: 1; }
+.toast-undo {
+  background: none; border: none; color: var(--pk, #1b7e1b); font-weight: 700;
+  font-size: 12px; cursor: pointer; padding: 0; text-transform: uppercase; letter-spacing: .3px;
+  font-family: var(--font-body);
+}
 
 .mic-fab {
   position: fixed; bottom: 20px; right: 16px; width: 52px; height: 52px;
@@ -560,7 +569,7 @@ body {
   <div class="empty-msg" id="empty-msg">No rooms match your search.</div>
 </div>
 
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast"><span class="toast-msg" id="toast-msg"></span><button class="toast-undo" id="toast-undo" onclick="doUndo()" hidden>UNDO</button></div>
 
 <button class="mic-fab" id="mic-fab" title="Hold to speak">
   <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
@@ -932,8 +941,12 @@ function getCarpetStatus(roomId) {
 }
 function markCarpetCleaned(roomId, idx) {
   if (!carpetData[roomId]) return;
+  const prevDate = carpetData[roomId][idx].date;
   carpetData[roomId][idx].date = getToday();
-  saveCarpetDates(); render(); showToast('Carpet marked as cleaned');
+  saveCarpetDates(); render(); showToast('Carpet marked as cleaned', () => {
+    carpetData[roomId][idx].date = prevDate;
+    saveCarpetDates(); render(); showToast('Restored');
+  });
 }
 async function addCarpet(roomId) {
   const name = await showDialog({ title: 'Add Carpet', message: 'Name this carpet (e.g. "Reading area", "Front carpet"):', input: true, okLabel: 'Add' });
@@ -946,8 +959,12 @@ async function removeCarpet(roomId, idx) {
   const c = carpetData[roomId][idx];
   const ok = await showDialog({ title: 'Remove Carpet', message: 'Remove "' + c.name + '"?', okLabel: 'Remove', danger: true });
   if (!ok) return;
-  carpetData[roomId].splice(idx, 1);
-  saveCarpetDates(); render(); showToast(c.name + ' removed');
+  const removed = carpetData[roomId].splice(idx, 1)[0];
+  saveCarpetDates(); render(); showToast(c.name + ' removed', () => {
+    if (!carpetData[roomId]) carpetData[roomId] = [];
+    carpetData[roomId].splice(idx, 0, removed);
+    saveCarpetDates(); render(); showToast('Restored');
+  });
 }
 async function editRoomEstimate(roomId, e) {
   if (e) e.stopPropagation();
@@ -1160,7 +1177,10 @@ function renderRoomList() {
             '</div>';
           }).join('') : '<p style="font-size:12px;color:var(--muted);padding:4px 0">No carpets added. Tap + to add.</p>') +
         '</div>' +
-        '<div class="carpet-add-row"><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();addCarpet(\'' + room.id + '\')">+ Add Carpet</button></div>';
+        '<div class="carpet-add-row" style="display:flex;gap:6px;align-items:center">' +
+          '<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();addCarpet(\'' + room.id + '\')">+ Add Carpet</button>' +
+          '<button class="btn btn-pk btn-sm" onclick="event.stopPropagation();toggleRoom(\'' + room.id + '\')">Done</button>' +
+        '</div>';
       })() : '') +
       '<div class="room-actions-bar">' +
         '<button class="btn btn-ghost btn-sm" onclick="uncheckAll(\'' + room.id + '\')">Reset</button>' +
@@ -1211,8 +1231,11 @@ function toggleRoom(roomId) {
 }
 
 function onCheckItem(roomId, idx) {
+  const wasChecked = isChecked(roomId, idx);
   toggleCheck(roomId, idx);
   renderRoomList(); updateStats(); renderSectionTabs();
+  const label = wasChecked ? 'Unchecked' : 'Checked';
+  showToast(label, () => { toggleCheck(roomId, idx); renderRoomList(); updateStats(); renderSectionTabs(); });
 }
 
 let _swipeStartX = 0, _swipeEl = null, _swipeRoomId = '', _swipeIdx = -1;
@@ -1246,13 +1269,19 @@ function initSwipe() {
 }
 initSwipe();
 function checkAll(roomId) {
+  const prev = checks[roomId] ? [...checks[roomId]] : [];
   const items = getChecklistForRoom(roomId);
   checks[roomId] = items.map((_, i) => i);
   items.forEach((_, i) => setCheckTime(roomId, i));
-  saveChecks(); render(); showToast('All items completed');
+  saveChecks(); render(); showToast('All items completed', () => {
+    checks[roomId] = prev; saveChecks(); render(); showToast('Restored');
+  });
 }
 function uncheckAll(roomId) {
-  checks[roomId] = []; saveChecks(); render(); showToast('Checklist reset');
+  const prev = checks[roomId] ? [...checks[roomId]] : [];
+  checks[roomId] = []; saveChecks(); render(); showToast('Checklist reset', () => {
+    checks[roomId] = prev; saveChecks(); render(); showToast('Restored');
+  });
 }
 
 function openAssignModal(roomId) {
@@ -1331,9 +1360,14 @@ async function removeStaff(idx) {
   if (!ok) return;
   const removed = staff.splice(idx, 1)[0];
   if (removed.id) deletedStaffIds.add(removed.id);
-  const unassignedRooms = [];
-  Object.keys(assignments).forEach(rid => { if (assignments[rid].staff === name) { delete assignments[rid]; unassignedRooms.push(rid); } });
-  saveStaff(); saveAssignments(); renderStaffList(); render(); showToast(name + ' removed');
+  const savedAssignments = {};
+  Object.keys(assignments).forEach(rid => { if (assignments[rid].staff === name) { savedAssignments[rid] = { ...assignments[rid] }; delete assignments[rid]; } });
+  saveStaff(); saveAssignments(); renderStaffList(); render(); showToast(name + ' removed', () => {
+    if (removed.id) deletedStaffIds.delete(removed.id);
+    staff.splice(idx, 0, removed);
+    Object.entries(savedAssignments).forEach(([rid, a]) => { assignments[rid] = a; });
+    saveStaff(); saveAssignments(); renderStaffList(); render(); showToast('Restored');
+  });
   if (sb && removed.id) {
     sb.from('cleaning_staff').update({ deleted: true, updated_at: Date.now() }).eq('id', removed.id).then(() => {});
     unassignedRooms.forEach(rid => { sb.from('cleaning_assignments').delete().eq('room_id', rid).then(() => {}); });
@@ -1429,9 +1463,21 @@ function toggleOverflowMenu(e) { e.stopPropagation(); document.getElementById('o
 function closeOverflowMenu() { document.getElementById('overflow-menu').classList.remove('open'); }
 document.addEventListener('click', closeOverflowMenu);
 
-function showToast(msg) {
-  const el = document.getElementById('toast'); el.textContent = msg; el.classList.add('show');
-  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+let _undoFn = null;
+function showToast(msg, undoFn) {
+  const el = document.getElementById('toast');
+  document.getElementById('toast-msg').textContent = msg;
+  const undoBtn = document.getElementById('toast-undo');
+  _undoFn = undoFn || null;
+  undoBtn.hidden = !_undoFn;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.classList.remove('show'); _undoFn = null; }, undoFn ? 5000 : 2500);
+}
+function doUndo() {
+  if (_undoFn) { _undoFn(); _undoFn = null; }
+  const el = document.getElementById('toast'); el.classList.remove('show');
+  clearTimeout(toastTimer);
 }
 
 function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
@@ -1482,10 +1528,18 @@ async function deleteRoom(roomId) {
   const ok = await showDialog({ title: 'Remove Room', message: 'Remove "' + room.name + '"?', okLabel: 'Remove', danger: true });
   if (!ok) return;
   const section = getRoomSection(roomId);
+  const idx = ROOMS[section].findIndex(r => r.id === roomId);
   ROOMS[section] = ROOMS[section].filter(r => r.id !== roomId);
+  const savedChecks = checks[roomId] ? [...checks[roomId]] : null;
+  const savedAssignment = assignments[roomId] ? { ...assignments[roomId] } : null;
   delete checks[roomId]; delete assignments[roomId];
   if (expandedRoomId === roomId) expandedRoomId = null;
-  saveRooms(); saveChecks(); saveAssignments(); render(); showToast('Room removed');
+  saveRooms(); saveChecks(); saveAssignments(); render(); showToast('Room removed', () => {
+    ROOMS[section].splice(idx, 0, room);
+    if (savedChecks) checks[roomId] = savedChecks;
+    if (savedAssignment) assignments[roomId] = savedAssignment;
+    saveRooms(); saveChecks(); saveAssignments(); render(); showToast('Restored');
+  });
 }
 async function addRoom() {
   const campus = CAMPUSES[currentCampus];

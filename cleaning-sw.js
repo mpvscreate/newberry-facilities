@@ -1,5 +1,5 @@
-const CACHE = 'ncl-v1';
-const ASSETS = ['/cleaning.html', '/cleaning-icon.png'];
+const CACHE = 'ncl-v2';
+const ASSETS = ['/cleaning.html', '/cleaning-icon-192.png', '/cleaning-icon-512.png', '/cleaning-manifest.json'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
