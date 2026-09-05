@@ -259,6 +259,10 @@ body {
 .staff-progress-bar { flex: 1; height: 4px; background: var(--badge-bg); border-radius: 2px; overflow: hidden; max-width: 80px; }
 .staff-progress-fill { height: 100%; background: var(--green); border-radius: 2px; transition: width .3s; }
 .staff-progress-pct { font-size: 9px; color: var(--muted); font-weight: 600; }
+.carpet-date { font-size: 9px; font-weight: 600; border-radius: 10px; padding: 1px 6px; }
+.carpet-date.overdue { color: #c62828; background: #ffebee; }
+.carpet-date.due-soon { color: #e65100; background: #fff3e0; }
+.carpet-date.ok { color: var(--green); background: var(--green-light); }
 .check-box {
   width: 20px; height: 20px; border-radius: 6px; border: 1.5px solid var(--border);
   flex-shrink: 0; display: flex; align-items: center; justify-content: center;
@@ -566,7 +570,20 @@ body {
     <div class="panel-body">
       <div class="help-section">
         <h3>Campus Tabs</h3>
-        <p>Switch between <strong>PP Campus</strong>, <strong>Lower</strong>, <strong>Upper</strong>, and <strong>Support</strong> using the tabs at the top. Each tab shows only the rooms belonging to that campus.</p>
+        <p>Switch between <strong>PP Campus</strong>, <strong>Lower</strong>, <strong>Upper</strong>, <strong>Support</strong>, and <strong>Special</strong> using the tabs at the top. Each tab shows only the rooms belonging to that campus.</p>
+      </div>
+      <div class="help-section">
+        <h3>Holiday Deep Clean</h3>
+        <p>Found under the <strong>Special</strong> tab. A dedicated deep-cleaning checklist for school holidays covering walls, curtains, cupboards, fans, floors, and more. Use during term breaks for thorough cleaning.</p>
+      </div>
+      <div class="help-section">
+        <h3>Carpet Cleaning Tracker</h3>
+        <ul>
+          <li>Found under the <strong>Special</strong> tab. Lists all carpeted rooms with cleaning status.</li>
+          <li>Each room shows <strong>last cleaned date</strong> and <strong>days until next due</strong> (90-day cycle).</li>
+          <li>Status badges show <strong style="color:#2e7d32">green</strong> (ok), <strong style="color:#e65100">orange</strong> (due within 14 days), or <strong style="color:#c62828">red</strong> (overdue).</li>
+          <li>Expand a room and tap <strong>Mark Cleaned</strong> to record today's date.</li>
+        </ul>
       </div>
       <div class="help-section">
         <h3>Rooms &amp; Checklists</h3>
@@ -717,7 +734,9 @@ const SECTIONS = {
   ue:       { label: 'Upper Elementary',    themeColor: '#1565c0' },
   ms:       { label: 'Middle School',       themeColor: '#e65100' },
   hs:       { label: 'High School',         themeColor: '#00838f' },
-  campus:   { label: 'Campus',             themeColor: '#455a64' }
+  campus:   { label: 'Campus',             themeColor: '#455a64' },
+  holiday:  { label: 'Holiday Deep Clean', themeColor: '#ff6f00' },
+  carpet:   { label: 'Carpet Cleaning',   themeColor: '#6a1b9a' }
 };
 const ROOMS = {
   toddlers: [
@@ -747,6 +766,32 @@ const ROOMS = {
     { id: 'ca1', name: 'Reception' }, { id: 'ca2', name: 'Staffroom G' },
     { id: 'ca3', name: 'Staffroom' }, { id: 'ca4', name: 'Toilet 1' },
     { id: 'ca5', name: 'Toilet 2' }, { id: 'ca6', name: 'Astro & Stoep' }
+  ],
+  holiday: [
+    { id: 'hd1', name: 'Jasmine' }, { id: 'hd2', name: 'Freesia' },
+    { id: 'hd3', name: 'Protea' }, { id: 'hd4', name: 'Disa' },
+    { id: 'hd5', name: 'Azalea' }, { id: 'hd6', name: 'Cosmos' },
+    { id: 'hd7', name: 'Oak' }, { id: 'hd8', name: 'Willow' }, { id: 'hd9', name: 'Rooibos' },
+    { id: 'hd10', name: 'Breeze' }, { id: 'hd11', name: 'Newton' },
+    { id: 'hd12', name: 'Hamlet' }, { id: 'hd13', name: 'Alpha' },
+    { id: 'hd14', name: 'Mercury' }, { id: 'hd15', name: 'Gravity' },
+    { id: 'hd16', name: 'Iris' }, { id: 'hd17', name: 'Sage' }, { id: 'hd18', name: 'Delta' },
+    { id: 'hd19', name: 'B5' }, { id: 'hd20', name: 'B6' }, { id: 'hd21', name: 'B7' },
+    { id: 'hd22', name: 'Ivy' }, { id: 'hd23', name: 'Eagle Owl' }, { id: 'hd24', name: 'The Lab' },
+    { id: 'hd25', name: 'Reception' }, { id: 'hd26', name: 'Staffroom G' }, { id: 'hd27', name: 'Staffroom' },
+    { id: 'hd28', name: 'Toilet Block' }, { id: 'hd29', name: 'Toilet 1' }, { id: 'hd30', name: 'Toilet 2' }
+  ],
+  carpet: [
+    { id: 'cp1', name: 'Jasmine' }, { id: 'cp2', name: 'Freesia' },
+    { id: 'cp3', name: 'Protea' }, { id: 'cp4', name: 'Disa' },
+    { id: 'cp5', name: 'Azalea' }, { id: 'cp6', name: 'Cosmos' },
+    { id: 'cp7', name: 'Oak' }, { id: 'cp8', name: 'Willow' }, { id: 'cp9', name: 'Rooibos' },
+    { id: 'cp10', name: 'Breeze' }, { id: 'cp11', name: 'Newton' },
+    { id: 'cp12', name: 'Hamlet' }, { id: 'cp13', name: 'Alpha' },
+    { id: 'cp14', name: 'Mercury' }, { id: 'cp15', name: 'Gravity' },
+    { id: 'cp16', name: 'Iris' }, { id: 'cp17', name: 'Sage' }, { id: 'cp18', name: 'Delta' },
+    { id: 'cp19', name: 'B5' }, { id: 'cp20', name: 'B6' }, { id: 'cp21', name: 'B7' },
+    { id: 'cp22', name: 'Ivy' }, { id: 'cp23', name: 'Eagle Owl' }, { id: 'cp24', name: 'The Lab' }
   ]
 };
 const CHECKLISTS = {
@@ -756,14 +801,17 @@ const CHECKLISTS = {
   ue: ['Floors swept & mopped','Tables & desks wiped','Chairs arranged','Whiteboard cleaned','Bins emptied','Windows & sills dusted','Door handles sanitised','Light switches wiped'],
   ms: ['Floors swept & mopped','Tables & desks wiped','Chairs arranged','Whiteboard cleaned','Bins emptied','Windows & sills dusted','Door handles sanitised','Light switches wiped'],
   hs: ['Floors swept & mopped','Tables & desks wiped','Chairs arranged','Whiteboard cleaned','Bins emptied','Windows & sills dusted','Door handles sanitised','Light switches wiped'],
-  campus: ['Floors swept & mopped','Surfaces wiped & sanitised','Bins emptied','Windows cleaned','Door handles sanitised','Light switches wiped','Furniture & fittings checked','Supplies restocked']
+  campus: ['Floors swept & mopped','Surfaces wiped & sanitised','Bins emptied','Windows cleaned','Door handles sanitised','Light switches wiped','Furniture & fittings checked','Supplies restocked'],
+  holiday: ['Walls washed','Curtains removed & cleaned','Windows deep cleaned (inside & out)','Cupboards emptied & wiped','Fans & AC vents cleaned','Floors stripped & polished','Furniture deep cleaned','Light fittings & covers cleaned','Skirting boards wiped','Storage areas tidied','Ceiling cobwebs removed','Door frames & doors washed'],
+  carpet: ['Carpets vacuumed','Carpets shampooed','Spot stains treated','Edges & corners detailed','Carpet dried & inspected']
 };
 
 const CAMPUSES = {
   ppcamp: { label: 'PP Campus', themeColor: '#9c27b0', sections: ['toddlers', 'pp'] },
   lower: { label: 'Lower', themeColor: '#e91e63', sections: ['le', 'ue'] },
   upper: { label: 'Upper', themeColor: '#1565c0', sections: ['ms', 'hs'] },
-  support: { label: 'Support', themeColor: '#546e7a', sections: ['campus'] }
+  support: { label: 'Support', themeColor: '#546e7a', sections: ['campus'] },
+  special: { label: 'Special', themeColor: '#ff6f00', sections: ['holiday', 'carpet'] }
 };
 let currentCampus = 'ppcamp';
 let currentShift = 'all';
@@ -822,6 +870,27 @@ function saveRoomExclusions() { try { localStorage.setItem('ncl_excl_v1', JSON.s
 function loadRoomEstimates() { try { const r = localStorage.getItem('ncl_est_v1'); if (r) roomEstimates = JSON.parse(r); } catch (e) { roomEstimates = {}; } }
 function saveRoomEstimates() { try { localStorage.setItem('ncl_est_v1', JSON.stringify(roomEstimates)); } catch (e) {} debouncedSync(); }
 function getRoomEstimate(roomId) { return roomEstimates[roomId] || 15; }
+
+let carpetDates = {};
+function loadCarpetDates() { try { const r = localStorage.getItem('ncl_carpet_v1'); if (r) carpetDates = JSON.parse(r); } catch (e) { carpetDates = {}; } }
+function saveCarpetDates() { try { localStorage.setItem('ncl_carpet_v1', JSON.stringify(carpetDates)); } catch (e) {} debouncedSync(); }
+function getCarpetStatus(roomId) {
+  const d = carpetDates[roomId];
+  if (!d) return { lastCleaned: null, nextDue: null, status: 'overdue', label: 'Never cleaned' };
+  const last = new Date(d);
+  const next = new Date(last); next.setDate(next.getDate() + 90);
+  const now = new Date();
+  const daysLeft = Math.ceil((next - now) / 86400000);
+  let status = 'ok';
+  if (daysLeft < 0) status = 'overdue';
+  else if (daysLeft <= 14) status = 'due-soon';
+  const fmtDate = (dt) => dt.toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' });
+  return { lastCleaned: fmtDate(last), nextDue: fmtDate(next), status, label: daysLeft < 0 ? 'Overdue by ' + Math.abs(daysLeft) + 'd' : 'Due in ' + daysLeft + 'd' };
+}
+function markCarpetCleaned(roomId) {
+  carpetDates[roomId] = getToday();
+  saveCarpetDates(); render(); showToast('Carpet marked as cleaned');
+}
 async function editRoomEstimate(roomId, e) {
   if (e) e.stopPropagation();
   if (!editMode) return;
@@ -1013,6 +1082,7 @@ function renderRoomList() {
         '<button class="btn btn-ghost btn-sm" onclick="uncheckAll(\'' + room.id + '\')">Reset</button>' +
         '<button class="btn btn-green btn-sm" onclick="checkAll(\'' + room.id + '\')">&#10003; All</button>' +
         '<button class="btn btn-assign btn-sm" onclick="openAssignModal(\'' + room.id + '\')">Assign</button>' +
+        (room.section === 'carpet' ? '<button class="btn btn-sm" style="background:#6a1b9a;color:#fff" onclick="markCarpetCleaned(\'' + room.id + '\')">Mark Cleaned</button>' : '') +
         '<div class="edit-room-actions" style="margin-left:auto">' +
           '<button onclick="renameRoom(\'' + room.id + '\')">Rename</button>' +
           '<button class="edit-delete-room" onclick="deleteRoom(\'' + room.id + '\')">Remove</button>' +
@@ -1029,6 +1099,7 @@ function renderRoomList() {
             '<span class="room-fraction">' + p.done + '/' + p.total + '</span>' +
             (a && a.staff ? '<span class="room-staff-badge">' + escHtml(a.staff) + '</span>' : '') +
             (isComplete ? '<span class="room-done-time">' + (getRoomCompletedAt(room.id) || '') + '</span>' : '') +
+            (room.section === 'carpet' ? (function() { const cs = getCarpetStatus(room.id); return '<span class="carpet-date ' + cs.status + '">' + cs.label + '</span>'; })() : '') +
           '</div>' +
         '</div>' +
         (!isComplete ? '<button class="mark-all-btn" onclick="event.stopPropagation();checkAll(\'' + room.id + '\')">&#10003; All</button>' : '') +
@@ -1562,7 +1633,7 @@ async function syncDown() {
   if (meta) meta.setAttribute('content', CAMPUSES[currentCampus].themeColor);
   document.getElementById('logo-sub').textContent = CAMPUSES[currentCampus].label;
   const lastDate = localStorage.getItem('ncl_last_date');
-  loadRooms(); loadPresetChecklists(); loadChecks(); loadCustomItems(); loadStaff(); loadAssignments(); loadRoomExclusions(); loadRoomEstimates();
+  loadRooms(); loadPresetChecklists(); loadChecks(); loadCustomItems(); loadStaff(); loadAssignments(); loadRoomExclusions(); loadRoomEstimates(); loadCarpetDates();
   const today = getToday();
   if (lastDate && lastDate !== today) {
     setTimeout(() => showToast('New day — checklists reset'), 500);
