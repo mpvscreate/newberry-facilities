@@ -156,6 +156,14 @@ body {
 }
 .search-box:focus { border-color: var(--pk); }
 .search-box::placeholder { color: var(--muted); }
+.sub-section-bar { display: none; padding: 0 16px 6px; gap: 6px; }
+.sub-section-bar.visible { display: flex; }
+.sub-chip {
+  padding: 5px 12px; border-radius: 20px; border: 1.5px solid var(--border);
+  background: transparent; font-size: 10px; font-weight: 700; color: var(--muted);
+  cursor: pointer; transition: all .2s; font-family: var(--font-body); text-transform: uppercase; letter-spacing: .3px;
+}
+.sub-chip.active { background: #ff6f00; color: #fff; border-color: #ff6f00; }
 
 .room-list { padding: 0 12px 100px; display: flex; flex-direction: column; gap: 4px; }
 .section-group-header {
@@ -528,6 +536,11 @@ body {
   <button class="shift-chip" data-shift="afternoon" onclick="setShift('afternoon')">Afternoon</button>
   <input type="text" class="search-box" id="search-input" placeholder="Search rooms..." oninput="onSearch(this.value)">
 </div>
+<div class="sub-section-bar" id="sub-section-bar">
+  <button class="sub-chip active" data-sub="all" onclick="setSubSection('all')">All</button>
+  <button class="sub-chip" data-sub="holiday" onclick="setSubSection('holiday')">Deep Clean</button>
+  <button class="sub-chip" data-sub="carpet" onclick="setSubSection('carpet')">Carpet</button>
+</div>
 
 <div class="room-list" id="room-list"></div>
 <div class="add-room-btn" onclick="addRoom()">+ Add Room</div>
@@ -815,6 +828,7 @@ const CAMPUSES = {
 };
 let currentCampus = 'ppcamp';
 let currentShift = 'all';
+let currentSubSection = 'all';
 let searchQ = '';
 let expandedRoomId = null;
 let assignRoomId = null;
@@ -978,6 +992,8 @@ function renderSectionTabs() {
 function switchCampus(campusId) {
   if (campusId === currentCampus) return;
   currentCampus = campusId; searchQ = ''; expandedRoomId = null;
+  currentSubSection = 'all';
+  document.querySelectorAll('.sub-chip').forEach(b => b.classList.toggle('active', b.dataset.sub === 'all'));
   document.getElementById('search-input').value = '';
   document.documentElement.setAttribute('data-section', campusId);
   const meta = document.querySelector('meta[name="theme-color"]');
@@ -993,6 +1009,11 @@ function setShift(shift) {
   render();
 }
 function onSearch(q) { searchQ = q.toLowerCase().trim(); render(); }
+function setSubSection(sub) {
+  currentSubSection = sub;
+  document.querySelectorAll('.sub-chip').forEach(b => b.classList.toggle('active', b.dataset.sub === sub));
+  render();
+}
 
 function getCampusRooms() {
   const campus = CAMPUSES[currentCampus];
@@ -1005,12 +1026,16 @@ function getCampusRooms() {
 }
 function getFilteredRooms() {
   let rooms = getCampusRooms();
+  if (currentSubSection !== 'all') rooms = rooms.filter(r => r.section === currentSubSection);
   if (searchQ) rooms = rooms.filter(r => r.name.toLowerCase().includes(searchQ));
   if (currentShift !== 'all') rooms = rooms.filter(r => { const a = assignments[r.id]; return a && a.shift === currentShift; });
   return rooms;
 }
 
-function render() { renderSectionTabs(); updateStats(); renderRoomList(); }
+function render() {
+  renderSectionTabs(); updateStats(); renderRoomList();
+  document.getElementById('sub-section-bar').classList.toggle('visible', currentCampus === 'special');
+}
 
 function updateStats() {
   document.getElementById('stats-date').innerHTML = formatDate(getToday());
