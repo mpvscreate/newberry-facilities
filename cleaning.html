@@ -271,6 +271,16 @@ body {
 .carpet-date.overdue { color: #c62828; background: #ffebee; }
 .carpet-date.due-soon { color: #e65100; background: #fff3e0; }
 .carpet-date.ok { color: var(--green); background: var(--green-light); }
+.carpet-list { padding: 4px 12px 0; }
+.carpet-entry {
+  display: flex; align-items: center; gap: 8px; padding: 7px 0;
+  border-bottom: 1px solid var(--border-light); font-size: 12px;
+}
+.carpet-entry:last-child { border-bottom: none; }
+.carpet-entry-name { font-weight: 600; color: var(--text); flex: 1; min-width: 0; }
+.carpet-entry .btn { font-size: 9px; padding: 3px 8px; }
+.carpet-add-row { padding: 6px 12px 2px; }
+.carpet-add-row .btn { font-size: 10px; }
 .check-box {
   width: 20px; height: 20px; border-radius: 6px; border: 1.5px solid var(--border);
   flex-shrink: 0; display: flex; align-items: center; justify-content: center;
@@ -885,13 +895,24 @@ function loadRoomEstimates() { try { const r = localStorage.getItem('ncl_est_v1'
 function saveRoomEstimates() { try { localStorage.setItem('ncl_est_v1', JSON.stringify(roomEstimates)); } catch (e) {} debouncedSync(); }
 function getRoomEstimate(roomId) { return roomEstimates[roomId] || 15; }
 
-let carpetDates = {};
-function loadCarpetDates() { try { const r = localStorage.getItem('ncl_carpet_v1'); if (r) carpetDates = JSON.parse(r); } catch (e) { carpetDates = {}; } }
-function saveCarpetDates() { try { localStorage.setItem('ncl_carpet_v1', JSON.stringify(carpetDates)); } catch (e) {} debouncedSync(); }
-function getCarpetStatus(roomId) {
-  const d = carpetDates[roomId];
-  if (!d) return { lastCleaned: null, nextDue: null, status: 'overdue', label: 'Not yet recorded' };
-  const last = new Date(d);
+let carpetData = {};
+function loadCarpetDates() {
+  try {
+    const r = localStorage.getItem('ncl_carpet_v1');
+    if (r) {
+      const parsed = JSON.parse(r);
+      for (const [k, v] of Object.entries(parsed)) {
+        if (typeof v === 'string') carpetData[k] = [{ name: 'Carpet 1', date: v }];
+        else carpetData[k] = v;
+      }
+    }
+  } catch (e) { carpetData = {}; }
+}
+function saveCarpetDates() { try { localStorage.setItem('ncl_carpet_v1', JSON.stringify(carpetData)); } catch (e) {} debouncedSync(); }
+function getRoomCarpets(roomId) { return carpetData[roomId] || []; }
+function getCarpetItemStatus(date) {
+  if (!date) return { status: 'overdue', label: 'Not yet recorded' };
+  const last = new Date(date);
   const next = new Date(last); next.setDate(next.getDate() + 182);
   const now = new Date();
   const daysLeft = Math.ceil((next - now) / 86400000);
@@ -899,11 +920,34 @@ function getCarpetStatus(roomId) {
   if (daysLeft < 0) status = 'overdue';
   else if (daysLeft <= 30) status = 'due-soon';
   const fmtDate = (dt) => dt.toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' });
-  return { lastCleaned: fmtDate(last), nextDue: fmtDate(next), status, label: 'Cleaned ' + fmtDate(last) };
+  return { status, label: 'Cleaned ' + fmtDate(last) };
 }
-function markCarpetCleaned(roomId) {
-  carpetDates[roomId] = getToday();
+function getCarpetStatus(roomId) {
+  const carpets = getRoomCarpets(roomId);
+  if (carpets.length === 0) return { status: 'overdue', label: 'No carpets added' };
+  let worst = 'ok';
+  carpets.forEach(c => { const s = getCarpetItemStatus(c.date).status; if (s === 'overdue') worst = 'overdue'; else if (s === 'due-soon' && worst !== 'overdue') worst = 'due-soon'; });
+  const done = carpets.filter(c => c.date).length;
+  return { status: worst, label: done + '/' + carpets.length + ' cleaned' };
+}
+function markCarpetCleaned(roomId, idx) {
+  if (!carpetData[roomId]) return;
+  carpetData[roomId][idx].date = getToday();
   saveCarpetDates(); render(); showToast('Carpet marked as cleaned');
+}
+async function addCarpet(roomId) {
+  const name = await showDialog({ title: 'Add Carpet', message: 'Name this carpet (e.g. "Reading area", "Front carpet"):', input: true, okLabel: 'Add' });
+  if (!name || !name.trim()) return;
+  if (!carpetData[roomId]) carpetData[roomId] = [];
+  carpetData[roomId].push({ name: name.trim(), date: null });
+  saveCarpetDates(); render(); showToast(name.trim() + ' added');
+}
+async function removeCarpet(roomId, idx) {
+  const c = carpetData[roomId][idx];
+  const ok = await showDialog({ title: 'Remove Carpet', message: 'Remove "' + c.name + '"?', okLabel: 'Remove', danger: true });
+  if (!ok) return;
+  carpetData[roomId].splice(idx, 1);
+  saveCarpetDates(); render(); showToast(c.name + ' removed');
 }
 async function editRoomEstimate(roomId, e) {
   if (e) e.stopPropagation();
@@ -1103,11 +1147,25 @@ function renderRoomList() {
         ' placeholder="Add item..." onkeydown="if(event.key===\'Enter\') addChecklistItem(\'' + room.id + '\')">' +
         '<button class="btn btn-pk btn-sm" onclick="addChecklistItem(\'' + room.id + '\')">Add</button>' +
       '</div>' +
+      (room.section === 'carpet' ? (function() {
+        const carpets = getRoomCarpets(room.id);
+        return '<div class="carpet-list">' +
+          (carpets.length > 0 ? carpets.map((c, ci) => {
+            const cs = getCarpetItemStatus(c.date);
+            return '<div class="carpet-entry">' +
+              '<span class="carpet-entry-name">' + escHtml(c.name) + '</span>' +
+              '<span class="carpet-date ' + cs.status + '">' + cs.label + '</span>' +
+              '<button class="btn btn-sm" style="background:#6a1b9a;color:#fff" onclick="event.stopPropagation();markCarpetCleaned(\'' + room.id + '\',' + ci + ')">Cleaned</button>' +
+              '<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();removeCarpet(\'' + room.id + '\',' + ci + ')">&times;</button>' +
+            '</div>';
+          }).join('') : '<p style="font-size:12px;color:var(--muted);padding:4px 0">No carpets added. Tap + to add.</p>') +
+        '</div>' +
+        '<div class="carpet-add-row"><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();addCarpet(\'' + room.id + '\')">+ Add Carpet</button></div>';
+      })() : '') +
       '<div class="room-actions-bar">' +
         '<button class="btn btn-ghost btn-sm" onclick="uncheckAll(\'' + room.id + '\')">Reset</button>' +
         '<button class="btn btn-green btn-sm" onclick="checkAll(\'' + room.id + '\')">&#10003; All</button>' +
         '<button class="btn btn-assign btn-sm" onclick="openAssignModal(\'' + room.id + '\')">Assign</button>' +
-        (room.section === 'carpet' ? '<button class="btn btn-sm" style="background:#6a1b9a;color:#fff" onclick="markCarpetCleaned(\'' + room.id + '\')">Mark Cleaned</button>' : '') +
         '<div class="edit-room-actions" style="margin-left:auto">' +
           '<button onclick="renameRoom(\'' + room.id + '\')">Rename</button>' +
           '<button class="edit-delete-room" onclick="deleteRoom(\'' + room.id + '\')">Remove</button>' +
