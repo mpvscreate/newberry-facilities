@@ -152,7 +152,7 @@ body {
 }
 .shift-chip.active { background: var(--pk); color: #fff; border-color: var(--pk); box-shadow: 0 2px 6px var(--glow); }
 .search-box {
-  flex: 1; max-width: 180px; padding: 5px 10px; border: 1.5px solid var(--border);
+  flex: 1; max-width: 130px; padding: 4px 10px; border: 1.5px solid var(--border);
   border-radius: 20px; background: var(--card); color: var(--text);
   font-size: 12px; font-family: var(--font-body); outline: none; transition: border-color .2s;
 }
@@ -553,9 +553,9 @@ body {
 </div>
 
 <div class="filter-bar">
-  <button class="shift-chip active" data-shift="all" onclick="setShift('all')">All</button>
+  <button class="shift-chip" data-shift="all" onclick="setShift('all')">All</button>
   <button class="shift-chip" data-shift="morning" onclick="setShift('morning')">Morning</button>
-  <button class="shift-chip" data-shift="afternoon" onclick="setShift('afternoon')">Afternoon</button>
+  <button class="shift-chip active" data-shift="afternoon" onclick="setShift('afternoon')">Afternoon</button>
   <input type="text" class="search-box" id="search-input" placeholder="Search rooms..." oninput="onSearch(this.value)">
 </div>
 <div class="sub-section-bar" id="sub-section-bar">
@@ -843,13 +843,13 @@ const CHECKLISTS = {
 
 const CAMPUSES = {
   ppcamp: { label: 'PP Campus', themeColor: '#9c27b0', sections: ['toddlers', 'pp'] },
-  lower: { label: 'Lower', themeColor: '#e91e63', sections: ['le', 'ue'] },
-  upper: { label: 'Upper', themeColor: '#1565c0', sections: ['ms', 'hs'] },
-  support: { label: 'Support', themeColor: '#546e7a', sections: ['campus'] },
+  lower: { label: 'Lower Campus', themeColor: '#e91e63', sections: ['le', 'ue'] },
+  upper: { label: 'Upper Campus', themeColor: '#1565c0', sections: ['ms', 'hs'] },
+  support: { label: 'Facilities', themeColor: '#546e7a', sections: ['campus'] },
   special: { label: 'Holiday', themeColor: '#ff6f00', sections: ['holiday', 'carpet'] }
 };
 let currentCampus = 'ppcamp';
-let currentShift = 'all';
+let currentShift = 'afternoon';
 let currentSubSection = 'all';
 let searchQ = '';
 let expandedRoomId = null;
@@ -1092,7 +1092,7 @@ function getFilteredRooms() {
   let rooms = getCampusRooms();
   if (currentSubSection !== 'all') rooms = rooms.filter(r => r.section === currentSubSection);
   if (searchQ) rooms = rooms.filter(r => r.name.toLowerCase().includes(searchQ));
-  if (currentShift !== 'all') rooms = rooms.filter(r => { const a = assignments[r.id]; return a && a.shift === currentShift; });
+  if (currentShift !== 'all') rooms = rooms.filter(r => { const a = assignments[r.id]; return !a || !a.shift || a.shift === currentShift; });
   return rooms;
 }
 
