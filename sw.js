@@ -1,4 +1,8 @@
-const CACHE = 'newberry-one-v6';
+const CACHE = 'newberry-one-v7';
+
+self.addEventListener('message', e => {
+  if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
+});
 const PRECACHE = [
   './',
   './connect.html',
