@@ -567,6 +567,60 @@ body.is-dragging-cube .panel:active {
 .eco-weed-warning strong { color:var(--autumn); }
 
 /* ═══════════════════════════════════════
+   ECO COMPOSTING OVERLAY
+═══════════════════════════════════════ */
+#compost-overlay {
+  position:fixed; inset:0; z-index:300;
+  background:var(--bg); display:none; flex-direction:column;
+}
+#compost-overlay.open { display:flex; }
+#compost-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 20px; border-bottom:1px solid var(--border);
+  background:var(--header-bg); backdrop-filter:blur(8px); flex-shrink:0;
+}
+#compost-header h2 { font-size:1.1rem; font-weight:800; color:var(--text); }
+#compost-header p  { font-size:0.7rem; color:var(--text2); }
+#compost-close-btn {
+  width:32px; height:32px; border-radius:50%; border:none;
+  background:var(--card-bg); color:var(--text); cursor:pointer; font-size:1rem;
+  display:flex; align-items:center; justify-content:center;
+}
+#compost-close-btn:hover { background:var(--wood); color:#fff; }
+#compost-tabs {
+  display:flex; gap:0; border-bottom:1px solid var(--border); flex-shrink:0;
+  overflow-x:auto; background:var(--surface);
+  scrollbar-width:none;
+}
+#compost-tabs::-webkit-scrollbar { display:none; }
+.compost-tab {
+  padding:10px 18px; font-size:0.78rem; font-weight:600; cursor:pointer;
+  color:var(--text2); border-bottom:2.5px solid transparent; white-space:nowrap;
+  transition:all .2s; background:none; border-top:none; border-left:none; border-right:none;
+}
+.compost-tab.active { color:var(--spring); border-bottom-color:var(--spring); }
+.compost-tab:hover:not(.active) { color:var(--text); }
+#compost-body { flex:1; overflow-y:auto; padding:16px 20px; }
+/* Compost type badges */
+.eco-type.cold      { background:#6b8e9b; }
+.eco-type.hot       { background:#c0622f; }
+.eco-type.vermi     { background:#8b6543; }
+.eco-type.trench    { background:#7a6e5d; }
+.eco-type.bokashi   { background:#9b7cb8; }
+.eco-type.green     { background:#4caf50; }
+.eco-type.brown     { background:#8d6e63; }
+.eco-type.avoid     { background:#c62828; }
+.eco-type.smell     { background:#ff8f00; }
+.eco-type.pest      { background:#ef6c00; }
+.eco-type.slow      { background:#78909c; }
+.eco-type.wet       { background:#0288d1; }
+.eco-type.dry       { background:#bcaaa4; }
+.eco-type.water     { background:#0097a7; }
+.eco-type.climate   { background:#f9a825; }
+.eco-type.source    { background:#558b2f; }
+.eco-type.community { background:#5c6bc0; }
+
+/* ═══════════════════════════════════════
    EDIT OVERLAY
 ═══════════════════════════════════════ */
 #edit-overlay {
@@ -1457,6 +1511,7 @@ html.dark #intro-overlay { background:rgba(0,0,0,0.62); }
       <button class="modal-action-btn" id="btn-rotation"><span class="ma-icon">🔄</span><span class="ma-label">Crop Rotation</span><span class="ma-arrow">›</span></button>
       <button class="modal-action-btn" id="btn-boxes"><span class="ma-icon">🪴</span><span class="ma-label">Planter Boxes</span><span class="ma-arrow">›</span></button>
       <button class="modal-action-btn" id="btn-eco"><span class="ma-icon">🌿</span><span class="ma-label">Eco Guide</span><span class="ma-arrow">›</span></button>
+      <button class="modal-action-btn" id="btn-compost"><span class="ma-icon">♻️</span><span class="ma-label">Eco Composting</span><span class="ma-arrow">›</span></button>
       <button class="modal-action-btn" id="btn-edit"><span class="ma-icon">✏️</span><span class="ma-label">Edit Plant</span><span class="ma-arrow">›</span></button>
     </div>
     <div class="info-grid">
@@ -1638,6 +1693,27 @@ html.dark #intro-overlay { background:rgba(0,0,0,0.62); }
       <button class="edit-reset-btn" id="eco-edit-reset-btn">↩ Reset Default</button>
     </div>
   </div>
+</div>
+
+<!-- ══ ECO COMPOSTING OVERLAY ══ -->
+<div id="compost-overlay">
+  <div id="compost-header">
+    <div>
+      <h2>♻️ Eco Composting — Western Cape</h2>
+      <p>Methods, ingredients, troubleshooting &amp; local tips for school garden composting</p>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
+      <button class="btn-back-light" id="compost-back-btn">← Plant Info</button>
+      <button id="compost-close-btn" aria-label="Close eco composting">✕</button>
+    </div>
+  </div>
+  <div id="compost-tabs">
+    <button class="compost-tab active" data-ctab="methods">🗑️ Methods</button>
+    <button class="compost-tab" data-ctab="ingredients">🥕 Ingredients</button>
+    <button class="compost-tab" data-ctab="troubleshooting">🔧 Troubleshooting</button>
+    <button class="compost-tab" data-ctab="wctips">🌍 Western Cape Tips</button>
+  </div>
+  <div id="compost-body"></div>
 </div>
 
 <!-- ══ GARDEN JOURNEY STAGE — EDIT OVERLAY ══ -->
@@ -3372,6 +3448,8 @@ window.addEventListener('keydown', e => {
     if (e.key === 'Escape') closeRotation();
   } else if (document.getElementById('eco-overlay').classList.contains('open')) {
     if (e.key === 'Escape') closeEco();
+  } else if (document.getElementById('compost-overlay').classList.contains('open')) {
+    if (e.key === 'Escape') closeCompost();
   } else if (document.getElementById('edit-overlay').classList.contains('open')) {
     if (e.key === 'Escape') closeEdit();
   } else if (document.getElementById('search-overlay').classList.contains('open')) {
@@ -3387,7 +3465,7 @@ window.addEventListener('keydown', e => {
 
 // ── Focus trap: keep Tab inside the open overlay/modal (accessibility) ──
 const TRAP_OVERLAY_IDS = ['intro-overlay','edit-overlay','journey-edit-overlay','eco-edit-overlay',
-  'sfg-pick-overlay','sfg-overlay','rot-overlay','journey-overlay','eco-overlay',
+  'sfg-pick-overlay','sfg-overlay','rot-overlay','journey-overlay','eco-overlay','compost-overlay',
   'ad-overlay','search-overlay','modal-overlay'];
 function topOpenOverlay() {
   let best = null, bestZ = -1;
@@ -3763,6 +3841,141 @@ const ECO_DATA = {
 const ECO_LABELS = { herbicides:'Herbicides', pests:'Pest Sprays', companions:'Companion Deterrents', weeds:'Edible Weeds', medicinal:'Medicinal Herbs' };
 let currentEcoTab = 'herbicides';
 
+// ══════════════════════════════════════════════
+//  ECO COMPOSTING DATA
+// ══════════════════════════════════════════════
+const COMPOST_DATA = {
+  methods: [
+    { name:'Cold Composting', emoji:'🗑️', type:'cold',
+      method:'Layer green (nitrogen-rich) and brown (carbon-rich) materials in a heap or bin at a roughly 1:2 ratio. Add kitchen scraps, garden clippings, and dry leaves as they come. Leave the pile largely undisturbed — nature does the work over 6–12 months.',
+      caution:'Slow process — not suitable if you need compost quickly. The pile may not heat up enough to kill weed seeds or pathogens. Turn occasionally to avoid bad smells.',
+      wc:'Western Cape dry summers can stall cold piles. Cover with a tarp or old carpet to retain moisture, and water lightly during December–February if the pile dries out completely.' },
+    { name:'Hot Composting', emoji:'🔥', type:'hot',
+      method:'Build a pile at least 1 m³ with a balanced 25–30:1 carbon-to-nitrogen ratio. Maintain moisture like a wrung-out sponge and turn the pile every 5–7 days to keep the core temperature at 55–65 °C. Ready in 6–8 weeks.',
+      caution:'Requires regular attention and turning. If the pile dries out or compacts it cools down and stalls. Use a compost thermometer to track the hot zone.',
+      wc:'Cape Town water restrictions make moisture management critical — use grey water from rinsing vegetables or collected rainwater during winter. Morning turning avoids the worst afternoon berg winds.' },
+    { name:'Trench Composting', emoji:'🕳️', type:'trench',
+      method:'Dig a trench 30 cm deep between crop rows. Fill with kitchen scraps and garden waste, then cover with 15 cm of soil. Plant directly on top after 2–3 months once material has broken down.',
+      caution:'Can attract rodents and pests if scraps are not buried deeply enough. Avoid adding meat, dairy, or oily foods. Mark trenches so you do not dig them up prematurely.',
+      wc:'Works well in the sandy Cape Flats and Boland soils — the loose texture makes digging easy and drainage prevents waterlogging during winter rains.' },
+    { name:'Bokashi Fermentation', emoji:'🫙', type:'bokashi',
+      method:'Layer kitchen waste (including cooked food, small amounts of meat and dairy) into an airtight bucket with handfuls of EM (effective micro-organisms) bran between layers. Seal and ferment for 2 weeks, then bury the pre-compost in soil to finish breaking down.',
+      caution:'The fermented material is very acidic (pH ~3.5) — do not add directly to plant roots. Always bury in soil or add to a compost bin for 2–4 weeks before use around plants.',
+      wc:'Bokashi bran and bins are available at most Western Cape nurseries including Stodels, Starke Ayres, and online suppliers. Ideal for schools with limited outdoor space — the sealed bucket has no odour.' },
+    { name:'Worm Farming (Vermicompost)', emoji:'🪱', type:'vermi',
+      method:'Keep red wiggler worms (Eisenia fetida) in a ventilated stacking bin with moist bedding (shredded newspaper or cardboard). Feed vegetable scraps, coffee grounds, and crushed eggshells. Harvest rich worm castings every 2–3 months from the lowest tray.',
+      caution:'Worms are sensitive to temperature — keep the bin between 15–25 °C. Avoid citrus, onion, garlic, and oily food. If the bin smells, you are overfeeding — cut back and add dry bedding.',
+      wc:'Keep worm bins in deep shade during Western Cape summers — under a tree, on a south-facing (cool) veranda, or inside a garage. Red wigglers are sold at nurseries and worm farms across the Cape Winelands and Cape Town.' },
+  ],
+  ingredients: [
+    { name:'Fruit & Vegetable Scraps', emoji:'🥕', type:'green',
+      method:'Chop scraps into small pieces for faster breakdown. Add banana peels, apple cores, carrot tops, potato peelings, and any non-oily kitchen trimmings. Bury under a layer of browns to reduce flies.',
+      caution:'Avoid adding large quantities of citrus peel at once — the acidity can slow microbial activity and deter worms. Spread citrus scraps across several additions.',
+      wc:'School kitchens and tuck shops in the Western Cape generate plentiful fruit waste — set up a labelled collection bucket in the kitchen for daily composting runs.' },
+    { name:'Grass Clippings', emoji:'🌿', type:'green',
+      method:'Add in thin layers (5 cm or less) and mix with dry browns immediately. Grass is an excellent nitrogen activator that heats up a pile fast.',
+      caution:'Thick mats of wet grass clippings become slimy, anaerobic, and smelly within days. Always mix or alternate with dry material like leaves or straw.',
+      wc:'Kikuyu and LM grass dominate Western Cape lawns and produce huge volumes of clippings — a reliable, free green source for school compost bins year-round.' },
+    { name:'Coffee Grounds & Tea Bags', emoji:'☕', type:'green',
+      method:'Add spent coffee grounds and opened tea bags (remove staples) directly to the compost. Coffee grounds are roughly 2 % nitrogen and improve compost structure.',
+      caution:'Grounds are slightly acidic — balance with eggshells or wood ash. Tea bags may contain plastic mesh — tear open and compost only the leaves if you are unsure of the bag material.',
+      wc:'Ask local Western Cape coffee shops for their spent grounds — most are happy to give them away. Vida e Caffè, Seattle, and independent roasteries in Cape Town often have bags ready at the counter.' },
+    { name:'Dry Leaves & Straw', emoji:'🍂', type:'brown',
+      method:'Collect fallen leaves in autumn and store in bags as a year-round brown source. Shred or mow over leaves first for faster breakdown. Straw bales from farm suppliers also work well.',
+      caution:'Avoid leaves from black walnut trees (juglone toxin) and large volumes of pine needles (very acidic, slow to break down). Oak leaves are fine in moderation.',
+      wc:'Western Cape deciduous oaks, plane trees, and vineyards shed abundant leaves in April–May — collect and bag them for use as browns through summer when fresh leaves are scarce.' },
+    { name:'Cardboard & Paper', emoji:'📦', type:'brown',
+      method:'Shred or tear cardboard and paper into strips or small pieces before adding. Soak briefly in water to speed breakdown. Remove any tape, labels, or plastic windows first.',
+      caution:'Use only uncoated, non-glossy cardboard and paper. Avoid heavily printed or waxed cardboard. Ink on plain newsprint and brown boxes is generally soy-based and safe.',
+      wc:'Schools generate plentiful cardboard from deliveries and paper from classrooms — an easy, free brown source that also teaches learners about waste diversion.' },
+    { name:'Wood Chips & Sawdust', emoji:'🪵', type:'brown',
+      method:'Use as a slow-release carbon source. Sprinkle sawdust in thin layers between greens. Wood chips are better as a top mulch on finished compost than mixed into the active pile.',
+      caution:'Use ONLY untreated, unpainted wood. Treated timber (CCA, creosote) contains toxic chemicals. Sawdust from MDF or chipboard is not safe for composting.',
+      wc:'Tree-felling services across the Western Cape often give away free wood chips — check Gumtree or community groups in your area. Pine sawdust from Paarl and Stellenbosch mills is abundant.' },
+    { name:'Eggshells', emoji:'🥚', type:'green',
+      method:'Crush eggshells as finely as possible before adding — they provide calcium carbonate and help balance acidity. Dry them first, then crush in a bag with a rolling pin.',
+      caution:'Whole or large shell pieces take years to decompose. The finer you crush them, the faster they release calcium. Rinse shells first to avoid attracting pests.',
+      wc:'Save eggshells from school cooking classes and breakfast programmes. Crushed shells also deter snails around seedlings — a common problem in Cape winter gardens.' },
+    { name:'Meat, Dairy & Oils', emoji:'🚫', type:'avoid',
+      method:'Do NOT add meat scraps, bones, cheese, milk, yoghurt, butter, or cooking oil to a standard compost bin or heap.',
+      caution:'These materials attract rats, mice, flies, and other vermin. They also create foul odours and can harbour harmful bacteria like Salmonella. Only Bokashi fermentation can safely process small amounts of cooked food and meat.',
+      wc:'Rodent control is especially important near Western Cape fynbos areas where compost bins can attract unwanted wildlife. Keep bins sealed and meat-free.' },
+    { name:'Diseased Plants', emoji:'🚫', type:'avoid',
+      method:'Do NOT compost plants showing signs of disease — fungal spots, wilting from soil pathogens, viral mottling, or bacterial canker.',
+      caution:'Home and school compost piles rarely reach the sustained 60 °C+ temperatures needed to kill plant pathogens. Composting diseased material can spread the infection to your entire garden when you use the finished compost.',
+      wc:'Powdery mildew and downy mildew are extremely common in Western Cape winter gardens — burn or bin (municipal waste) affected plant material rather than composting it.' },
+    { name:'Pet Waste', emoji:'🚫', type:'avoid',
+      method:'Do NOT add dog, cat, or bird-cage waste to garden compost bins.',
+      caution:'Pet faeces can contain harmful parasites (Toxoplasma, roundworm) and bacteria (E. coli, Salmonella) that survive normal composting temperatures. This is especially important in school gardens where children handle the compost.',
+      wc:'Municipal green-waste collection in Cape Town does not accept pet waste either. Bag and dispose of pet waste in general household refuse.' },
+  ],
+  troubleshooting: [
+    { name:'Smells Bad / Ammonia', emoji:'👃', type:'smell',
+      method:'A strong ammonia or rotten smell means the pile has too many greens (nitrogen) and not enough air. The fix: add a generous layer of dry browns (shredded cardboard, straw, dry leaves) and turn the pile to introduce oxygen. The smell should clear within 24–48 hours.',
+      caution:'Do not add water to a smelly pile — it is already too wet. Focus on adding dry material and aerating. If the smell persists after turning, the pile may need to be rebuilt with better layering.',
+      wc:'Hot berg winds in the Western Cape can carry compost smells further than expected. Fix smelly piles promptly, especially at schools near residential areas.' },
+    { name:'Attracts Flies / Pests', emoji:'🪰', type:'pest',
+      method:'Exposed food scraps on the surface attract fruit flies, house flies, and rodents. Always bury fresh kitchen scraps under at least 10 cm of browns or finished compost. Keep a bucket of dry leaves or straw next to the bin for easy covering.',
+      caution:'If flies are already breeding, turn the entire pile thoroughly and cover completely with a thick brown layer. A fitted lid or mesh cover on the bin also helps.',
+      wc:'Western Cape summers bring fruit flies in large numbers — keep compost bins covered and bury scraps immediately. Bins near school kitchens should have tight-fitting lids.' },
+    { name:'Decomposing Too Slowly', emoji:'🐌', type:'slow',
+      method:'A pile that sits unchanged for months is usually too dry, too heavy on carbon (browns), or the pieces are too large. Fix by adding water until the pile feels like a wrung-out sponge, mixing in nitrogen-rich greens (grass clippings, fresh scraps), and chopping or shredding large pieces.',
+      caution:'Turning the pile weekly for 2–3 weeks can jump-start a stalled pile. If it still does not heat, check whether the pile is large enough — a minimum of 0.5 m³ is needed for effective composting.',
+      wc:'Western Cape dry summers are the most common cause of slow piles. Water lightly during hot spells and cover with a tarp to retain moisture between rain events.' },
+    { name:'Too Wet / Slimy', emoji:'💧', type:'wet',
+      method:'A waterlogged pile becomes anaerobic, slimy, and compacts into a dense mat. Fix by mixing in a large volume of dry browns — shredded cardboard, straw, dry leaves, or wood shavings — and turning the pile to open air channels.',
+      caution:'In very wet conditions, raise the bin off bare ground on a pallet or bricks to improve drainage. A simple roof or tarp angled to shed rain also helps.',
+      wc:'Western Cape winter rainfall (May–August) can waterlog open compost heaps rapidly. Cover bins during the rainy season and ensure good drainage underneath — this is the number-one winter composting issue in the Cape.' },
+    { name:'Too Dry / No Activity', emoji:'🏜️', type:'dry',
+      method:'A bone-dry pile has no microbial activity and simply sits there. Water the pile thoroughly — aim for even moisture throughout, like a wrung-out sponge. Add fresh green material (grass clippings, fruit scraps) to kick-start the nitrogen cycle.',
+      caution:'Do not flood the pile — add water gradually with a watering can or gentle hose. Turn as you water to distribute moisture evenly through the centre.',
+      wc:'This is the most common problem during Western Cape summers (December–March). Use grey water from vegetable rinsing or collected rainwater during water restrictions. Covering the pile with a tarp dramatically reduces evaporation.' },
+  ],
+  wctips: [
+    { name:'Water-Wise Composting', emoji:'💧', type:'water',
+      method:'Conserve water by using grey water (from rinsing fruit, vegetables, or dishes without harsh detergent) to moisten compost piles. Collect rainwater during winter in tanks or drums for summer use. Cover piles with a tarp to reduce evaporation during hot months.',
+      caution:'Never use grey water containing bleach, strong cleaning chemicals, or laundry water with fabric softener on compost — it kills the beneficial microbes that drive decomposition.',
+      wc:'Cape Town water restrictions have made grey water recycling second nature. A simple bucket under the kitchen tap collects enough rinse water for daily compost moistening — connect composting to the school\'s water-wise programme.' },
+    { name:'Summer Heat Management', emoji:'☀️', type:'climate',
+      method:'Shade compost bins during the hottest months by placing them under trees, against south-facing walls, or under shade cloth. Insulate worm farms with wet hessian or cardboard. Check moisture levels twice a week in summer — piles dry out fast.',
+      caution:'Temperatures above 40 °C in full Western Cape sun can kill beneficial organisms and worms. If a worm bin overheats, move it immediately and add damp bedding.',
+      wc:'Berg wind days (hot, dry north-westerly winds, common October–March) can desiccate a compost pile in hours. Always check bins after a berg wind event and water if needed.' },
+    { name:'Fynbos & Indigenous Mulch', emoji:'🌿', type:'source',
+      method:'Use prunings from indigenous fynbos plants (restios, ericas, buchu) as a brown/carbon mulch layer in compost. Fynbos clippings are naturally low in nutrients and break down slowly, making them an excellent structural brown material.',
+      caution:'Avoid using fynbos material collected from wild areas — it is protected. Use clippings from your own garden or school grounds only. Some fynbos species have allelopathic (growth-inhibiting) compounds, so mix with other materials rather than using exclusively.',
+      wc:'The Western Cape is home to the Cape Floral Kingdom — one of six floral kingdoms on Earth. Using indigenous garden clippings in compost connects learners to local biodiversity and reduces waste going to landfill.' },
+    { name:'Local Compost Suppliers', emoji:'🏪', type:'source',
+      method:'When you need bulk compost for a new garden bed or top-dressing, Western Cape suppliers offer quality compost by the bag or by the cubic metre. Look for products certified by the Compost Quality Council or marked "SABS approved".',
+      caution:'Cheap, uncertified compost may contain weed seeds, heavy metals, or industrial waste. Always ask about the source material. Good compost should smell earthy, be dark brown, and crumble easily.',
+      wc:'Reliable Western Cape suppliers include Reliance Compost (Franschhoek & Kraaifontein), Garden Master, and local nurseries like Stodels, Starke Ayres, and Lifestyle Home Garden. Many offer delivery for school orders.' },
+    { name:'School Garden Integration', emoji:'🏫', type:'community',
+      method:'Connect composting to the school curriculum: science (decomposition, nutrient cycles), maths (measuring ratios, volume, temperature), life skills (responsibility, sustainability), and creative arts (garden journaling, poster design). Assign compost monitor roles to learners on a rotating roster.',
+      caution:'Supervise young children around compost bins — open heaps can harbour sharp objects or glass. Always ensure learners wash hands thoroughly after handling compost materials.',
+      wc:'The Western Cape Education Department\'s Eco-Schools programme recognises composting as a key sustainability activity. Registering your school earns points towards Green Flag status and connects you with other Cape composting schools for resource sharing.' },
+  ],
+};
+
+const COMPOST_LABELS = { methods:'Methods', ingredients:'Ingredients', troubleshooting:'Troubleshooting', wctips:'Western Cape Tips' };
+let currentCompostTab = 'methods';
+
+const COMPOST_DATA_ORIGINAL = JSON.parse(JSON.stringify(COMPOST_DATA));
+const COMPOST_STORAGE_KEY = 'newberry_compost_edits_v1';
+(function loadCompostEdits() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(COMPOST_STORAGE_KEY) || '{}');
+    Object.keys(saved).forEach(key => {
+      const [tab, idxStr] = key.split('::');
+      const idx = parseInt(idxStr);
+      if (COMPOST_DATA[tab] && COMPOST_DATA[tab][idx]) Object.assign(COMPOST_DATA[tab][idx], saved[key]);
+    });
+  } catch(e) {}
+})();
+
+const COMPOST_FIELD_LABELS = {
+  name:'Name', emoji:'Emoji', method:'Method / Description', caution:'Caution', wc:'Western Cape Note'
+};
+const COMPOST_SHORT_FIELDS = ['name', 'emoji'];
+
 // ── plain-text escaping for anything user-edited that gets inserted via innerHTML ──
 function escHtml(s) {
   return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -3845,9 +4058,10 @@ document.getElementById('eco-close-btn').addEventListener('click', closeEco);
 document.querySelectorAll('.eco-tab').forEach(t => t.addEventListener('click', () => renderEcoTab(t.dataset.tab)));
 
 // ── per-card eco item editing (event delegation — cards are rebuilt on every render) ──
-let ecoEditTab = null, ecoEditIdx = -1;
+let ecoEditTab = null, ecoEditIdx = -1, editSource = 'eco';
 
 function openEcoEdit(tab, idx) {
+  editSource = 'eco';
   ecoEditTab = tab;
   ecoEditIdx = idx;
   const item = ECO_DATA[tab][idx];
@@ -3880,7 +4094,9 @@ function openEcoEdit(tab, idx) {
 
 function saveEcoEdit() {
   if (!ecoEditTab || ecoEditIdx < 0) return;
-  const item = ECO_DATA[ecoEditTab][ecoEditIdx];
+  const DATA = editSource === 'compost' ? COMPOST_DATA : ECO_DATA;
+  const SKEY = editSource === 'compost' ? COMPOST_STORAGE_KEY : ECO_STORAGE_KEY;
+  const item = DATA[ecoEditTab][ecoEditIdx];
   const changes = {};
   document.querySelectorAll('#eco-edit-fields [data-key]').forEach(el => {
     const v = el.value.trim();
@@ -3889,29 +4105,33 @@ function saveEcoEdit() {
   });
 
   try {
-    const saved = JSON.parse(localStorage.getItem(ECO_STORAGE_KEY) || '{}');
+    const saved = JSON.parse(localStorage.getItem(SKEY) || '{}');
     saved[ecoEditTab + '::' + ecoEditIdx] = changes;
-    localStorage.setItem(ECO_STORAGE_KEY, JSON.stringify(saved));
+    localStorage.setItem(SKEY, JSON.stringify(saved));
   } catch(e) {}
 
-  renderEcoTab(currentEcoTab);
+  if (editSource === 'compost') renderCompostTab(currentCompostTab);
+  else renderEcoTab(currentEcoTab);
   showToast('✅ Entry saved!');
   closeEcoEdit();
 }
 
 function resetEcoEdit() {
   if (!ecoEditTab || ecoEditIdx < 0) return;
-  const original = ECO_DATA_ORIGINAL[ecoEditTab] && ECO_DATA_ORIGINAL[ecoEditTab][ecoEditIdx];
+  const DATA = editSource === 'compost' ? COMPOST_DATA : ECO_DATA;
+  const ORIG = editSource === 'compost' ? COMPOST_DATA_ORIGINAL : ECO_DATA_ORIGINAL;
+  const SKEY = editSource === 'compost' ? COMPOST_STORAGE_KEY : ECO_STORAGE_KEY;
+  const original = ORIG[ecoEditTab] && ORIG[ecoEditTab][ecoEditIdx];
   if (!original) return;
-  if (!confirm('Reset "' + ECO_DATA[ecoEditTab][ecoEditIdx].name + '" to its original defaults?')) return;
-  Object.assign(ECO_DATA[ecoEditTab][ecoEditIdx], JSON.parse(JSON.stringify(original)));
+  if (!confirm('Reset "' + DATA[ecoEditTab][ecoEditIdx].name + '" to its original defaults?')) return;
+  Object.assign(DATA[ecoEditTab][ecoEditIdx], JSON.parse(JSON.stringify(original)));
   try {
-    const saved = JSON.parse(localStorage.getItem(ECO_STORAGE_KEY) || '{}');
+    const saved = JSON.parse(localStorage.getItem(SKEY) || '{}');
     delete saved[ecoEditTab + '::' + ecoEditIdx];
-    localStorage.setItem(ECO_STORAGE_KEY, JSON.stringify(saved));
+    localStorage.setItem(SKEY, JSON.stringify(saved));
   } catch(e) {}
-  renderEcoTab(currentEcoTab);
-  openEcoEdit(ecoEditTab, ecoEditIdx);
+  if (editSource === 'compost') { renderCompostTab(currentCompostTab); openCompostEdit(ecoEditTab, ecoEditIdx); }
+  else { renderEcoTab(currentEcoTab); openEcoEdit(ecoEditTab, ecoEditIdx); }
 }
 
 function closeEcoEdit() { document.getElementById('eco-edit-overlay').classList.remove('open'); }
@@ -3925,6 +4145,92 @@ document.getElementById('eco-edit-save-btn').addEventListener('click', saveEcoEd
 document.getElementById('eco-edit-reset-btn').addEventListener('click', resetEcoEdit);
 document.getElementById('eco-edit-cancel-btn').addEventListener('click', closeEcoEdit);
 document.getElementById('eco-edit-close-btn').addEventListener('click', closeEcoEdit);
+
+// ══════════════════════════════════════════════
+//  ECO COMPOSTING LOGIC
+// ══════════════════════════════════════════════
+
+function renderCompostTab(tab) {
+  currentCompostTab = tab;
+  document.querySelectorAll('.compost-tab').forEach(t => t.classList.toggle('active', t.dataset.ctab === tab));
+  const body = document.getElementById('compost-body');
+  body.innerHTML = '';
+
+  if (tab === 'ingredients') {
+    const warn = document.createElement('div');
+    warn.className = 'eco-weed-warning';
+    warn.innerHTML = '🌱 <strong>Golden rule — the 2:1 ratio:</strong> For every bucket of green (nitrogen) material, add roughly two buckets of brown (carbon) material. This balance keeps the pile aerobic, odour-free, and decomposing steadily.';
+    body.appendChild(warn);
+  }
+  if (tab === 'troubleshooting') {
+    const warn = document.createElement('div');
+    warn.className = 'eco-weed-warning';
+    warn.innerHTML = '🔧 <strong>Quick diagnostic:</strong> Most composting problems come down to three things — too wet, too dry, or wrong green-to-brown ratio. Check these first before making big changes to your pile.';
+    body.appendChild(warn);
+  }
+
+  COMPOST_DATA[tab].forEach((item, idx) => {
+    const card = document.createElement('div');
+    card.className = 'eco-card';
+    const typeLabel = item.type || 'general';
+    card.innerHTML =
+      '<div class="eco-card-head">' +
+        '<span class="eco-emoji">' + escHtml(item.emoji) + '</span>' +
+        '<div><h3>' + escHtml(item.name) + '</h3></div>' +
+        '<span class="eco-type ' + typeLabel + '">' + typeLabel + '</span>' +
+        '<button class="eco-edit-btn compost-edit-btn" data-ctab="' + tab + '" data-idx="' + idx + '" title="Edit this entry" aria-label="Edit this entry">✏️</button>' +
+      '</div>' +
+      (item.method  ? '<p class="eco-field"><strong>Method:</strong> ' + escHtml(item.method) + '</p>' : '') +
+      (item.caution ? '<p class="eco-field"><strong>⚠️ Caution:</strong> ' + escHtml(item.caution) + '</p>' : '') +
+      (item.wc      ? '<div class="eco-wc">🌍 <strong>Western Cape note:</strong> ' + escHtml(item.wc) + '</div>' : '');
+    body.appendChild(card);
+  });
+}
+
+function openCompost()  { document.getElementById('compost-overlay').classList.add('open'); renderCompostTab(currentCompostTab); }
+function closeCompost() { document.getElementById('compost-overlay').classList.remove('open'); }
+
+document.getElementById('compost-close-btn').addEventListener('click', closeCompost);
+document.querySelectorAll('.compost-tab').forEach(t => t.addEventListener('click', () => renderCompostTab(t.dataset.ctab)));
+
+// ── per-card compost item editing (reuses eco-edit-overlay) ──
+function openCompostEdit(tab, idx) {
+  editSource = 'compost';
+  ecoEditTab = tab;
+  ecoEditIdx = idx;
+  const item = COMPOST_DATA[tab][idx];
+  document.getElementById('eco-edit-title').textContent = '✏️ Edit: ' + item.name;
+  const wrap = document.getElementById('eco-edit-fields');
+  wrap.innerHTML = '';
+  Object.keys(item).forEach(key => {
+    if (key === 'type') return;
+    const label = COMPOST_FIELD_LABELS[key] || ECO_FIELD_LABELS[key] || key;
+    const field = document.createElement('div');
+    field.className = COMPOST_SHORT_FIELDS.includes(key) ? 'edit-field' : 'edit-field full';
+    const labelEl = document.createElement('label');
+    labelEl.textContent = label;
+    field.appendChild(labelEl);
+    let input;
+    if (COMPOST_SHORT_FIELDS.includes(key)) {
+      input = document.createElement('input');
+      input.value = item[key];
+    } else {
+      input = document.createElement('textarea');
+      input.rows = 3;
+      input.value = item[key];
+    }
+    input.dataset.key = key;
+    field.appendChild(input);
+    wrap.appendChild(field);
+  });
+  document.getElementById('eco-edit-overlay').classList.add('open');
+}
+
+document.getElementById('compost-body').addEventListener('click', e => {
+  const btn = e.target.closest('.compost-edit-btn');
+  if (!btn) return;
+  openCompostEdit(btn.dataset.ctab, parseInt(btn.dataset.idx));
+});
 
 // ══════════════════════════════════════════════
 //  CROP ROTATION PLAN
@@ -5181,6 +5487,10 @@ document.getElementById('btn-eco').addEventListener('click', () => {
   overlay.classList.remove('open');
   openEco();
 });
+document.getElementById('btn-compost').addEventListener('click', () => {
+  overlay.classList.remove('open');
+  openCompost();
+});
 document.getElementById('btn-edit').addEventListener('click', () => {
   if (!currentModalVeggie) return;
   overlay.classList.remove('open');
@@ -5361,6 +5671,10 @@ document.getElementById('journey-back-btn').addEventListener('click', () => {
 });
 document.getElementById('eco-back-btn').addEventListener('click', () => {
   closeEco();
+  if (currentModalVeggie) overlay.classList.add('open');
+});
+document.getElementById('compost-back-btn').addEventListener('click', () => {
+  closeCompost();
   if (currentModalVeggie) overlay.classList.add('open');
 });
 </script>
