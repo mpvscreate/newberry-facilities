@@ -1,4 +1,4 @@
-const CACHE = 'newberry-one-v8';
+const CACHE = 'newberry-one-v9';
 
 self.addEventListener('message', e => {
   if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
@@ -11,7 +11,7 @@ const PRECACHE = [
 
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(PRECACHE)).then(() => self.skipWaiting())
+    caches.open(CACHE).then(c => c.addAll(PRECACHE))
   );
 });
 
