@@ -534,21 +534,39 @@
     #toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
     #toast.error { border-color: var(--rec); color: var(--rec); }
 
-    /* SPEAK BUTTON */
-    .speak-btn {
-      display: inline-flex; align-items: center; justify-content: center;
-      width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--border);
-      background: transparent; color: var(--muted); cursor: pointer;
+    /* PLAY VOICE BUTTON */
+    .play-voice-btn {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 4px 10px; border-radius: 8px; border: 1px solid var(--pk);
+      background: var(--pk-soft); color: var(--pk); cursor: pointer;
+      font-size: 11px; font-weight: 600; font-family: var(--font-body);
       transition: all .15s; -webkit-tap-highlight-color: transparent; flex-shrink: 0;
     }
-    .speak-btn:hover { background: var(--pk-soft); color: var(--pk); border-color: var(--pk); }
-    .speak-btn:active { transform: scale(.92); }
-    .speak-btn.speaking { background: var(--pk); color: #fff; border-color: var(--pk); animation: speak-pulse 1.2s infinite; }
-    .speak-btn svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-    @keyframes speak-pulse {
+    .play-voice-btn:hover { background: var(--pk); color: #fff; }
+    .play-voice-btn:active { transform: scale(.95); }
+    .play-voice-btn.playing { background: var(--pk); color: #fff; animation: play-pulse 1.2s infinite; }
+    .play-voice-btn svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    @keyframes play-pulse {
       0%,100% { box-shadow: 0 0 0 0 var(--glow); }
       50% { box-shadow: 0 0 0 6px transparent; }
     }
+    .voice-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 8px; border-radius: 6px;
+      font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px;
+      background: rgba(74,128,85,.08); color: var(--pk);
+    }
+    .voice-badge svg { width: 10px; height: 10px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+    .voice-preview-play {
+      width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--pk);
+      background: var(--pk-soft); color: var(--pk); cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      font-size: 14px; font-weight: 600; font-family: var(--font-body);
+      transition: all .15s;
+    }
+    .voice-preview-play:hover { background: var(--pk); color: #fff; }
+    .voice-preview-play.playing { background: var(--pk); color: #fff; }
+    .voice-preview-play svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
     /* FORM MIC BUTTON */
     .form-input-wrap { position: relative; display: flex; align-items: center; }
@@ -665,7 +683,7 @@
     <div class="transcript" id="voice-transcript">Listening...</div>
   </div>
 
-  <button class="mic-fab hidden" id="mic-btn" title="Hold to speak">
+  <button class="mic-fab" id="mic-btn" title="Hold to speak">
     <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
   </button>
 
@@ -797,6 +815,31 @@
     </div>
   </div>
 
+  <!-- VOICE MESSAGE MODAL -->
+  <div class="modal-overlay" id="voice-overlay">
+    <div class="modal" style="max-width:380px">
+      <div class="modal-head">Voice Message</div>
+      <div class="modal-body">
+        <button class="voice-preview-play" id="voice-play-preview" type="button">
+          <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <span>Play Recording</span>
+        </button>
+        <div class="form-group" style="margin-top:14px">
+          <label class="form-label">Transcript</label>
+          <textarea class="form-textarea" id="voice-msg-text" style="min-height:70px" placeholder="Transcript will appear here..."></textarea>
+        </div>
+        <div class="form-group" id="voice-dept-group">
+          <label class="form-label">Department</label>
+          <select class="form-select" id="voice-dept"></select>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="modal-btn ghost" id="voice-cancel">Cancel</button>
+        <button class="modal-btn primary" id="voice-send">Send</button>
+      </div>
+    </div>
+  </div>
+
   <!-- SETTINGS MODAL -->
   <div class="modal-overlay" id="settings-overlay">
     <div class="modal" style="max-width:440px">
@@ -914,7 +957,8 @@ async function syncDown() {
         id: r.id, department: r.department, title: r.title, content: r.content,
         isEvent: r.is_event, eventDate: r.event_date, eventTime: r.event_time,
         pinned: r.pinned, author: r.author, category: r.category || 'info',
-        createdAt: r.created_at, updatedAt: r.updated_at
+        createdAt: r.created_at, updatedAt: r.updated_at,
+        isVoiceMessage: !!r.is_voice_message, audioData: r.audio_data || ''
       }));
       announcements = mergeById(announcements, remote);
       saveAnnouncements(); cleanExpired(); render(); renderTabs();
@@ -931,7 +975,8 @@ async function syncUp() {
       id: a.id, department: a.department, title: a.title, content: a.content,
       is_event: !!a.isEvent, event_date: a.eventDate || '', event_time: a.eventTime || '',
       pinned: !!a.pinned, author: a.author || '', category: a.category || 'info',
-      created_at: a.createdAt || 0, updated_at: a.updatedAt || 0, deleted: false
+      created_at: a.createdAt || 0, updated_at: a.updatedAt || 0, deleted: false,
+      is_voice_message: !!a.isVoiceMessage, audio_data: a.audioData || ''
     }));
     if (rows.length) await sb.from('school_announcements').upsert(rows, { onConflict: 'id' });
     setSyncStatus('online');
@@ -1007,7 +1052,6 @@ function signOut() {
 
 function updateAuthUI() {
   const addBtn = document.getElementById('add-btn');
-  const micBtn = document.getElementById('mic-btn');
   const settingsBtn = document.getElementById('settings-btn');
   const lockIcon = document.getElementById('lock-icon');
   const unlockIcon = document.getElementById('unlock-icon');
@@ -1015,14 +1059,12 @@ function updateAuthUI() {
 
   if (authLevel) {
     addBtn.classList.remove('hidden');
-    micBtn.classList.remove('hidden');
     lockIcon.style.display = 'none';
     unlockIcon.style.display = 'block';
     authBtn.classList.add('active');
     settingsBtn.classList.toggle('hidden', authLevel !== 'master');
   } else {
     addBtn.classList.add('hidden');
-    micBtn.classList.add('hidden');
     settingsBtn.classList.add('hidden');
     lockIcon.style.display = 'block';
     unlockIcon.style.display = 'none';
@@ -1101,7 +1143,7 @@ function render() {
           '<div class="event-badges">' +
           (cat !== 'info' ? '<span class="cat-badge cat-' + cat + '">' + CATS[cat] + '</span>' : '') +
           (showDept ? '<span class="ann-dept-label">' + esc(DEPTS[ev.department].name) + '</span>' : '') +
-          '<button class="speak-btn" onclick="event.stopPropagation();speakCard(this,\'' + esc(ev.id) + '\')" title="Listen"><svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg></button>' +
+          (ev.isVoiceMessage && ev.audioData ? '<button class="play-voice-btn" onclick="event.stopPropagation();playVoiceAudio(this,\'' + esc(ev.id) + '\')"><svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>Listen</button>' : '') +
           '</div>' +
           (canEdit(ev.department) ? renderActions(ev.id) : '') +
           '</div></div>';
@@ -1119,14 +1161,15 @@ function render() {
           (a.pinned ? '<span class="ann-pin-icon" title="Pinned">&#128204;</span>' : '') +
           '<div class="ann-header"><div class="ann-title">' + esc(a.title) + '</div></div>' +
           '<div class="ann-badges">' +
+          (a.isVoiceMessage ? '<span class="voice-badge"><svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>Voice</span>' : '') +
           (cat !== 'info' ? '<span class="cat-badge cat-' + cat + '">' + CATS[cat] + '</span>' : '') +
           (showDept ? '<span class="ann-dept-label">' + esc(DEPTS[a.department].name) + '</span>' : '') +
           '</div>' +
           (a.content ? '<div class="ann-content">' + esc(a.content) + '</div>' : '') +
           '<div class="ann-meta"><span>' + formatDate(a.createdAt) + '</span>' +
           (a.author ? '<span class="meta-dot"></span><span>' + esc(a.author) + '</span>' : '') +
-          '<button class="speak-btn" onclick="event.stopPropagation();speakCard(this,\'' + esc(a.id) + '\')" title="Listen"><svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg></button>' +
           '</div>' +
+          (a.isVoiceMessage && a.audioData ? '<div style="margin-top:8px"><button class="play-voice-btn" onclick="event.stopPropagation();playVoiceAudio(this,\'' + esc(a.id) + '\')"><svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>Listen to original</button></div>' : '') +
           (canEdit(a.department) ? renderActions(a.id) : '') + '</div>';
       }).join('');
   } else { annEl.innerHTML = ''; }
@@ -1413,24 +1456,27 @@ function saveSettings() {
   showToast('PINs updated');
 }
 
-/* TEXT-TO-SPEECH */
-let currentUtterance = null, speakingBtn = null;
+/* VOICE PLAYBACK */
+let currentAudio = null, currentPlayBtn = null;
 
-function speakCard(btn, id) {
-  if (currentUtterance && speakingBtn === btn) { speechSynthesis.cancel(); return; }
-  speechSynthesis.cancel();
+function playVoiceAudio(btn, id) {
+  if (currentAudio && currentPlayBtn === btn) {
+    currentAudio.pause(); currentAudio = null;
+    btn.classList.remove('playing'); currentPlayBtn = null; return;
+  }
+  if (currentAudio) { currentAudio.pause(); if (currentPlayBtn) currentPlayBtn.classList.remove('playing'); }
   const ann = announcements.find(a => a.id === id);
-  if (!ann) return;
-  const text = ann.title + '. ' + (ann.content || '');
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = 'en-US'; u.rate = 0.95;
-  if (speakingBtn) speakingBtn.classList.remove('speaking');
-  btn.classList.add('speaking'); speakingBtn = btn;
-  currentUtterance = u;
-  u.onend = () => { btn.classList.remove('speaking'); speakingBtn = null; currentUtterance = null; };
-  u.onerror = () => { btn.classList.remove('speaking'); speakingBtn = null; currentUtterance = null; };
-  speechSynthesis.speak(u);
+  if (!ann || !ann.audioData) { showToast('No audio available', true); return; }
+  const audio = new Audio(ann.audioData);
+  currentAudio = audio; currentPlayBtn = btn;
+  btn.classList.add('playing');
+  audio.onended = () => { btn.classList.remove('playing'); currentAudio = null; currentPlayBtn = null; };
+  audio.onerror = () => { btn.classList.remove('playing'); currentAudio = null; currentPlayBtn = null; showToast('Could not play audio', true); };
+  audio.play().catch(() => { btn.classList.remove('playing'); currentAudio = null; currentPlayBtn = null; });
 }
+
+/* VOICE MESSAGE RECORDING */
+let mediaRecorder = null, audioChunks = [], recordedAudioData = null;
 
 /* FORM VOICE INPUT */
 let formRecognition = null, formMicTarget = null, formMicBtn = null;
@@ -1483,30 +1529,36 @@ function initSpeech() {
   return r;
 }
 
-function startRecording() {
+async function startRecording() {
   if (!recognition) recognition = initSpeech();
-  if (!recognition) { showToast('Voice not supported in this browser', true); return; }
-  isRecording = true; voiceTranscript = '';
-  recognition.onresult = function(e) {
-    let final = '', interim = '';
-    for (let i = 0; i < e.results.length; i++) {
-      if (e.results[i].isFinal) final += e.results[i][0].transcript;
-      else interim += e.results[i][0].transcript;
-    }
-    voiceTranscript = final + interim;
-    const el = document.getElementById('voice-transcript');
-    el.textContent = voiceTranscript || 'Listening...';
-    el.classList.toggle('has-text', !!voiceTranscript);
-  };
-  recognition.onerror = function() { stopRecording(); };
-  recognition.onend = function() { if (isRecording) { try { recognition.start(); } catch(e) {} } };
+  isRecording = true; voiceTranscript = ''; audioChunks = []; recordedAudioData = null;
+  if (recognition) {
+    recognition.onresult = function(e) {
+      let final = '', interim = '';
+      for (let i = 0; i < e.results.length; i++) {
+        if (e.results[i].isFinal) final += e.results[i][0].transcript;
+        else interim += e.results[i][0].transcript;
+      }
+      voiceTranscript = final + interim;
+      const el = document.getElementById('voice-transcript');
+      el.textContent = voiceTranscript || 'Listening...';
+      el.classList.toggle('has-text', !!voiceTranscript);
+    };
+    recognition.onerror = function() {};
+    recognition.onend = function() { if (isRecording) { try { recognition.start(); } catch(e) {} } };
+    try { recognition.start(); } catch(e) {}
+  }
   try {
-    recognition.start();
-    document.getElementById('mic-btn').classList.add('recording');
-    document.getElementById('voice-bar').classList.add('active');
-    document.getElementById('voice-transcript').textContent = 'Listening...';
-    document.getElementById('voice-transcript').classList.remove('has-text');
-  } catch(e) { showToast('Could not start recording', true); }
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream);
+    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+    mediaRecorder.start();
+  } catch(e) { console.warn('MediaRecorder error:', e); }
+  document.getElementById('mic-btn').classList.add('recording');
+  document.getElementById('voice-bar').classList.add('active');
+  document.getElementById('voice-transcript').textContent = 'Listening...';
+  document.getElementById('voice-transcript').classList.remove('has-text');
+  setTimeout(() => { if (isRecording) stopRecording(); }, 30000);
 }
 
 function stopRecording() {
@@ -1514,8 +1566,65 @@ function stopRecording() {
   if (recognition) { recognition.onend = null; try { recognition.stop(); } catch(e) {} }
   document.getElementById('mic-btn').classList.remove('recording');
   document.getElementById('voice-bar').classList.remove('active');
-  if (voiceTranscript.trim()) openAddWithVoice(voiceTranscript.trim());
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.onstop = () => {
+      const blob = new Blob(audioChunks, { type: 'audio/webm' });
+      mediaRecorder.stream.getTracks().forEach(t => t.stop());
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        recordedAudioData = reader.result;
+        openVoiceMessageModal(voiceTranscript.trim());
+      };
+      reader.readAsDataURL(blob);
+    };
+    mediaRecorder.stop();
+  } else if (voiceTranscript.trim()) {
+    openVoiceMessageModal(voiceTranscript.trim());
+  }
   voiceTranscript = '';
+}
+
+function openVoiceMessageModal(transcript) {
+  document.getElementById('voice-msg-text').value = transcript || '';
+  const sel = document.getElementById('voice-dept');
+  const defaultDept = currentDept === 'all' ? 'toddlers' : currentDept;
+  sel.innerHTML = DEPT_KEYS.map(k =>
+    '<option value="' + k + '"' + (k === defaultDept ? ' selected' : '') + '>' + DEPTS[k].name + '</option>'
+  ).join('');
+  openModal('voice-overlay');
+}
+
+function sendVoiceMessage() {
+  const text = document.getElementById('voice-msg-text').value.trim();
+  if (!text && !recordedAudioData) { showToast('No message to send', true); return; }
+  const dept = document.getElementById('voice-dept').value;
+  const now = Date.now();
+  const title = text ? (text.length > 50 ? text.slice(0, 50) + '...' : text) : 'Voice Message';
+  const ann = {
+    id: uid(), department: dept, title: title, content: text,
+    isEvent: false, eventDate: '', eventTime: '',
+    pinned: false, category: 'info',
+    author: authLevel === 'master' ? 'Admin' : (authLevel === 'hod' ? 'HOD: ' + DEPTS[authDept].name : 'Voice Message'),
+    createdAt: now, updatedAt: now,
+    isVoiceMessage: true, audioData: recordedAudioData || ''
+  };
+  announcements.unshift(ann);
+  saveAnnouncements(); render(); renderTabs(); syncUp();
+  triggerPush(title, text, dept, 'info');
+  closeModal('voice-overlay');
+  recordedAudioData = null; audioChunks = [];
+  showToast('Voice message sent');
+}
+
+let previewAudio = null;
+function playVoicePreview() {
+  if (!recordedAudioData) { showToast('No recording', true); return; }
+  const btn = document.getElementById('voice-play-preview');
+  if (previewAudio) { previewAudio.pause(); previewAudio = null; btn.classList.remove('playing'); return; }
+  previewAudio = new Audio(recordedAudioData);
+  btn.classList.add('playing');
+  previewAudio.onended = () => { btn.classList.remove('playing'); previewAudio = null; };
+  previewAudio.play().catch(() => { btn.classList.remove('playing'); previewAudio = null; });
 }
 
 /* PWA */
@@ -1695,13 +1804,18 @@ function bindEvents() {
   document.getElementById('settings-save').addEventListener('click', saveSettings);
   document.getElementById('settings-cancel').addEventListener('click', () => closeModal('settings-overlay'));
 
+  // Voice message modal
+  document.getElementById('voice-send').addEventListener('click', sendVoiceMessage);
+  document.getElementById('voice-cancel').addEventListener('click', () => { closeModal('voice-overlay'); recordedAudioData = null; audioChunks = []; });
+  document.getElementById('voice-play-preview').addEventListener('click', playVoicePreview);
+
   // Install
   document.getElementById('install-btn').addEventListener('click', installApp);
   document.getElementById('install-dismiss').addEventListener('click', dismissInstall);
 
   // Tap card to mark seen
   document.getElementById('content').addEventListener('click', e => {
-    if (e.target.closest('.ann-actions')) return;
+    if (e.target.closest('.ann-actions') || e.target.closest('.play-voice-btn')) return;
     const card = e.target.closest('.ann-card, .event-card');
     if (card && card.dataset.id) toggleSeen(card.dataset.id);
   });
