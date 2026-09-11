@@ -683,7 +683,7 @@
     <div class="transcript" id="voice-transcript">Listening...</div>
   </div>
 
-  <button class="mic-fab" id="mic-btn" title="Hold to speak">
+  <button class="mic-fab" id="mic-btn" title="Voice message">
     <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
   </button>
 
@@ -1529,9 +1529,14 @@ function initSpeech() {
   return r;
 }
 
-async function startRecording() {
-  if (!recognition) recognition = initSpeech();
+function toggleRecording() {
+  if (isRecording) { stopRecording(); return; }
   isRecording = true; voiceTranscript = ''; audioChunks = []; recordedAudioData = null;
+  document.getElementById('mic-btn').classList.add('recording');
+  document.getElementById('voice-bar').classList.add('active');
+  document.getElementById('voice-transcript').textContent = 'Listening...';
+  document.getElementById('voice-transcript').classList.remove('has-text');
+  if (!recognition) recognition = initSpeech();
   if (recognition) {
     recognition.onresult = function(e) {
       let final = '', interim = '';
@@ -1548,40 +1553,38 @@ async function startRecording() {
     recognition.onend = function() { if (isRecording) { try { recognition.start(); } catch(e) {} } };
     try { recognition.start(); } catch(e) {}
   }
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  navigator.mediaDevices.getUserMedia({ audio: true }).then(function(stream) {
+    if (!isRecording) { stream.getTracks().forEach(t => t.stop()); return; }
     mediaRecorder = new MediaRecorder(stream);
-    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+    mediaRecorder.ondataavailable = function(e) { if (e.data.size > 0) audioChunks.push(e.data); };
     mediaRecorder.start();
-  } catch(e) { console.warn('MediaRecorder error:', e); }
-  document.getElementById('mic-btn').classList.add('recording');
-  document.getElementById('voice-bar').classList.add('active');
-  document.getElementById('voice-transcript').textContent = 'Listening...';
-  document.getElementById('voice-transcript').classList.remove('has-text');
-  setTimeout(() => { if (isRecording) stopRecording(); }, 30000);
+  }).catch(function(e) { console.warn('Mic access denied:', e); });
+  setTimeout(function() { if (isRecording) stopRecording(); }, 30000);
 }
 
 function stopRecording() {
+  if (!isRecording) return;
   isRecording = false;
   if (recognition) { recognition.onend = null; try { recognition.stop(); } catch(e) {} }
   document.getElementById('mic-btn').classList.remove('recording');
   document.getElementById('voice-bar').classList.remove('active');
+  var transcript = voiceTranscript.trim();
+  voiceTranscript = '';
   if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-    mediaRecorder.onstop = () => {
-      const blob = new Blob(audioChunks, { type: 'audio/webm' });
-      mediaRecorder.stream.getTracks().forEach(t => t.stop());
-      const reader = new FileReader();
-      reader.onloadend = () => {
+    mediaRecorder.onstop = function() {
+      var blob = new Blob(audioChunks, { type: 'audio/webm' });
+      if (mediaRecorder.stream) mediaRecorder.stream.getTracks().forEach(function(t) { t.stop(); });
+      var reader = new FileReader();
+      reader.onloadend = function() {
         recordedAudioData = reader.result;
-        openVoiceMessageModal(voiceTranscript.trim());
+        openVoiceMessageModal(transcript);
       };
       reader.readAsDataURL(blob);
     };
     mediaRecorder.stop();
-  } else if (voiceTranscript.trim()) {
-    openVoiceMessageModal(voiceTranscript.trim());
+  } else {
+    openVoiceMessageModal(transcript);
   }
-  voiceTranscript = '';
 }
 
 function openVoiceMessageModal(transcript) {
@@ -1839,14 +1842,8 @@ function bindEvents() {
   document.getElementById('mic-title').addEventListener('click', function() { startFormVoice('edit-title', this); });
   document.getElementById('mic-content').addEventListener('click', function() { startFormVoice('edit-content', this); });
 
-  // Voice
-  const mic = document.getElementById('mic-btn');
-  mic.addEventListener('mousedown', e => { if (e.button === 0) startRecording(); });
-  mic.addEventListener('mouseup', stopRecording);
-  mic.addEventListener('mouseleave', () => { if (isRecording) stopRecording(); });
-  mic.addEventListener('touchstart', e => { e.preventDefault(); startRecording(); }, { passive: false });
-  mic.addEventListener('touchend', e => { e.preventDefault(); stopRecording(); });
-  mic.addEventListener('touchcancel', stopRecording);
+  // Voice — tap to start, tap to stop
+  document.getElementById('mic-btn').addEventListener('click', toggleRecording);
 
   setInterval(() => { if (sb) syncDown(); }, 60000);
 }

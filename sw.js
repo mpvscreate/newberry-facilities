@@ -1,4 +1,4 @@
-const CACHE = 'newberry-one-v12';
+const CACHE = 'newberry-one-v13';
 
 self.addEventListener('message', e => {
   if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();

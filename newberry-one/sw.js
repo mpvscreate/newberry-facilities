@@ -1,4 +1,4 @@
-const CACHE = 'newberry-one-v7';
+const CACHE = 'newberry-one-v8';
 const PRECACHE = [
   './',
   './index.html',
