@@ -534,6 +534,69 @@
     #toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
     #toast.error { border-color: var(--rec); color: var(--rec); }
 
+    /* SPEAK BUTTON */
+    .speak-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--border);
+      background: transparent; color: var(--muted); cursor: pointer;
+      transition: all .15s; -webkit-tap-highlight-color: transparent; flex-shrink: 0;
+    }
+    .speak-btn:hover { background: var(--pk-soft); color: var(--pk); border-color: var(--pk); }
+    .speak-btn:active { transform: scale(.92); }
+    .speak-btn.speaking { background: var(--pk); color: #fff; border-color: var(--pk); animation: speak-pulse 1.2s infinite; }
+    .speak-btn svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    @keyframes speak-pulse {
+      0%,100% { box-shadow: 0 0 0 0 var(--glow); }
+      50% { box-shadow: 0 0 0 6px transparent; }
+    }
+
+    /* FORM MIC BUTTON */
+    .form-input-wrap { position: relative; display: flex; align-items: center; }
+    .form-input-wrap .form-input,
+    .form-input-wrap .form-textarea { padding-right: 42px; }
+    .form-mic-btn {
+      position: absolute; right: 8px; top: 8px;
+      width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--surface); color: var(--muted); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .15s; -webkit-tap-highlight-color: transparent;
+    }
+    .form-mic-btn:hover { background: var(--pk-soft); color: var(--pk); border-color: var(--pk); }
+    .form-mic-btn.recording { background: var(--rec); color: #fff; border-color: var(--rec); animation: mic-pulse 1s infinite; }
+    .form-mic-btn svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* SKELETON LOADING */
+    .skeleton-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg);
+      padding: 16px; margin-bottom: 10px; box-shadow: var(--shadow);
+    }
+    .skeleton-line {
+      height: 14px; border-radius: 7px; background: var(--surface);
+      animation: shimmer 1.5s ease-in-out infinite;
+    }
+    .skeleton-line.title { width: 60%; height: 18px; margin-bottom: 10px; }
+    .skeleton-line.body { width: 90%; margin-bottom: 8px; }
+    .skeleton-line.short { width: 40%; }
+    @keyframes shimmer {
+      0% { opacity: .6; }
+      50% { opacity: .3; }
+      100% { opacity: .6; }
+    }
+
+    /* SMOOTH TRANSITIONS */
+    .dept-fade { animation: fadeSlideIn .25s ease-out; }
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .modal-overlay.open .modal { animation: modalIn .2s ease-out; }
+    @keyframes modalIn {
+      from { opacity: 0; transform: scale(.95) translateY(8px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .modal-overlay { transition: opacity .15s; }
+    .modal-overlay.closing { opacity: 0; }
+
     /* RESPONSIVE */
     @media (max-width: 420px) {
       :root { --tabs-h: 72px; }
@@ -662,11 +725,21 @@
       <div class="modal-body">
         <div class="form-group">
           <label class="form-label" for="edit-title">Title</label>
-          <input class="form-input" id="edit-title" placeholder="Announcement title" maxlength="200" />
+          <div class="form-input-wrap">
+            <input class="form-input" id="edit-title" placeholder="Announcement title" maxlength="200" />
+            <button type="button" class="form-mic-btn" id="mic-title" title="Voice input">
+              <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+            </button>
+          </div>
         </div>
         <div class="form-group">
           <label class="form-label" for="edit-content">Content</label>
-          <textarea class="form-textarea" id="edit-content" placeholder="Details..." maxlength="2000"></textarea>
+          <div class="form-input-wrap">
+            <textarea class="form-textarea" id="edit-content" placeholder="Details..." maxlength="2000"></textarea>
+            <button type="button" class="form-mic-btn" id="mic-content" title="Voice input">
+              <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+            </button>
+          </div>
         </div>
         <div class="form-group" id="edit-dept-group">
           <label class="form-label" for="edit-dept">Department</label>
@@ -829,6 +902,7 @@ function setSyncStatus(s) {
 async function syncDown() {
   if (!sb) return;
   setSyncStatus('syncing');
+  if (!announcements.length) showSkeleton();
   try {
     const { data: cfgData } = await sb.from('school_config').select('*');
     if (cfgData && cfgData.length) { cfgData.forEach(r => { config[r.key] = r.value; }); saveConfig(); }
@@ -904,6 +978,10 @@ function switchDept(dept) {
   currentDept = dept;
   lsSet(LS_DEPT, dept);
   renderTabs(); render();
+  const content = document.getElementById('content');
+  content.classList.remove('dept-fade');
+  void content.offsetWidth;
+  content.classList.add('dept-fade');
 }
 
 /* AUTH */
@@ -1023,6 +1101,7 @@ function render() {
           '<div class="event-badges">' +
           (cat !== 'info' ? '<span class="cat-badge cat-' + cat + '">' + CATS[cat] + '</span>' : '') +
           (showDept ? '<span class="ann-dept-label">' + esc(DEPTS[ev.department].name) + '</span>' : '') +
+          '<button class="speak-btn" onclick="event.stopPropagation();speakCard(this,\'' + esc(ev.id) + '\')" title="Listen"><svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg></button>' +
           '</div>' +
           (canEdit(ev.department) ? renderActions(ev.id) : '') +
           '</div></div>';
@@ -1045,7 +1124,9 @@ function render() {
           '</div>' +
           (a.content ? '<div class="ann-content">' + esc(a.content) + '</div>' : '') +
           '<div class="ann-meta"><span>' + formatDate(a.createdAt) + '</span>' +
-          (a.author ? '<span class="meta-dot"></span><span>' + esc(a.author) + '</span>' : '') + '</div>' +
+          (a.author ? '<span class="meta-dot"></span><span>' + esc(a.author) + '</span>' : '') +
+          '<button class="speak-btn" onclick="event.stopPropagation();speakCard(this,\'' + esc(a.id) + '\')" title="Listen"><svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg></button>' +
+          '</div>' +
           (canEdit(a.department) ? renderActions(a.id) : '') + '</div>';
       }).join('');
   } else { annEl.innerHTML = ''; }
@@ -1146,8 +1227,13 @@ function deleteAnnouncement(id) {
 }
 
 /* MODALS */
-function openModal(id) { document.getElementById(id).classList.add('open'); }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function openModal(id) { const el = document.getElementById(id); el.classList.remove('closing'); el.classList.add('open'); }
+function closeModal(id) {
+  const el = document.getElementById(id);
+  el.classList.add('closing');
+  setTimeout(() => { el.classList.remove('open', 'closing'); }, 150);
+  stopFormVoice();
+}
 
 function openPinModal() {
   pinBuffer = ''; updatePinDots();
@@ -1325,6 +1411,65 @@ function saveSettings() {
   saveConfig(); syncConfig();
   closeModal('settings-overlay');
   showToast('PINs updated');
+}
+
+/* TEXT-TO-SPEECH */
+let currentUtterance = null, speakingBtn = null;
+
+function speakCard(btn, id) {
+  if (currentUtterance && speakingBtn === btn) { speechSynthesis.cancel(); return; }
+  speechSynthesis.cancel();
+  const ann = announcements.find(a => a.id === id);
+  if (!ann) return;
+  const text = ann.title + '. ' + (ann.content || '');
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'en-US'; u.rate = 0.95;
+  if (speakingBtn) speakingBtn.classList.remove('speaking');
+  btn.classList.add('speaking'); speakingBtn = btn;
+  currentUtterance = u;
+  u.onend = () => { btn.classList.remove('speaking'); speakingBtn = null; currentUtterance = null; };
+  u.onerror = () => { btn.classList.remove('speaking'); speakingBtn = null; currentUtterance = null; };
+  speechSynthesis.speak(u);
+}
+
+/* FORM VOICE INPUT */
+let formRecognition = null, formMicTarget = null, formMicBtn = null;
+
+function startFormVoice(targetId, btn) {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { showToast('Voice not supported', true); return; }
+  if (formRecognition && formMicBtn === btn) { stopFormVoice(); return; }
+  stopFormVoice();
+  formMicTarget = document.getElementById(targetId);
+  formMicBtn = btn;
+  formRecognition = new SR();
+  formRecognition.continuous = true; formRecognition.interimResults = true; formRecognition.lang = 'en-US';
+  const startVal = formMicTarget.value;
+  formRecognition.onresult = function(e) {
+    let final = '', interim = '';
+    for (let i = 0; i < e.results.length; i++) {
+      if (e.results[i].isFinal) final += e.results[i][0].transcript;
+      else interim += e.results[i][0].transcript;
+    }
+    formMicTarget.value = startVal + (startVal ? ' ' : '') + final + interim;
+  };
+  formRecognition.onerror = function() { stopFormVoice(); };
+  formRecognition.onend = function() { if (formMicBtn) stopFormVoice(); };
+  try { formRecognition.start(); btn.classList.add('recording'); } catch(e) { showToast('Could not start voice', true); }
+}
+
+function stopFormVoice() {
+  if (formRecognition) { try { formRecognition.stop(); } catch(e) {} formRecognition = null; }
+  if (formMicBtn) { formMicBtn.classList.remove('recording'); formMicBtn = null; }
+  formMicTarget = null;
+}
+
+/* SKELETON LOADING */
+function showSkeleton() {
+  const el = document.getElementById('announcements-section');
+  el.innerHTML = Array.from({ length: 3 }, () =>
+    '<div class="skeleton-card"><div class="skeleton-line title"></div><div class="skeleton-line body"></div><div class="skeleton-line short"></div></div>'
+  ).join('');
 }
 
 /* VOICE */
@@ -1575,6 +1720,10 @@ function bindEvents() {
       else if (e.key === 'Enter') handlePinKey('enter');
     }
   });
+
+  // Form voice input
+  document.getElementById('mic-title').addEventListener('click', function() { startFormVoice('edit-title', this); });
+  document.getElementById('mic-content').addEventListener('click', function() { startFormVoice('edit-content', this); });
 
   // Voice
   const mic = document.getElementById('mic-btn');
