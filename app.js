@@ -554,6 +554,10 @@ function setDashScope(scope) {
 function renderDashboard() {
   if (!State.dashScope) State.dashScope = 'all';
   const scope = State.dashScope;
+  var sg = $('stat-grid');
+  if (sg) sg.querySelectorAll('.skeleton').forEach(function(c) { c.classList.remove('skeleton'); });
+  var df = $('dash-feed');
+  if (df) df.querySelectorAll('.skeleton').forEach(function(c) { c.remove(); });
 
   let regProjects = State.combinedView
     ? [...DB.load(DB.keys('lourensford').projects), ...DB.load(DB.keys('spier').projects)]
