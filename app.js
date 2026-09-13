@@ -4181,10 +4181,11 @@ function updateNavBadges() {
   var overdueCount = 0;
   var now = new Date();
   allProjects.concat(hwProjects.map(function(h) {
-    return { completionDate: h.completionDate || h.dueDate, status: h.status };
+    return { completionDate: h.completionDate || h.endDate || h.dueDate, status: h.status };
   })).forEach(function(p) {
-    if (p.completionDate && p.status !== 'Completed' && p.status !== 'Archived') {
-      if (new Date(p.completionDate) < now) overdueCount++;
+    var d = p.completionDate || p.endDate;
+    if (d && p.status !== 'Completed' && p.status !== 'Archived') {
+      if (new Date(d) < now) overdueCount++;
     }
   });
   document.querySelectorAll('.nav-item').forEach(function(nav) {
