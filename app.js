@@ -311,7 +311,11 @@ async function syncFromSupabase() {
 
     if (hwRows && hwRows.length > 0) {
       const mappedHW = hwRows.map(row => ({ ...row.data, id: row.id, site_id: row.site_id }));
-      saveHWProjects(mappedHW);
+      localStorage.setItem(hwKey(), JSON.stringify(mappedHW));
+      hwProjects = mappedHW;
+    } else if (hwRows) {
+      localStorage.setItem(hwKey(), JSON.stringify([]));
+      hwProjects = [];
     } else {
       const localHW = loadHWProjects();
       if (localHW.length > 0) pushHWProjectsToSupabase();
@@ -434,6 +438,7 @@ async function pushSettingsToSupabase() {
 async function pushHWProjectsToSupabase() {
   try {
     const projs = loadHWProjects();
+    const localIds = new Set(projs.map(p => p.id));
     const rows = projs.map(p => ({
       id:           p.id,
       site_id:      currentSiteId,
@@ -447,6 +452,12 @@ async function pushHWProjectsToSupabase() {
       data:         p,
     }));
     if (rows.length) await SB.upsert('hw_projects', rows);
+    const remote = await SB.get('hw_projects?site_id=eq.' + currentSiteId + '&select=id');
+    if (remote) {
+      for (const r of remote) {
+        if (!localIds.has(r.id)) await SB.delete('hw_projects?id=eq.' + r.id);
+      }
+    }
   } catch (e) { console.error('pushHWProjects error:', e); }
 }
 
