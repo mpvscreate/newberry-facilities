@@ -1,11 +1,11 @@
 {
-  "name": "Newberry One",
-  "short_name": "Newberry One",
-  "description": "School staff communication app",
-  "start_url": "./connect.html",
+  "name": "Newberry House Facilities Manager",
+  "short_name": "Facilities",
+  "description": "Facilities management application for Newberry House Montessori School",
+  "start_url": "./",
   "display": "standalone",
-  "background_color": "#f4f7f4",
-  "theme_color": "#4a8055",
+  "background_color": "#FFFDEE",
+  "theme_color": "#1F3D1D",
   "orientation": "portrait-primary",
   "icons": [
     {
