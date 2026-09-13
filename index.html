@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -7,6 +7,10 @@
   <meta name="theme-color" content="#1F3D1D">
   <title>Newberry House Facilities Manager</title>
   <link rel="stylesheet" href="./styles.css">
+  <link rel="manifest" href="./manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="NHFM">
 </head>
 <body>
 
@@ -31,12 +35,12 @@
     <button class="nav-item" data-page="reports" type="button"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Reports</button>
     <button class="nav-item" data-page="settings" type="button"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Settings</button>
   </nav>
-  <div class="sidebar-footer"><div class="version">NHFM v2.0 Â· 2025</div></div>
+  <div class="sidebar-footer"><div class="version">NHFM v2.0 · 2025</div></div>
 </aside>
 
 <main id="main">
   <header id="topbar">
-    <button id="menu-toggle" aria-label="Toggle navigation menu" aria-expanded="false">â˜°</button>
+    <button id="menu-toggle" aria-label="Toggle navigation menu" aria-expanded="false">☰</button>
     <h1 id="topbar-title">Garden Projects</h1>
 
     <!-- Site switcher -->
@@ -53,12 +57,12 @@
     </div>
 
     <!-- Sync status -->
-    <span id="sync-status" class="sync-indicator sync-ok">âœ“ Synced</span>
+    <span id="sync-status" class="sync-indicator sync-ok">✓ Synced</span>
 
     <div class="topbar-search">
       <label for="global-search" class="sr-only">Search</label>
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" id="global-search" placeholder="Searchâ€¦" autocomplete="off">
+      <input type="search" id="global-search" placeholder="Search…" autocomplete="off">
     </div>
     <button class="btn btn-primary no-print" onclick="navigate(&#39;newproject&#39;)" id="new-project-btn">+ New Project</button>
   </header>
@@ -68,14 +72,14 @@
     <!-- DASHBOARD -->
     <section id="page-dashboard" class="page" aria-label="Dashboard">
 
-      <!-- â”€â”€ Dashboard scope tabs â”€â”€ -->
+      <!-- ── Dashboard scope tabs ── -->
       <div class="dash-scope-tabs" id="dash-scope-tabs">
         <button class="dash-scope-tab active" data-scope="all" onclick="setDashScope('all')">All</button>
         <button class="dash-scope-tab" data-scope="projects" onclick="setDashScope('projects')">Projects</button>
         <button class="dash-scope-tab" data-scope="holidaywork" onclick="setDashScope('holidaywork')">Holiday Work</button>
       </div>
 
-      <!-- â”€â”€ Stat Cards â”€â”€ -->
+      <!-- ── Stat Cards ── -->
       <div class="stat-grid" id="stat-grid">
         <div class="stat-card stat-card-clickable" onclick="filterAndGo(&#39;all&#39;)" title="View all projects">
           <div class="stat-label">Total Projects</div>
@@ -100,7 +104,7 @@
         <div class="stat-card" id="stat-budget-card">
           <div class="stat-label">Total Budget</div>
           <div class="stat-value" id="stat-budget" style="font-size:1rem">R&nbsp;105&nbsp;000,00</div>
-          <div class="stat-sub" id="stat-variance-sub" style="color: rgb(46, 125, 50);">â–¼ Under by R&nbsp;100&nbsp;000,00</div>
+          <div class="stat-sub" id="stat-variance-sub" style="color: rgb(46, 125, 50);">▼ Under by R&nbsp;100&nbsp;000,00</div>
         </div>
         <div class="stat-card" id="stat-spend-card">
           <div class="stat-label">Actual Spend</div>
@@ -109,10 +113,10 @@
         </div>
       </div>
 
-      <!-- â”€â”€ Alerts â”€â”€ -->
-      <div id="alerts-container" class="alert-strip"><div class="alert alert-info" onclick="openDashDrawer(&#39;mqfadgviwrz4c&#39;)" style="cursor:pointer">Work starts in 3 day(s): <strong>Classroom Upgrade</strong> <span style="float:right;font-size:.75rem;opacity:.7">View â€º</span></div></div>
+      <!-- ── Alerts ── -->
+      <div id="alerts-container" class="alert-strip"><div class="alert alert-info" onclick="openDashDrawer(&#39;mqfadgviwrz4c&#39;)" style="cursor:pointer">Work starts in 3 day(s): <strong>Classroom Upgrade</strong> <span style="float:right;font-size:.75rem;opacity:.7">View ›</span></div></div>
 
-      <!-- â”€â”€ Analytics + Project List side by side â”€â”€ -->
+      <!-- ── Analytics + Project List side by side ── -->
       <div class="dash-main-grid">
 
         <!-- LEFT: Analytics panel -->
@@ -120,7 +124,7 @@
           <div class="panel open" id="charts-panel">
             <div class="panel-header">
               <h3 class="panel-title">Analytics</h3>
-              <span class="panel-toggle">â–¼</span>
+              <span class="panel-toggle">▼</span>
             </div>
             <div class="panel-body" style="padding:16px">
 
@@ -142,7 +146,7 @@
     </svg>
     <div class="chart-legend" style="gap:4px"><div class="chart-legend-item">
       <span class="chart-legend-dot" style="background:#388e3c"></span>
-      <span>Approvedâ€‰<strong>(1)</strong></span>
+      <span>Approved <strong>(1)</strong></span>
     </div></div>
   </div></div>
               </div>
@@ -150,7 +154,7 @@
                 <div id="chart-category-bar">
     <svg viewBox="0 0 254 36" style="width:100%;max-width:254px;display:block;overflow:visible">
       
-      <text x="86" y="12" text-anchor="end" font-size="8" fill="#555" font-weight="600" style="font-family:&#39;Noto Sans&#39;,Arial,sans-serif">Building Worâ€¦</text>
+      <text x="86" y="12" text-anchor="end" font-size="8" fill="#555" font-weight="600" style="font-family:&#39;Noto Sans&#39;,Arial,sans-serif">Building Wor…</text>
       <rect x="90" y="4" width="160.0" height="10" rx="2" fill="#7DA24B"></rect>
       <text x="247" y="12" text-anchor="end" font-size="7" fill="#fff" style="font-family:&#39;Noto Sans&#39;,Arial,sans-serif">R&nbsp;105&nbsp;000,00</text>
       <rect x="90" y="16" width="7.6" height="10" rx="2" fill="#1F3D1D"></rect>
@@ -215,26 +219,26 @@
           <div class="card-header">
             <h3 class="card-title" id="dash-feed-title">3 Projects</h3>
             <div style="display:flex;gap:8px;align-items:center">
-              <input type="text" id="dash-search" placeholder="Searchâ€¦" style="width:140px;font-size:.8rem;padding:5px 10px" oninput="renderDashFeed()">
+              <input type="text" id="dash-search" placeholder="Search…" style="width:140px;font-size:.8rem;padding:5px 10px" oninput="renderDashFeed()">
               <button class="btn btn-outline btn-sm" onclick="navigate(&#39;projects&#39;)">Full List</button>
               <button class="btn btn-primary btn-sm" onclick="navigate(&#39;newproject&#39;)">+ New</button>
             </div>
           </div>
           <div class="card-body" style="padding:0;max-height:520px;overflow-y:auto">
-            <div id="dash-project-cards"><div class="dash-feed-card" onclick="openDashDrawer(&#39;mqfadgviwrz4c&#39;)"><div class="dfc-header"><div><div class="dfc-ref">Protea Aftercare Toilet</div><div class="dfc-name">Classroom Upgrade</div></div><div style="text-align:right;flex-shrink:0"><span class="badge badge-approved">Approved</span><div style="margin-top:4px;font-size:.72rem"><span style="color:var(--text-muted)">24d left</span></div></div></div><div class="dfc-meta"><span class="cat-badge">Building Works</span><span>ðŸ“ Protea Aftercare</span><span>ðŸ— Jonathan</span><span onclick="event.stopPropagation();openWhatsApp(&#39;0827410469&#39;,WA_MSG.quoteRequest(State.projects.find(function(x){return x.id===&#39;mqfadgviwrz4c&#39;})||{}))" style="cursor:pointer;color:#25d366;font-weight:600" title="WhatsApp contractor">WhatsApp</span></div><div class="dfc-budget"><div style="display:flex;justify-content:space-between;font-size:.72rem;margin-bottom:3px"><span style="color:var(--text-muted)">Budget: R&nbsp;105&nbsp;000,00</span><span style="color:var(--text-muted);font-weight:600">5% spent</span></div><div style="height:4px;background:var(--platinum);border-radius:2px;overflow:hidden"><div style="height:100%;width:5%;background:var(--pk-green);border-radius:2px"></div></div></div></div><div class="dash-feed-card" onclick="openGardenModal(&#39;mqg7q4dc6e06z&#39;)"><div class="dfc-header"><div><div class="dfc-ref"><span style="font-size:.68rem;background:#d4edda;color:var(--pk-green);padding:1px 7px;border-radius:10px;font-weight:700">GARDEN MODULE</span></div><div class="dfc-name">MS Garden<span style="font-size:.74rem;font-weight:400;color:var(--text-muted);margin-left:6px">Â· Tomatoes &amp; Lettuce </span></div></div><div style="text-align:right;flex-shrink:0"><span class="badge badge-in-progress">In Progress</span></div></div><div class="dfc-meta"><span class="cat-badge">Garden Projects</span><span>ðŸ“ Main Veggie Patch</span></div></div><div class="dash-feed-card" onclick="openGardenModal(&#39;mqg6ri96o7azi&#39;)"><div class="dfc-header"><div><div class="dfc-ref"><span style="font-size:.68rem;background:#d4edda;color:var(--pk-green);padding:1px 7px;border-radius:10px;font-weight:700">GARDEN MODULE</span></div><div class="dfc-name">Main<span style="font-size:.74rem;font-weight:400;color:var(--text-muted);margin-left:6px">Â· Tomatoes</span></div></div><div style="text-align:right;flex-shrink:0"><span class="badge badge-in-progress">In Progress</span></div></div><div class="dfc-meta"><span class="cat-badge">Garden Projects</span><span>ðŸ“ Upper Elementary </span></div></div></div>
+            <div id="dash-project-cards"><div class="dash-feed-card" onclick="openDashDrawer(&#39;mqfadgviwrz4c&#39;)"><div class="dfc-header"><div><div class="dfc-ref">Protea Aftercare Toilet</div><div class="dfc-name">Classroom Upgrade</div></div><div style="text-align:right;flex-shrink:0"><span class="badge badge-approved">Approved</span><div style="margin-top:4px;font-size:.72rem"><span style="color:var(--text-muted)">24d left</span></div></div></div><div class="dfc-meta"><span class="cat-badge">Building Works</span><span>📍 Protea Aftercare</span><span>🏗 Jonathan</span><span onclick="event.stopPropagation();openWhatsApp(&#39;0827410469&#39;,WA_MSG.quoteRequest(State.projects.find(function(x){return x.id===&#39;mqfadgviwrz4c&#39;})||{}))" style="cursor:pointer;color:#25d366;font-weight:600" title="WhatsApp contractor">WhatsApp</span></div><div class="dfc-budget"><div style="display:flex;justify-content:space-between;font-size:.72rem;margin-bottom:3px"><span style="color:var(--text-muted)">Budget: R&nbsp;105&nbsp;000,00</span><span style="color:var(--text-muted);font-weight:600">5% spent</span></div><div style="height:4px;background:var(--platinum);border-radius:2px;overflow:hidden"><div style="height:100%;width:5%;background:var(--pk-green);border-radius:2px"></div></div></div></div><div class="dash-feed-card" onclick="openGardenModal(&#39;mqg7q4dc6e06z&#39;)"><div class="dfc-header"><div><div class="dfc-ref"><span style="font-size:.68rem;background:#d4edda;color:var(--pk-green);padding:1px 7px;border-radius:10px;font-weight:700">GARDEN MODULE</span></div><div class="dfc-name">MS Garden<span style="font-size:.74rem;font-weight:400;color:var(--text-muted);margin-left:6px">· Tomatoes &amp; Lettuce </span></div></div><div style="text-align:right;flex-shrink:0"><span class="badge badge-in-progress">In Progress</span></div></div><div class="dfc-meta"><span class="cat-badge">Garden Projects</span><span>📍 Main Veggie Patch</span></div></div><div class="dash-feed-card" onclick="openGardenModal(&#39;mqg6ri96o7azi&#39;)"><div class="dfc-header"><div><div class="dfc-ref"><span style="font-size:.68rem;background:#d4edda;color:var(--pk-green);padding:1px 7px;border-radius:10px;font-weight:700">GARDEN MODULE</span></div><div class="dfc-name">Main<span style="font-size:.74rem;font-weight:400;color:var(--text-muted);margin-left:6px">· Tomatoes</span></div></div><div style="text-align:right;flex-shrink:0"><span class="badge badge-in-progress">In Progress</span></div></div><div class="dfc-meta"><span class="cat-badge">Garden Projects</span><span>📍 Upper Elementary </span></div></div></div>
           </div>
         </div>
 
       </div><!-- /dash-main-grid -->
 
-      <!-- â”€â”€ Project Detail Drawer â”€â”€ -->
+      <!-- ── Project Detail Drawer ── -->
       <div id="dash-drawer" class="dash-drawer">
         <div class="dash-drawer-header">
           <div id="dash-drawer-title" class="dash-drawer-proj-name"></div>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
             <div id="dash-drawer-wa"></div>
             <button class="btn btn-primary btn-sm" id="dash-drawer-edit-btn">Edit Project</button>
-            <button class="dash-drawer-close" onclick="closeDashDrawer()">Ã—</button>
+            <button class="dash-drawer-close" onclick="closeDashDrawer()">×</button>
           </div>
         </div>
         <div id="dash-drawer-body" class="dash-drawer-body"></div>
@@ -248,7 +252,7 @@
       <div class="section-header">
         <h2 class="section-title">All Projects</h2>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <input type="text" placeholder="Searchâ€¦" style="width:180px" oninput="State.projectSearch=this.value;State.projectPage=1;renderProjectList()">
+          <input type="text" placeholder="Search…" style="width:180px" oninput="State.projectSearch=this.value;State.projectPage=1;renderProjectList()">
           <select style="width:170px" onchange="State.projectFilter=this.value;State.projectPage=1;renderProjectList()">
             <option value="all">All Categories</option>
             <option value="Building Works">Building Works</option>
@@ -268,14 +272,14 @@
           <div class="table-wrap">
             <table>
               <thead><tr>
-                <th onclick="sortProjects(&#39;projectNumber&#39;)">Ref â‡…</th>
-                <th onclick="sortProjects(&#39;projectName&#39;)">Project Name â‡…</th>
-                <th onclick="sortProjects(&#39;category&#39;)">Category â‡…</th>
+                <th onclick="sortProjects(&#39;projectNumber&#39;)">Ref ⇅</th>
+                <th onclick="sortProjects(&#39;projectName&#39;)">Project Name ⇅</th>
+                <th onclick="sortProjects(&#39;category&#39;)">Category ⇅</th>
                 <th id="col-site" style="display:none">Campus</th>
-                <th onclick="sortProjects(&#39;location&#39;)">Location â‡…</th>
-                <th onclick="sortProjects(&#39;estimatedBudget&#39;)">Budget â‡…</th>
-                <th onclick="sortProjects(&#39;status&#39;)">Status â‡…</th>
-                <th onclick="sortProjects(&#39;dateCreated&#39;)">Created â‡…</th>
+                <th onclick="sortProjects(&#39;location&#39;)">Location ⇅</th>
+                <th onclick="sortProjects(&#39;estimatedBudget&#39;)">Budget ⇅</th>
+                <th onclick="sortProjects(&#39;status&#39;)">Status ⇅</th>
+                <th onclick="sortProjects(&#39;dateCreated&#39;)">Created ⇅</th>
                 <th>Actions</th>
               </tr></thead>
               <tbody id="project-list-body"><tr><td colspan="8" class="table-empty">No projects.</td></tr></tbody>
@@ -292,7 +296,7 @@
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
           <label style="font-size:.8rem;color:var(--text-muted)">Template:</label>
           <select id="template-select" style="width:200px">
-            <option value="">â€” Apply template â€”</option>
+            <option value="">— Apply template —</option>
             <option>Classroom Upgrade</option>
             <option>Building Renovation</option>
             <option>Sports Facility Upgrade</option>
@@ -310,7 +314,7 @@
 
       <!-- General Information -->
       <div class="panel open">
-        <div class="panel-header"><h3 class="panel-title">General Information</h3><span class="panel-toggle">â–¼</span></div>
+        <div class="panel-header"><h3 class="panel-title">General Information</h3><span class="panel-toggle">▼</span></div>
         <div class="panel-body">
           <div class="form-grid">
             <div class="form-group"><label for="f-projectNumber">Project Reference Number</label><input type="text" id="f-projectNumber" placeholder="Auto-generated"></div>
@@ -329,11 +333,11 @@
               </select>
             </div>
             <div class="form-group full"><label for="f-projectName">Project Name *</label><input type="text" id="f-projectName" placeholder="Enter a clear descriptive project name"></div>
-            <div class="form-group full"><label for="f-description">Description</label><textarea id="f-description" placeholder="Describe the scope of work, reason for the project, and expected outcomeâ€¦"></textarea></div>
+            <div class="form-group full"><label for="f-description">Description</label><textarea id="f-description" placeholder="Describe the scope of work, reason for the project, and expected outcome…"></textarea></div>
             <div class="form-group">
               <label for="f-category">Category</label>
               <select id="f-category">
-                <option value="">â€” Select â€”</option>
+                <option value="">— Select —</option>
                 <option value="Building Works">Building Works</option>
                 <option value="Garden Projects">Garden Projects</option>
                 <option value="Maintenance">Maintenance</option>
@@ -347,32 +351,32 @@
             <div class="form-group">
               <label for="f-priority">Priority</label>
               <select id="f-priority">
-                <option value="">â€” Select â€”</option>
+                <option value="">— Select —</option>
                 <option value="High">High</option>
                 <option value="Medium">Medium</option>
                 <option value="Low">Low</option>
               </select>
             </div>
-            <div class="form-group full"><label for="f-location">Location / Area</label><input type="text" id="f-location" placeholder="e.g. Block C Room 14, Main Hall, Lower Fieldâ€¦"></div>
+            <div class="form-group full"><label for="f-location">Location / Area</label><input type="text" id="f-location" placeholder="e.g. Block C Room 14, Main Hall, Lower Field…"></div>
           </div>
         </div>
       </div>
 
       <!-- Financial Information -->
       <div class="panel">
-        <div class="panel-header"><h3 class="panel-title">Financial Information</h3><span class="panel-toggle">â–¼</span></div>
+        <div class="panel-header"><h3 class="panel-title">Financial Information</h3><span class="panel-toggle">▼</span></div>
         <div class="panel-body">
           <div class="form-grid three">
             <div class="form-group"><label for="f-estimatedBudget">Estimated Budget (R)</label><input type="number" id="f-estimatedBudget" placeholder="0.00" step="0.01" min="0"></div>
             <div class="form-group"><label for="f-approvedBudget">Approved Budget (R)</label><input type="number" id="f-approvedBudget" placeholder="0.00" step="0.01" min="0"></div>
-            <div class="form-group"><label for="f-fundingSource">Funding Source</label><input type="text" id="f-fundingSource" placeholder="e.g. Maintenance Fund, Capital Budgetâ€¦"></div>
+            <div class="form-group"><label for="f-fundingSource">Funding Source</label><input type="text" id="f-fundingSource" placeholder="e.g. Maintenance Fund, Capital Budget…"></div>
           </div>
         </div>
       </div>
 
       <!-- Contractor Information -->
       <div class="panel">
-        <div class="panel-header"><h3 class="panel-title">Contractor Information</h3><span class="panel-toggle">â–¼</span></div>
+        <div class="panel-header"><h3 class="panel-title">Contractor Information</h3><span class="panel-toggle">▼</span></div>
         <div class="panel-body">
           <div class="form-grid">
             <div class="form-group"><label for="f-contractorName">Contractor / Company Name</label><input type="text" id="f-contractorName" placeholder="Company name"></div>
@@ -385,7 +389,7 @@
 
       <!-- Timeline -->
       <div class="panel">
-        <div class="panel-header"><h3 class="panel-title">Timeline</h3><span class="panel-toggle">â–¼</span></div>
+        <div class="panel-header"><h3 class="panel-title">Timeline</h3><span class="panel-toggle">▼</span></div>
         <div class="panel-body">
           <div class="form-grid">
             <div class="form-group"><label for="f-requestDate">Request Date</label><input type="date" id="f-requestDate" onchange="renderGantt()"></div>
@@ -400,11 +404,11 @@
             <div id="timeline-container"></div>
           </div>
 
-          <!-- Gantt Chart â€” collapsible sub-panel -->
+          <!-- Gantt Chart — collapsible sub-panel -->
           <div class="sub-panel" id="gantt-sub-panel" style="margin-top:20px">
             <div class="sub-panel-header" onclick="toggleGanttPanel()">
               <span class="sub-panel-title">Gantt Chart</span>
-              <span class="sub-panel-toggle" id="gantt-toggle-icon">â–¼</span>
+              <span class="sub-panel-toggle" id="gantt-toggle-icon">▼</span>
             </div>
             <div class="sub-panel-body" id="gantt-panel-body">
               <div id="gantt-container">
@@ -418,15 +422,15 @@
 
       <!-- Notes -->
       <div class="panel">
-        <div class="panel-header"><h3 class="panel-title">Notes &amp; Additional Information</h3><span class="panel-toggle">â–¼</span></div>
+        <div class="panel-header"><h3 class="panel-title">Notes &amp; Additional Information</h3><span class="panel-toggle">▼</span></div>
         <div class="panel-body">
-          <div class="form-group"><label for="f-notes">Project Notes</label><textarea id="f-notes" style="min-height:140px" placeholder="Access requirements, safety considerations, background information, special conditionsâ€¦"></textarea></div>
+          <div class="form-group"><label for="f-notes">Project Notes</label><textarea id="f-notes" style="min-height:140px" placeholder="Access requirements, safety considerations, background information, special conditions…"></textarea></div>
         </div>
       </div>
 
       <!-- Quotations -->
       <div class="panel">
-        <div class="panel-header"><h3 class="panel-title">Quotations</h3><span class="panel-toggle">â–¼</span></div>
+        <div class="panel-header"><h3 class="panel-title">Quotations</h3><span class="panel-toggle">▼</span></div>
         <div class="panel-body">
           <div style="display:flex;justify-content:flex-end;margin-bottom:14px">
             <button type="button" class="btn btn-primary btn-sm" onclick="openAddQuote()">+ Add Quotation</button>
@@ -441,7 +445,7 @@
 
       <!-- Invoices & Actual Spend -->
       <div class="panel">
-        <div class="panel-header"><h3 class="panel-title">Invoices &amp; Actual Spend</h3><span class="panel-toggle">â–¼</span></div>
+        <div class="panel-header"><h3 class="panel-title">Invoices &amp; Actual Spend</h3><span class="panel-toggle">▼</span></div>
         <div class="panel-body">
           <div style="display:flex;justify-content:flex-end;margin-bottom:14px">
             <button type="button" class="btn btn-primary btn-sm" onclick="openAddInvoice()">+ Add Invoice</button>
@@ -452,7 +456,7 @@
 
       <!-- Photographs -->
       <div class="panel">
-        <div class="panel-header"><h3 class="panel-title">Photographs</h3><span class="panel-toggle">â–¼</span></div>
+        <div class="panel-header"><h3 class="panel-title">Photographs</h3><span class="panel-toggle">▼</span></div>
         <div class="panel-body">
           <div class="upload-bar">
             <button type="button" class="btn btn-primary btn-sm" onclick="triggerPhotoUpload()">+ Upload Photos</button>
@@ -465,7 +469,7 @@
                 <option value="General">General</option>
               </select>
             </div>
-            <span class="hint-msg">JPEG, PNG, WEBP Â· Drag &amp; drop also supported</span>
+            <span class="hint-msg">JPEG, PNG, WEBP · Drag &amp; drop also supported</span>
           </div>
           <input type="file" id="photo-file-input" multiple="" accept="image/*" style="display:none" onchange="handlePhotoUpload(event)">
           <div id="photo-drop-zone" class="drop-zone no-print">Drop photos here or use the upload button above</div>
@@ -475,11 +479,11 @@
 
       <!-- Documents -->
       <div class="panel">
-        <div class="panel-header"><h3 class="panel-title">Documents &amp; Files</h3><span class="panel-toggle">â–¼</span></div>
+        <div class="panel-header"><h3 class="panel-title">Documents &amp; Files</h3><span class="panel-toggle">▼</span></div>
         <div class="panel-body">
           <div class="upload-bar">
             <button type="button" class="btn btn-primary btn-sm" onclick="triggerDocUpload()">+ Attach Documents</button>
-            <span class="hint-msg">PDF, Word, Excel, Images Â· Drag &amp; drop also supported</span>
+            <span class="hint-msg">PDF, Word, Excel, Images · Drag &amp; drop also supported</span>
           </div>
           <input type="file" id="doc-file-input" multiple="" style="display:none" onchange="handleDocUpload(event)">
           <div id="doc-drop-zone" class="drop-zone no-print">Drop documents here or use the attach button above</div>
@@ -489,7 +493,7 @@
 
       <!-- Activity Log -->
       <div class="panel">
-        <div class="panel-header"><h3 class="panel-title">Activity Log</h3><span class="panel-toggle">â–¼</span></div>
+        <div class="panel-header"><h3 class="panel-title">Activity Log</h3><span class="panel-toggle">▼</span></div>
         <div class="panel-body">
           <div id="activity-container"><p class="hint-msg">Activity will appear here after saving.</p></div>
         </div>
@@ -512,15 +516,15 @@
       <!-- Garden Cost Summary (separate from facility projects) -->
       <div id="garden-cost-panel" class="panel open" style="margin-bottom: 20px;">
         <div class="panel-header">
-          <h3 class="panel-title">Garden Cost Analysis <span style="font-size:.72rem;font-weight:400;color:rgba(255,255,255,.6);margin-left:6px">â€” separate from facility projects</span></h3>
-          <span class="panel-toggle">â–¼</span>
+          <h3 class="panel-title">Garden Cost Analysis <span style="font-size:.72rem;font-weight:400;color:rgba(255,255,255,.6);margin-left:6px">— separate from facility projects</span></h3>
+          <span class="panel-toggle">▼</span>
         </div>
         <div class="panel-body" style="padding:0">
-          <div id="garden-cost-summary-body"><div style="padding:16px 20px;border-bottom:1px solid var(--border)"><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px"><div style="text-align:center"><div class="gcost-label">Total Garden Budget</div><div class="gcost-val" style="font-size:1rem">R&nbsp;5&nbsp;000,00</div></div><div style="text-align:center"><div class="gcost-label">Total Spent</div><div class="gcost-val " style="font-size:1rem">R&nbsp;750,00</div></div><div style="text-align:center"><div class="gcost-label">Remaining</div><div class="gcost-val under" style="font-size:1rem">R&nbsp;4&nbsp;250,00</div></div><div style="text-align:center"><div class="gcost-label">Gardens Tracked</div><div class="gcost-val" style="font-size:1rem">1</div></div></div><div style="height:8px;background:var(--platinum);border-radius:4px;overflow:hidden;margin-bottom:4px"><div style="height:100%;width:15.0%;background:var(--pk-green);border-radius:4px;transition:width .4s"></div></div><div style="font-size:.72rem;color:var(--text-muted)">Overall: 15.0% of garden budget used</div></div><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.83rem"><thead><tr style="background:var(--ivory)"><th style="padding:9px 14px;text-align:left;border-bottom:2px solid var(--border);color:var(--text-muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.05em">Garden</th><th style="padding:9px 14px;text-align:left;border-bottom:2px solid var(--border);color:var(--text-muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.05em">Location</th><th style="padding:9px 14px;text-align:right;border-bottom:2px solid var(--border);color:var(--text-muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.05em">Budget</th><th style="padding:9px 14px;text-align:right;border-bottom:2px solid var(--border);color:var(--text-muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.05em">Spent</th><th style="padding:9px 14px;text-align:right;border-bottom:2px solid var(--border);color:var(--text-muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.05em">Variance</th><th style="padding:9px 14px;text-align:right;border-bottom:2px solid var(--border);color:var(--text-muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.05em">Cost/mÂ²</th><th style="padding:9px 14px;text-align:left;border-bottom:2px solid var(--border);color:var(--text-muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.05em"></th></tr></thead><tbody><tr style="border-bottom:1px solid var(--border)"><td style="padding:10px 14px"><strong style="color:var(--pk-green)">Main</strong><div style="font-size:.73rem;color:var(--text-muted)">Tomatoes</div></td><td style="padding:10px 14px;color:var(--text-muted)">Upper Elementary </td><td style="padding:10px 14px;text-align:right">R&nbsp;5&nbsp;000,00</td><td style="padding:10px 14px;text-align:right;font-weight:600;color:inherit">R&nbsp;750,00</td><td style="padding:10px 14px;text-align:right;font-weight:600;color:#2e7d32">R&nbsp;4&nbsp;250,00</td><td style="padding:10px 14px;text-align:center;color:var(--text-muted)">R&nbsp;3,75</td><td style="padding:10px 14px;text-align:right"><button class="btn btn-xs btn-outline" onclick="openGardenModal(&#39;mqg6ri96o7azi&#39;)">Edit</button></td></tr><tr style="border-bottom:1px solid var(--border)"><td style="padding:10px 14px"><strong style="color:var(--pk-green)">MS Garden</strong><div style="font-size:.73rem;color:var(--text-muted)">Tomatoes &amp; Lettuce </div></td><td style="padding:10px 14px;color:var(--text-muted)">Main Veggie Patch</td><td style="padding:10px 14px;text-align:right">â€”</td><td style="padding:10px 14px;text-align:right;font-weight:600;color:inherit">â€”</td><td style="padding:10px 14px;text-align:right;font-weight:600;color:#2e7d32">â€”</td><td style="padding:10px 14px;text-align:center;color:var(--text-muted)">â€”</td><td style="padding:10px 14px;text-align:right"><button class="btn btn-xs btn-outline" onclick="openGardenModal(&#39;mqg7q4dc6e06z&#39;)">Edit</button></td></tr></tbody><tfoot><tr style="background:var(--ivory);font-weight:700"><td colspan="3" style="padding:10px 14px;color:var(--pk-green)">Total</td><td style="padding:10px 14px;text-align:right;color:inherit">R&nbsp;750,00</td><td style="padding:10px 14px;text-align:right;color:#2e7d32">R&nbsp;4&nbsp;250,00</td><td colspan="2"></td></tr></tfoot></table></div><div style="padding:14px 20px;border-top:1px solid var(--border)"><div style="font-size:.76rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Spend by Category</div><div class="gcost-breakdown"><div class="gcost-cat-row"><span class="gcost-cat-name">Seeds &amp; Plants</span><span class="gcost-cat-bar-wrap"><span class="gcost-cat-bar" style="width:100.0%"></span></span><span class="gcost-cat-amt">R&nbsp;750,00</span></div></div></div></div>
+          <div id="garden-cost-summary-body"><div style="padding:16px 20px;border-bottom:1px solid var(--border)"><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px"><div style="text-align:center"><div class="gcost-label">Total Garden Budget</div><div class="gcost-val" style="font-size:1rem">R&nbsp;5&nbsp;000,00</div></div><div style="text-align:center"><div class="gcost-label">Total Spent</div><div class="gcost-val " style="font-size:1rem">R&nbsp;750,00</div></div><div style="text-align:center"><div class="gcost-label">Remaining</div><div class="gcost-val under" style="font-size:1rem">R&nbsp;4&nbsp;250,00</div></div><div style="text-align:center"><div class="gcost-label">Gardens Tracked</div><div class="gcost-val" style="font-size:1rem">1</div></div></div><div style="height:8px;background:var(--platinum);border-radius:4px;overflow:hidden;margin-bottom:4px"><div style="height:100%;width:15.0%;background:var(--pk-green);border-radius:4px;transition:width .4s"></div></div><div style="font-size:.72rem;color:var(--text-muted)">Overall: 15.0% of garden budget used</div></div><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.83rem"><thead><tr style="background:var(--ivory)"><th style="padding:9px 14px;text-align:left;border-bottom:2px solid var(--border);color:var(--text-muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.05em">Garden</th><th style="padding:9px 14px;text-align:left;border-bottom:2px solid var(--border);color:var(--text-muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.05em">Location</th><th style="padding:9px 14px;text-align:right;border-bottom:2px solid var(--border);color:var(--text-muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.05em">Budget</th><th style="padding:9px 14px;text-align:right;border-bottom:2px solid var(--border);color:var(--text-muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.05em">Spent</th><th style="padding:9px 14px;text-align:right;border-bottom:2px solid var(--border);color:var(--text-muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.05em">Variance</th><th style="padding:9px 14px;text-align:right;border-bottom:2px solid var(--border);color:var(--text-muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.05em">Cost/m²</th><th style="padding:9px 14px;text-align:left;border-bottom:2px solid var(--border);color:var(--text-muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.05em"></th></tr></thead><tbody><tr style="border-bottom:1px solid var(--border)"><td style="padding:10px 14px"><strong style="color:var(--pk-green)">Main</strong><div style="font-size:.73rem;color:var(--text-muted)">Tomatoes</div></td><td style="padding:10px 14px;color:var(--text-muted)">Upper Elementary </td><td style="padding:10px 14px;text-align:right">R&nbsp;5&nbsp;000,00</td><td style="padding:10px 14px;text-align:right;font-weight:600;color:inherit">R&nbsp;750,00</td><td style="padding:10px 14px;text-align:right;font-weight:600;color:#2e7d32">R&nbsp;4&nbsp;250,00</td><td style="padding:10px 14px;text-align:center;color:var(--text-muted)">R&nbsp;3,75</td><td style="padding:10px 14px;text-align:right"><button class="btn btn-xs btn-outline" onclick="openGardenModal(&#39;mqg6ri96o7azi&#39;)">Edit</button></td></tr><tr style="border-bottom:1px solid var(--border)"><td style="padding:10px 14px"><strong style="color:var(--pk-green)">MS Garden</strong><div style="font-size:.73rem;color:var(--text-muted)">Tomatoes &amp; Lettuce </div></td><td style="padding:10px 14px;color:var(--text-muted)">Main Veggie Patch</td><td style="padding:10px 14px;text-align:right">—</td><td style="padding:10px 14px;text-align:right;font-weight:600;color:inherit">—</td><td style="padding:10px 14px;text-align:right;font-weight:600;color:#2e7d32">—</td><td style="padding:10px 14px;text-align:center;color:var(--text-muted)">—</td><td style="padding:10px 14px;text-align:right"><button class="btn btn-xs btn-outline" onclick="openGardenModal(&#39;mqg7q4dc6e06z&#39;)">Edit</button></td></tr></tbody><tfoot><tr style="background:var(--ivory);font-weight:700"><td colspan="3" style="padding:10px 14px;color:var(--pk-green)">Total</td><td style="padding:10px 14px;text-align:right;color:inherit">R&nbsp;750,00</td><td style="padding:10px 14px;text-align:right;color:#2e7d32">R&nbsp;4&nbsp;250,00</td><td colspan="2"></td></tr></tfoot></table></div><div style="padding:14px 20px;border-top:1px solid var(--border)"><div style="font-size:.76rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Spend by Category</div><div class="gcost-breakdown"><div class="gcost-cat-row"><span class="gcost-cat-name">Seeds &amp; Plants</span><span class="gcost-cat-bar-wrap"><span class="gcost-cat-bar" style="width:100.0%"></span></span><span class="gcost-cat-amt">R&nbsp;750,00</span></div></div></div></div>
         </div>
       </div>
 
-      <div id="garden-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:20px;margin-top:16px"><div class="garden-card-full"><div class="gcf-header"><div><div class="gcf-name">Main</div><div class="gcf-location">Upper Elementary  <span class="gcf-area">200 mÂ²</span></div></div><div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end"><span class="garden-badge harvest-soon">1d to harvest</span></div></div><div class="gcf-section"><div class="gcf-section-title">Planting</div><div class="gcf-grid"><div class="gcf-item"><div class="gcf-label">Crop / Plant</div><div class="gcf-val">Tomatoes</div></div><div class="gcf-item"><div class="gcf-label">Planting Date</div><div class="gcf-val">16 Jun 2026</div></div><div class="gcf-item"><div class="gcf-label">Expected Harvest</div><div class="gcf-val">17 Jun 2026</div></div></div></div><div class="gcf-section"><div class="gcf-section-title">Maintenance</div><div class="gcf-row"><span class="gcf-label">Watering</span><span class="gcf-val">Every Monday, Wednesday, Friday</span></div><div class="gcf-row"><span class="gcf-label">Weeding</span><span class="gcf-val">By Hand  Continuously </span></div><div class="gcf-row"><span class="gcf-label">Fertiliser</span><span class="gcf-val">Quarterly Compost </span></div><div class="gcf-row"><span class="gcf-label">Pest Control</span><span class="gcf-val">Weeding By hand</span></div></div><div class="gcf-section"><div class="gcf-section-title">Educational Value</div><div class="gcf-grid"><div class="gcf-item"><div class="gcf-label">Grade Level</div><div class="gcf-val">Upper Elementary</div></div></div><div class="gcf-curriculum">Montesorri</div></div><div class="gcf-section"><div class="gcf-section-title">Cost Analysis</div><div class="gcf-grid" style="margin-bottom:10px"><div class="gcf-item"><div class="gcf-label">Budget</div><div class="gcf-val">R&nbsp;5&nbsp;000,00</div></div><div class="gcf-item"><div class="gcf-label">Total Spent</div><div class="gcf-val" style="color:inherit;font-weight:700">R&nbsp;750,00</div></div><div class="gcf-item"><div class="gcf-label">Remaining</div><div class="gcf-val" style="color:#2e7d32;font-weight:700">R&nbsp;4&nbsp;250,00</div></div><div class="gcf-item"><div class="gcf-label">Cost per mÂ²</div><div class="gcf-val">R&nbsp;3,75/mÂ²</div></div></div><div style="height:6px;background:var(--platinum);border-radius:3px;overflow:hidden"><div style="height:100%;width:15%;background:var(--pk-green);border-radius:3px"></div></div><div style="font-size:.7rem;color:var(--text-muted);margin-top:3px">15% of budget</div><div style="margin-top:8px;font-size:.74rem;color:var(--text-muted)">1 expense item</div></div><div class="gcf-footer"><span>Added 16 Jun 2026</span><div style="display:flex;gap:6px"><button class="btn btn-sm btn-outline" onclick="openGardenModal(&#39;mqg6ri96o7azi&#39;)">Edit</button><button class="btn btn-sm btn-danger" onclick="deleteGarden(&#39;mqg6ri96o7azi&#39;)">Delete</button></div></div></div><div class="garden-card-full"><div class="gcf-header"><div><div class="gcf-name">MS Garden</div><div class="gcf-location">Main Veggie Patch <span class="gcf-area">400 mÂ²</span></div></div><div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end"><span class="garden-badge harvest-soon">3d to harvest</span></div></div><div class="gcf-section"><div class="gcf-section-title">Planting</div><div class="gcf-grid"><div class="gcf-item"><div class="gcf-label">Crop / Plant</div><div class="gcf-val">Tomatoes &amp; Lettuce </div></div><div class="gcf-item"><div class="gcf-label">Planting Date</div><div class="gcf-val">16 Jun 2026</div></div><div class="gcf-item"><div class="gcf-label">Expected Harvest</div><div class="gcf-val">19 Jun 2026</div></div></div></div><div class="gcf-section"><div class="gcf-section-title">Maintenance</div><div class="gcf-row"><span class="gcf-label">Watering</span><span class="gcf-val">Monday &amp; Friday</span></div><div class="gcf-row"><span class="gcf-label">Fertiliser</span><span class="gcf-val">Once a term Organic Fertiliser only</span></div><div class="gcf-row"><span class="gcf-label">Pest Control</span><span class="gcf-val">Keep aa eye on it</span></div></div><div class="gcf-section"><div class="gcf-section-title">Educational Value</div><div class="gcf-grid"><div class="gcf-item"><div class="gcf-label">Grade Level</div><div class="gcf-val">Elementary </div></div><div class="gcf-item"><div class="gcf-label">Subjects</div><div class="gcf-val">Life Skills</div></div></div><div class="gcf-curriculum">Montessori </div></div><div class="gcf-footer"><span>Added 16 Jun 2026</span><div style="display:flex;gap:6px"><button class="btn btn-sm btn-outline" onclick="openGardenModal(&#39;mqg7q4dc6e06z&#39;)">Edit</button><button class="btn btn-sm btn-danger" onclick="deleteGarden(&#39;mqg7q4dc6e06z&#39;)">Delete</button></div></div></div></div>
+      <div id="garden-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:20px;margin-top:16px"><div class="garden-card-full"><div class="gcf-header"><div><div class="gcf-name">Main</div><div class="gcf-location">Upper Elementary  <span class="gcf-area">200 m²</span></div></div><div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end"><span class="garden-badge harvest-soon">1d to harvest</span></div></div><div class="gcf-section"><div class="gcf-section-title">Planting</div><div class="gcf-grid"><div class="gcf-item"><div class="gcf-label">Crop / Plant</div><div class="gcf-val">Tomatoes</div></div><div class="gcf-item"><div class="gcf-label">Planting Date</div><div class="gcf-val">16 Jun 2026</div></div><div class="gcf-item"><div class="gcf-label">Expected Harvest</div><div class="gcf-val">17 Jun 2026</div></div></div></div><div class="gcf-section"><div class="gcf-section-title">Maintenance</div><div class="gcf-row"><span class="gcf-label">Watering</span><span class="gcf-val">Every Monday, Wednesday, Friday</span></div><div class="gcf-row"><span class="gcf-label">Weeding</span><span class="gcf-val">By Hand  Continuously </span></div><div class="gcf-row"><span class="gcf-label">Fertiliser</span><span class="gcf-val">Quarterly Compost </span></div><div class="gcf-row"><span class="gcf-label">Pest Control</span><span class="gcf-val">Weeding By hand</span></div></div><div class="gcf-section"><div class="gcf-section-title">Educational Value</div><div class="gcf-grid"><div class="gcf-item"><div class="gcf-label">Grade Level</div><div class="gcf-val">Upper Elementary</div></div></div><div class="gcf-curriculum">Montesorri</div></div><div class="gcf-section"><div class="gcf-section-title">Cost Analysis</div><div class="gcf-grid" style="margin-bottom:10px"><div class="gcf-item"><div class="gcf-label">Budget</div><div class="gcf-val">R&nbsp;5&nbsp;000,00</div></div><div class="gcf-item"><div class="gcf-label">Total Spent</div><div class="gcf-val" style="color:inherit;font-weight:700">R&nbsp;750,00</div></div><div class="gcf-item"><div class="gcf-label">Remaining</div><div class="gcf-val" style="color:#2e7d32;font-weight:700">R&nbsp;4&nbsp;250,00</div></div><div class="gcf-item"><div class="gcf-label">Cost per m²</div><div class="gcf-val">R&nbsp;3,75/m²</div></div></div><div style="height:6px;background:var(--platinum);border-radius:3px;overflow:hidden"><div style="height:100%;width:15%;background:var(--pk-green);border-radius:3px"></div></div><div style="font-size:.7rem;color:var(--text-muted);margin-top:3px">15% of budget</div><div style="margin-top:8px;font-size:.74rem;color:var(--text-muted)">1 expense item</div></div><div class="gcf-footer"><span>Added 16 Jun 2026</span><div style="display:flex;gap:6px"><button class="btn btn-sm btn-outline" onclick="openGardenModal(&#39;mqg6ri96o7azi&#39;)">Edit</button><button class="btn btn-sm btn-danger" onclick="deleteGarden(&#39;mqg6ri96o7azi&#39;)">Delete</button></div></div></div><div class="garden-card-full"><div class="gcf-header"><div><div class="gcf-name">MS Garden</div><div class="gcf-location">Main Veggie Patch <span class="gcf-area">400 m²</span></div></div><div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end"><span class="garden-badge harvest-soon">3d to harvest</span></div></div><div class="gcf-section"><div class="gcf-section-title">Planting</div><div class="gcf-grid"><div class="gcf-item"><div class="gcf-label">Crop / Plant</div><div class="gcf-val">Tomatoes &amp; Lettuce </div></div><div class="gcf-item"><div class="gcf-label">Planting Date</div><div class="gcf-val">16 Jun 2026</div></div><div class="gcf-item"><div class="gcf-label">Expected Harvest</div><div class="gcf-val">19 Jun 2026</div></div></div></div><div class="gcf-section"><div class="gcf-section-title">Maintenance</div><div class="gcf-row"><span class="gcf-label">Watering</span><span class="gcf-val">Monday &amp; Friday</span></div><div class="gcf-row"><span class="gcf-label">Fertiliser</span><span class="gcf-val">Once a term Organic Fertiliser only</span></div><div class="gcf-row"><span class="gcf-label">Pest Control</span><span class="gcf-val">Keep aa eye on it</span></div></div><div class="gcf-section"><div class="gcf-section-title">Educational Value</div><div class="gcf-grid"><div class="gcf-item"><div class="gcf-label">Grade Level</div><div class="gcf-val">Elementary </div></div><div class="gcf-item"><div class="gcf-label">Subjects</div><div class="gcf-val">Life Skills</div></div></div><div class="gcf-curriculum">Montessori </div></div><div class="gcf-footer"><span>Added 16 Jun 2026</span><div style="display:flex;gap:6px"><button class="btn btn-sm btn-outline" onclick="openGardenModal(&#39;mqg7q4dc6e06z&#39;)">Edit</button><button class="btn btn-sm btn-danger" onclick="deleteGarden(&#39;mqg7q4dc6e06z&#39;)">Delete</button></div></div></div></div>
     </section>
 
     <!-- HOLIDAY WORK -->
@@ -530,7 +534,7 @@
         <button class="btn btn-primary" onclick="openHWModal()">+ New Holiday Project</button>
       </div>
       <p style="color:var(--text-muted);font-size:.83rem;margin-bottom:20px">
-        Plan and track work scheduled during school holidays â€” renovations, building upgrades, garden upgrades and more. Each project has a scope, timeline, and status tracker.
+        Plan and track work scheduled during school holidays — renovations, building upgrades, garden upgrades and more. Each project has a scope, timeline, and status tracker.
       </p>
 
       <!-- Summary stats row -->
@@ -565,7 +569,7 @@
         <div class="card-body">
           <div class="form-group" style="margin-bottom:16px">
             <label for="report-project-select">Select Project</label>
-            <select id="report-project-select"><option value="">â€” Select a project â€”</option></select>
+            <select id="report-project-select"><option value="">— Select a project —</option></select>
           </div>
           <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
             <button class="btn btn-primary" onclick="generateReport()">Generate Report</button>
@@ -574,17 +578,17 @@
         </div>
       </div>
 
-      <!-- Action bar â€” shown only after report is generated -->
+      <!-- Action bar — shown only after report is generated -->
       <div id="report-action-bar" style="display:none;max-width:800px;margin:0 auto 16px;background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:14px 20px;box-shadow:var(--shadow);display:none">
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
           <span style="font-size:.82rem;font-weight:600;color:var(--pk-green);flex:1">Report ready</span>
           <!-- Email -->
-          <input type="email" id="report-email-to" placeholder="Recipient emailâ€¦" style="width:210px">
-          <button class="btn btn-outline" onclick="emailReport()">âœ‰&nbsp; Mail Report</button>
+          <input type="email" id="report-email-to" placeholder="Recipient email…" style="width:210px">
+          <button class="btn btn-outline" onclick="emailReport()">✉&nbsp; Mail Report</button>
           <!-- Print -->
-          <button class="btn btn-outline" onclick="printReport()">ðŸ–¶&nbsp; Print / PDF</button>
+          <button class="btn btn-outline" onclick="printReport()">🖶&nbsp; Print / PDF</button>
           <!-- Download -->
-          <button class="btn btn-primary" onclick="downloadReport()">â‡©&nbsp; Download HTML</button>
+          <button class="btn btn-primary" onclick="downloadReport()">⇩&nbsp; Download HTML</button>
         </div>
         <p class="hint-msg" style="margin-top:8px">Mail opens your email app. Print opens an isolated print window. Download saves a self-contained HTML file you can open and share.</p>
       </div>
@@ -629,12 +633,12 @@
           <div style="font-size:.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Supabase Cloud Sync</div>
           <div style="background:var(--ivory);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:10px">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-              <span id="sync-status-settings" class="sync-indicator sync-syncing">Checkingâ€¦</span>
+              <span id="sync-status-settings" class="sync-indicator sync-syncing">Checking…</span>
               <span style="font-size:.82rem;color:var(--text-secondary)">Data syncs automatically to Supabase on every save.</span>
             </div>
             <div style="display:flex;gap:10px;flex-wrap:wrap">
-              <button class="btn btn-primary btn-sm" onclick="migrateLocalToSupabase()">â‡§ Push Local Data to Supabase</button>
-              <button class="btn btn-outline btn-sm" onclick="syncFromSupabase().then(()=&gt;toast(&#39;Pulled latest from Supabase&#39;))">â‡© Pull from Supabase</button>
+              <button class="btn btn-primary btn-sm" onclick="migrateLocalToSupabase()">⇧ Push Local Data to Supabase</button>
+              <button class="btn btn-outline btn-sm" onclick="syncFromSupabase().then(()=&gt;toast(&#39;Pulled latest from Supabase&#39;))">⇩ Pull from Supabase</button>
             </div>
             <p class="hint-msg" style="margin-top:8px">Use "Push" once to upload any existing data. After that, saves sync automatically.</p>
           </div>
@@ -649,7 +653,7 @@
   <div class="modal" style="max-width:760px">
     <div class="modal-header">
       <h2 class="modal-title" id="hw-modal-title">New Holiday Project</h2>
-      <button class="modal-close" onclick="closeModal(&#39;hw-modal&#39;)" aria-label="Close dialog">Ã—</button>
+      <button class="modal-close" onclick="closeModal(&#39;hw-modal&#39;)" aria-label="Close dialog">×</button>
     </div>
     <div class="modal-body">
       <input type="hidden" id="hwf-id">
@@ -659,7 +663,7 @@
         <label for="hwf-template">Apply Template</label>
         <div style="display:flex;gap:10px">
           <select id="hwf-template" style="flex:1">
-            <option value="">â€” Choose a template to pre-fill â€”</option>
+            <option value="">— Choose a template to pre-fill —</option>
             <option value="renovation">Renovation</option>
             <option value="building">Building Upgrade</option>
             <option value="garden">Garden Upgrade</option>
@@ -674,7 +678,7 @@
 
       <!-- General info -->
       <div class="form-grid">
-        <div class="form-group full"><label for="hwf-title">Project Title *</label><input type="text" id="hwf-title" placeholder="e.g. Admin Block Renovation â€” Winter 2025"></div>
+        <div class="form-group full"><label for="hwf-title">Project Title *</label><input type="text" id="hwf-title" placeholder="e.g. Admin Block Renovation — Winter 2025"></div>
         <div class="form-group"><label for="hwf-category">Category</label>
           <select id="hwf-category">
             <option>Renovation</option>
@@ -719,25 +723,25 @@
 
       <!-- Scope panel -->
       <div class="panel open" style="margin-top:16px">
-        <div class="panel-header"><h3 class="panel-title">Scope of Work</h3><span class="panel-toggle">â–¼</span></div>
+        <div class="panel-header"><h3 class="panel-title">Scope of Work</h3><span class="panel-toggle">▼</span></div>
         <div class="panel-body">
           <div class="form-group" style="margin-bottom:12px">
             <label for="hwf-scope-summary">Scope Summary</label>
-            <textarea id="hwf-scope-summary" style="min-height:80px" placeholder="Describe the overall scope of work in 2â€“3 sentencesâ€¦"></textarea>
+            <textarea id="hwf-scope-summary" style="min-height:80px" placeholder="Describe the overall scope of work in 2–3 sentences…"></textarea>
           </div>
           <label style="font-size:.8rem;font-weight:700;color:var(--pk-green);display:block;margin-bottom:8px">Scope Items (checklist)</label>
           <div id="hwf-scope-list"></div>
           <button type="button" class="btn btn-outline btn-sm" style="margin-top:10px" onclick="addHWScopeItem()">+ Add Scope Item</button>
           <div class="form-group" style="margin-top:14px">
             <label for="hwf-exclusions">Exclusions / Out of Scope</label>
-            <textarea id="hwf-exclusions" style="min-height:54px" placeholder="What is explicitly not includedâ€¦"></textarea>
+            <textarea id="hwf-exclusions" style="min-height:54px" placeholder="What is explicitly not included…"></textarea>
           </div>
         </div>
       </div>
 
       <!-- Timeline panel -->
       <div class="panel open" style="margin-top:12px">
-        <div class="panel-header"><h3 class="panel-title">Timeline</h3><span class="panel-toggle">â–¼</span></div>
+        <div class="panel-header"><h3 class="panel-title">Timeline</h3><span class="panel-toggle">▼</span></div>
         <div class="panel-body">
           <div class="form-grid">
             <div class="form-group"><label for="hwf-plan-date">Planning Deadline</label><input type="date" id="hwf-plan-date"></div>
@@ -751,14 +755,14 @@
           <button type="button" class="btn btn-outline btn-sm" style="margin-top:8px" onclick="addHWMilestone()">+ Add Milestone</button>
           <div class="form-group" style="margin-top:14px">
             <label for="hwf-timeline-notes">Timeline Notes / Constraints</label>
-            <textarea id="hwf-timeline-notes" style="min-height:54px" placeholder="e.g. Must complete before Term 3 starts, access restrictionsâ€¦"></textarea>
+            <textarea id="hwf-timeline-notes" style="min-height:54px" placeholder="e.g. Must complete before Term 3 starts, access restrictions…"></textarea>
           </div>
         </div>
       </div>
 
       <!-- Quotations panel -->
       <div class="panel open" style="margin-top:12px">
-        <div class="panel-header"><h3 class="panel-title">Quotations</h3><span class="panel-toggle">â–¼</span></div>
+        <div class="panel-header"><h3 class="panel-title">Quotations</h3><span class="panel-toggle">▼</span></div>
         <div class="panel-body">
           <div id="hwf-quotes-list"></div>
           <div id="hwf-quote-comparison" style="margin-top:12px"></div>
@@ -768,7 +772,7 @@
 
       <!-- Actual Spend panel -->
       <div class="panel open" style="margin-top:12px">
-        <div class="panel-header"><h3 class="panel-title">Actual Spend</h3><span class="panel-toggle">â–¼</span></div>
+        <div class="panel-header"><h3 class="panel-title">Actual Spend</h3><span class="panel-toggle">▼</span></div>
         <div class="panel-body">
           <div id="hwf-spend-tracker" style="margin-bottom:12px"></div>
           <div id="hwf-invoices-list"></div>
@@ -778,9 +782,9 @@
 
       <!-- Notes -->
       <div class="panel open" style="margin-top:12px">
-        <div class="panel-header"><h3 class="panel-title">Additional Notes</h3><span class="panel-toggle">â–¼</span></div>
+        <div class="panel-header"><h3 class="panel-title">Additional Notes</h3><span class="panel-toggle">▼</span></div>
         <div class="panel-body">
-          <textarea id="hwf-notes" style="min-height:70px" placeholder="Health &amp; Safety considerations, access requirements, materials, sign-off conditionsâ€¦"></textarea>
+          <textarea id="hwf-notes" style="min-height:70px" placeholder="Health &amp; Safety considerations, access requirements, materials, sign-off conditions…"></textarea>
         </div>
       </div>
     <div class="modal-footer">
@@ -795,7 +799,7 @@
   <div class="modal">
     <div class="modal-header">
       <h2 class="modal-title" id="quote-modal-title">Add Quotation</h2>
-      <button class="modal-close" onclick="closeModal(&#39;quote-modal&#39;)" aria-label="Close dialog">Ã—</button>
+      <button class="modal-close" onclick="closeModal(&#39;quote-modal&#39;)" aria-label="Close dialog">×</button>
     </div>
     <div class="modal-body">
       <input type="hidden" id="qf-id">
@@ -804,10 +808,10 @@
         <div class="form-group"><label for="qf-dateReceived">Date Received</label><input type="date" id="qf-dateReceived"></div>
         <div class="form-group"><label for="qf-leadTime">Lead Time</label><input type="text" id="qf-leadTime" placeholder="e.g. 2 weeks"></div>
         <div class="form-group"><label for="qf-amount">Amount excl. VAT (R)</label><input type="number" id="qf-amount" placeholder="0.00" step="0.01" min="0"></div>
-        <div class="form-group"><label for="qf-vat">VAT 15% (R) â€” auto</label><input type="number" id="qf-vat" placeholder="Auto-calculated" step="0.01" min="0"></div>
-        <div class="form-group"><label for="qf-total">Total incl. VAT (R) â€” auto</label><input type="number" id="qf-total" placeholder="Auto-calculated" step="0.01" min="0"></div>
+        <div class="form-group"><label for="qf-vat">VAT 15% (R) — auto</label><input type="number" id="qf-vat" placeholder="Auto-calculated" step="0.01" min="0"></div>
+        <div class="form-group"><label for="qf-total">Total incl. VAT (R) — auto</label><input type="number" id="qf-total" placeholder="Auto-calculated" step="0.01" min="0"></div>
         <div class="form-group"><label for="qf-warranty">Warranty (months)</label><input type="number" id="qf-warranty" placeholder="e.g. 12" min="0"></div>
-        <div class="form-group full"><label for="qf-notes">Notes / Scope</label><textarea id="qf-notes" placeholder="Scope of work included, exclusions, conditionsâ€¦"></textarea></div>
+        <div class="form-group full"><label for="qf-notes">Notes / Scope</label><textarea id="qf-notes" placeholder="Scope of work included, exclusions, conditions…"></textarea></div>
       </div>
     </div>
     <div class="modal-footer">
@@ -822,7 +826,7 @@
   <div class="modal" style="max-width:720px">
     <div class="modal-header">
       <h2 class="modal-title" id="garden-modal-title">Edit Garden Project</h2>
-      <button class="modal-close" onclick="closeModal(&#39;garden-modal&#39;)" aria-label="Close dialog">Ã—</button>
+      <button class="modal-close" onclick="closeModal(&#39;garden-modal&#39;)" aria-label="Close dialog">×</button>
     </div>
     <div class="modal-body">
       <input type="hidden" id="gf-id" value="mqg7q4dc6e06z">
@@ -836,9 +840,9 @@
 
       <div id="g-tab-general" style="display: block;">
         <div class="form-grid">
-          <div class="form-group full"><label for="gf-gardenName">Garden Name *</label><input type="text" id="gf-gardenName" placeholder="e.g. Kitchen Garden, Herb Spiralâ€¦"></div>
+          <div class="form-group full"><label for="gf-gardenName">Garden Name *</label><input type="text" id="gf-gardenName" placeholder="e.g. Kitchen Garden, Herb Spiral…"></div>
           <div class="form-group"><label for="gf-location">Location</label><input type="text" id="gf-location" placeholder="e.g. Lower Courtyard"></div>
-          <div class="form-group"><label for="gf-areaSize">Area Size (mÂ²)</label><input type="number" id="gf-areaSize" placeholder="0" min="0" oninput="updateCostPerSqm()"></div>
+          <div class="form-group"><label for="gf-areaSize">Area Size (m²)</label><input type="number" id="gf-areaSize" placeholder="0" min="0" oninput="updateCostPerSqm()"></div>
           <div class="form-group"><label for="gf-contactPerson">Contact Person</label><input type="text" id="gf-contactPerson" placeholder="Name of responsible person"></div>
           <div class="form-group"><label for="gf-cellNumber">Cell Number</label><input type="tel" id="gf-cellNumber" placeholder="0XX XXX XXXX"></div>
         </div>
@@ -846,7 +850,7 @@
 
       <div id="g-tab-planting" style="display:none">
         <div class="form-grid">
-          <div class="form-group full"><label for="gf-crop">Crop / Plant</label><input type="text" id="gf-crop" placeholder="e.g. Mixed vegetables, Sunflowersâ€¦"></div>
+          <div class="form-group full"><label for="gf-crop">Crop / Plant</label><input type="text" id="gf-crop" placeholder="e.g. Mixed vegetables, Sunflowers…"></div>
           <div class="form-group"><label for="gf-plantingDate">Planting Date</label><input type="date" id="gf-plantingDate"></div>
           <div class="form-group"><label for="gf-harvestDate">Expected Harvest</label><input type="date" id="gf-harvestDate"></div>
         </div>
@@ -854,10 +858,10 @@
 
       <div id="g-tab-maintenance" style="display:none">
         <div class="form-grid">
-          <div class="form-group full"><label for="gf-wateringSchedule">Watering Schedule</label><textarea id="gf-wateringSchedule" placeholder="e.g. Mon / Wed / Fri 07:00â€¦"></textarea></div>
-          <div class="form-group full"><label for="gf-weedingSchedule">Weeding Schedule</label><textarea id="gf-weedingSchedule" placeholder="e.g. Weekly on Fridays, remove by handâ€¦"></textarea></div>
-          <div class="form-group full"><label for="gf-fertiliserSchedule">Fertiliser Schedule</label><textarea id="gf-fertiliserSchedule" placeholder="e.g. Monthly compost top dressingâ€¦"></textarea></div>
-          <div class="form-group full"><label for="gf-pestControlNotes">Pest Control Notes</label><textarea id="gf-pestControlNotes" placeholder="Integrated pest management approachâ€¦"></textarea></div>
+          <div class="form-group full"><label for="gf-wateringSchedule">Watering Schedule</label><textarea id="gf-wateringSchedule" placeholder="e.g. Mon / Wed / Fri 07:00…"></textarea></div>
+          <div class="form-group full"><label for="gf-weedingSchedule">Weeding Schedule</label><textarea id="gf-weedingSchedule" placeholder="e.g. Weekly on Fridays, remove by hand…"></textarea></div>
+          <div class="form-group full"><label for="gf-fertiliserSchedule">Fertiliser Schedule</label><textarea id="gf-fertiliserSchedule" placeholder="e.g. Monthly compost top dressing…"></textarea></div>
+          <div class="form-group full"><label for="gf-pestControlNotes">Pest Control Notes</label><textarea id="gf-pestControlNotes" placeholder="Integrated pest management approach…"></textarea></div>
         </div>
       </div>
 
@@ -865,7 +869,7 @@
         <div class="form-grid">
           <div class="form-group"><label for="gf-gradeLevel">Grade Level</label><input type="text" id="gf-gradeLevel" placeholder="e.g. Grade 4 to 7"></div>
           <div class="form-group"><label for="gf-subjectLinks">Subject Links</label><input type="text" id="gf-subjectLinks" placeholder="e.g. Natural Science, Life Skills"></div>
-          <div class="form-group full"><label for="gf-curriculumNotes">Curriculum Notes</label><textarea id="gf-curriculumNotes" placeholder="CAPS alignment, learning outcomesâ€¦"></textarea></div>
+          <div class="form-group full"><label for="gf-curriculumNotes">Curriculum Notes</label><textarea id="gf-curriculumNotes" placeholder="CAPS alignment, learning outcomes…"></textarea></div>
         </div>
       </div>
 
@@ -877,12 +881,12 @@
             <input type="number" id="gf-budget" placeholder="0.00" step="0.01" min="0" oninput="updateGardenCostSummary()">
           </div>
           <div class="form-group">
-            <label for="gf-costPerSqm">Cost per mÂ² (R)</label>
+            <label for="gf-costPerSqm">Cost per m² (R)</label>
             <input type="number" id="gf-costPerSqm" placeholder="Auto-calculated" step="0.01" min="0" readonly="" style="background:var(--ivory);color:var(--text-muted)">
           </div>
           <div class="form-group">
             <label for="gf-fundingSource">Funding Source</label>
-            <input type="text" id="gf-fundingSource" placeholder="e.g. School Fund, Donationâ€¦">
+            <input type="text" id="gf-fundingSource" placeholder="e.g. School Fund, Donation…">
           </div>
         </div>
 
@@ -899,7 +903,7 @@
       <div class="gcost-row">
         <div class="gcost-item">
           <div class="gcost-label">Budget</div>
-          <div class="gcost-val">â€”</div>
+          <div class="gcost-val">—</div>
         </div>
         <div class="gcost-item">
           <div class="gcost-label">Total Spent</div>
@@ -933,7 +937,7 @@
   <div class="modal" style="max-width:520px">
     <div class="modal-header">
       <h2 class="modal-title" id="invoice-modal-title">Add Invoice</h2>
-      <button class="modal-close" onclick="closeModal(&#39;invoice-modal&#39;)" aria-label="Close dialog">Ã—</button>
+      <button class="modal-close" onclick="closeModal(&#39;invoice-modal&#39;)" aria-label="Close dialog">×</button>
     </div>
     <div class="modal-body">
       <input type="hidden" id="if-id">
@@ -946,7 +950,7 @@
           <input type="checkbox" id="if-paid" style="width:18px;height:18px;accent-color:var(--pk-green)">
           <label for="if-paid" style="font-weight:600;color:var(--pk-green);cursor:pointer">Mark as Paid</label>
         </div>
-        <div class="form-group full"><label for="if-notes">Notes</label><textarea id="if-notes" placeholder="Additional notesâ€¦" style="min-height:60px"></textarea></div>
+        <div class="form-group full"><label for="if-notes">Notes</label><textarea id="if-notes" placeholder="Additional notes…" style="min-height:60px"></textarea></div>
       </div>
     </div>
     <div class="modal-footer">
@@ -958,11 +962,12 @@
 
 <!-- LIGHTBOX -->
 <div id="lightbox" role="dialog" aria-modal="true" aria-label="Photo preview">
-  <button id="lightbox-close" onclick="document.getElementById('lightbox').classList.remove('open')" aria-label="Close preview">Ã—</button>
+  <button id="lightbox-close" onclick="document.getElementById('lightbox').classList.remove('open')" aria-label="Close preview">×</button>
   <img src="" alt="Photo preview">
 </div>
 
 <div id="toast-container"></div>
 <script src="./app.js"></script>
+<script>if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');</script>
 
 </div></body></html>
