@@ -1,4 +1,4 @@
-const CACHE = 'ncl-v2';
+const CACHE = 'ncl-v3';
 const ASSETS = ['/cleaning.html', '/cleaning-icon-192.png', '/cleaning-icon-512.png', '/cleaning-manifest.json'];
 
 self.addEventListener('install', e => {
