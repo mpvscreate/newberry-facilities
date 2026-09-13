@@ -263,11 +263,12 @@ function loadSiteData() {
 async function syncFromSupabase() {
   setSyncStatus('syncing');
   try {
-    const [projects, contractors, gardens, settingsRows] = await Promise.all([
+    const [projects, contractors, gardens, settingsRows, hwRows] = await Promise.all([
       SB.get(`projects?site_id=eq.${currentSiteId}&select=*&order=date_created.desc`),
       SB.get(`contractors?site_id=eq.${currentSiteId}&select=*`),
       SB.get(`gardens?site_id=eq.${currentSiteId}&select=*`),
       SB.get(`settings?site_id=eq.${currentSiteId}&select=*`),
+      SB.get(`hw_projects?site_id=eq.${currentSiteId}&select=*&order=date_created.desc`),
     ]);
 
     if (projects === null) { setSyncStatus('offline'); return; }
@@ -297,12 +298,21 @@ async function syncFromSupabase() {
       DB.save(k.settings, State.settings);
     }
 
+    if (hwRows && hwRows.length > 0) {
+      const mappedHW = hwRows.map(row => ({ ...row.data, id: row.id, site_id: row.site_id }));
+      saveHWProjects(mappedHW);
+    } else {
+      const localHW = loadHWProjects();
+      if (localHW.length > 0) pushHWProjectsToSupabase();
+    }
+
     // Re-render current page with fresh data
     const page = State.currentPage;
     if (page === 'dashboard')   renderDashboard();
     if (page === 'projects')    renderProjectList();
     if (page === 'contractors') renderContractors();
     if (page === 'gardens')     { renderGardens(); renderGardenCostPanel(); }
+    if (page === 'holidaywork') renderHolidayWork();
 
     DB.save(k.syncAt, new Date().toISOString());
     setSyncStatus('synced');
