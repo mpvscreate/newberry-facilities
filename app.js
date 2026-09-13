@@ -260,8 +260,19 @@ function loadSiteData() {
 }
 
 /* ── Pull latest data from Supabase into local cache ─────── */
+function showSyncSkeletons() {
+  var sg = $('stat-grid');
+  if (sg && !sg.querySelector('.skeleton')) {
+    sg.querySelectorAll('.stat-card').forEach(function(c) { c.classList.add('skeleton'); });
+  }
+  var fc = $('dash-feed');
+  if (fc && !fc.children.length) {
+    fc.innerHTML = Array(3).fill('<div class="skeleton" style="height:72px;border-radius:var(--radius);margin-bottom:10px"></div>').join('');
+  }
+}
 async function syncFromSupabase() {
   setSyncStatus('syncing');
+  showSyncSkeletons();
   try {
     const [projects, contractors, gardens, settingsRows, hwRows] = await Promise.all([
       SB.get(`projects?site_id=eq.${currentSiteId}&select=*&order=date_created.desc`),
@@ -535,7 +546,7 @@ State.dashStatus  = 'all';   // status filter from stat card clicks
 
 function setDashScope(scope) {
   State.dashScope = scope;
-  document.querySelectorAll('.dash-scope-tab').forEach(t => t.classList.toggle('active', t.textContent.trim().toLowerCase().replace(/\s+/g,'') === scope));
+  document.querySelectorAll('.dash-scope-tab').forEach(t => t.classList.toggle('active', t.dataset.scope === scope));
   renderDashboard();
   renderDashFeed();
 }
@@ -617,6 +628,16 @@ function renderDashboard() {
     c.classList.toggle('active', c.dataset.filter === State.projectFilter);
   });
 
+  // Scope tab count badges
+  const regCount = regProjects.length;
+  const hwCount  = (scope === 'projects') ? mappedHW.length : hwProjects.length;
+  document.querySelectorAll('.dash-scope-tab').forEach(t => {
+    const s = t.dataset.scope;
+    const count = s === 'all' ? (regCount + hwCount) : s === 'projects' ? regCount : hwCount;
+    const label = s === 'all' ? 'All' : s === 'projects' ? 'Projects' : 'Holiday Work';
+    t.innerHTML = label + ' <span class="dash-scope-count">' + count + '</span>';
+  });
+
   // Project feed
   renderDashFeed();
 }
@@ -695,7 +716,8 @@ function renderDashFeed() {
     container.innerHTML = `<div class="empty-state" style="padding:40px 20px">
       <div class="empty-icon">📋</div>
       <h3>No projects found</h3>
-      <p>${search?'Try a different search term.':'Click "+ New" to add your first project.'}</p>
+      <p>${search?'Try a different search term.':'Get started by adding your first project.'}</p>
+      ${search?'':'<button class="btn btn-primary btn-sm" onclick="openProjectModal()">+ New Project</button>'}
     </div>`;
     return;
   }
@@ -710,13 +732,16 @@ function renderDashFeed() {
     var days   = p.completionDate ? Math.ceil((new Date(p.completionDate)-new Date())/86400000) : null;
     var daysStr = '';
     if (days !== null) {
-      if      (days < 0)  daysStr = '<span style="color:var(--danger);font-weight:700">' + Math.abs(days) + 'd overdue</span>';
-      else if (days === 0) daysStr = '<span style="color:var(--warning);font-weight:700">Due today</span>';
-      else                daysStr = '<span style="color:var(--text-muted)">' + days + 'd left</span>';
+      if      (days < 0)  daysStr = '<span class="hw-count-badge hw-overdue">' + Math.abs(days) + 'd overdue</span>';
+      else if (days === 0) daysStr = '<span class="hw-count-badge hw-urgent">Due today</span>';
+      else if (days <= 7)  daysStr = '<span class="hw-count-badge hw-soon">' + days + 'd left</span>';
+      else                daysStr = '<span class="hw-count-badge" style="background:var(--ivory);color:var(--text-muted)">' + days + 'd left</span>';
     }
 
     var clickFn = p._isGarden
       ? 'openGardenModal(\'' + (p._gardenId||'') + '\')'
+      : p._isHW
+      ? 'showPage(\"holidaywork\");setTimeout(function(){var el=document.getElementById(\"hwc-'+p.id+'\");if(el)el.scrollIntoView({behavior:\"smooth\",block:\"center\"})},200)'
       : 'openDashDrawer(\'' + (p.id||'') + '\')';
 
     var refHtml = p._isGarden
@@ -1933,7 +1958,7 @@ function autoSaveContractor(project) {
 function renderContractors() {
   const c = $('contractor-grid'); if (!c) return;
   if (!State.contractors.length) {
-    c.innerHTML = '<div class="empty-state"><div class="empty-icon">🏗</div><h3>No contractors yet</h3><p>Contractors are automatically saved when you add contractor details to a project.</p></div>';
+    c.innerHTML = '<div class="empty-state"><div class="empty-icon">🏗</div><h3>No contractors yet</h3><p>Contractors are automatically saved when you add contractor details to a project.</p><button class="btn btn-primary btn-sm" onclick="navigate(\'projects\')">Go to Projects</button></div>';
     return;
   }
   c.innerHTML = State.contractors.map(con => {
@@ -1969,7 +1994,7 @@ function saveContractorNotes(id) {
 function renderGardens() {
   const g = $('garden-grid'); if (!g) return;
   if (!State.gardens.length) {
-    g.innerHTML = '<div class="empty-state"><div class="empty-icon">&#127807;</div><h3>No garden projects yet</h3><p>Add your first garden project using the button above.</p></div>';
+    g.innerHTML = '<div class="empty-state"><div class="empty-icon">&#127807;</div><h3>No garden projects yet</h3><p>Track plantings, maintenance, and landscaping work.</p><button class="btn btn-primary btn-sm" onclick="openGardenModal()">+ New Garden Project</button></div>';
     return;
   }
 
@@ -2488,7 +2513,8 @@ function renderHWGrid() {
     el.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
       <div class="empty-icon">🏗</div>
       <h3>No holiday projects${hwCurrentCat!=='All'?' in this category':''}</h3>
-      <p>Click "+ New Holiday Project" to plan your first one.</p>
+      <p>${hwCurrentCat!=='All'?'Try selecting a different category.':'Plan maintenance work for school holidays.'}</p>
+      ${hwCurrentCat==='All'?'<button class="btn btn-primary btn-sm" onclick="openNewHWProject()">+ New Holiday Project</button>':''}
     </div>`;
     return;
   }
