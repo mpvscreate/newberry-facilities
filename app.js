@@ -2198,10 +2198,16 @@ function saveGarden() {
   toast('Garden project saved');
 }
 
-function deleteGarden(id) {
+async function deleteGarden(id) {
   if (!confirm('Delete this garden project?')) return;
   State.gardens = State.gardens.filter(g => g.id !== id);
-  saveGardens(); renderGardens(); renderGardenCostPanel(); toast('Deleted');
+  DB.save(DB.keys(currentSiteId).gardens, State.gardens);
+  renderGardens(); renderGardenCostPanel(); toast('Deleted');
+  if (SUPABASE_URL) {
+    setSyncStatus('syncing');
+    const res = await SB.delete('gardens?id=eq.' + id);
+    setSyncStatus(res !== null ? 'synced' : 'error');
+  }
 }
 
 function switchGardenTab(tabEl, id) {
@@ -3312,13 +3318,18 @@ function saveHWProject() {
   }
 }
 
-function deleteHWProject(id) {
+async function deleteHWProject(id) {
   if (!confirm('Delete this holiday project?')) return;
   const projs = loadHWProjects().filter(p => p.id !== id);
-  saveHWProjects(projs);
+  localStorage.setItem(hwKey(), JSON.stringify(projs));
   hwProjects = projs;
   renderHolidayWork();
   toast('Deleted');
+  if (SUPABASE_URL) {
+    setSyncStatus('syncing');
+    const res = await SB.delete('hw_projects?id=eq.' + id);
+    setSyncStatus(res !== null ? 'synced' : 'error');
+  }
 }
 
 /* ── Reports ─────────────────────────────────────────────── */
