@@ -1873,6 +1873,90 @@ select {
   box-shadow: 0 0 0 2px rgba(125,162,75,.1);
 }
 
+/* ============================================================
+   UX POLISH — ROUND 2
+   ============================================================ */
+
+/* #12 Topbar scroll shadow */
+#topbar.scrolled {
+  box-shadow: 0 2px 12px rgba(0,0,0,.08);
+  border-bottom-color: transparent;
+}
+
+/* #14 Contractor avatar initials */
+.con-avatar {
+  width: 40px; height: 40px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: .82rem; color: #fff;
+  flex-shrink: 0; letter-spacing: .02em;
+}
+.contractor-card-header {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 8px;
+}
+
+/* #15 Sidebar notification badge */
+.nav-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 18px; padding: 0 5px;
+  border-radius: 9px;
+  font-size: .65rem; font-weight: 700;
+  background: var(--danger); color: #fff;
+  margin-left: auto;
+  line-height: 1;
+}
+
+/* #18 Sort indicators */
+th[onclick] { cursor: pointer; user-select: none; position: relative; }
+th.sort-active { color: var(--pk-green); }
+th .sort-arrow { font-size: .7rem; opacity: .4; margin-left: 2px; }
+th.sort-active .sort-arrow { opacity: 1; color: var(--asp-green); }
+
+/* #19 Floating action button — mobile */
+.fab {
+  display: none;
+  position: fixed; bottom: 24px; right: 24px;
+  width: 56px; height: 56px; border-radius: 50%;
+  background: var(--pk-green); color: #fff;
+  border: none; font-size: 1.6rem; font-weight: 300;
+  box-shadow: var(--shadow-float);
+  z-index: 95; cursor: pointer;
+  align-items: center; justify-content: center;
+  transition: transform .2s var(--ease-spring), box-shadow .2s;
+}
+.fab:hover { transform: scale(1.08); box-shadow: 0 10px 36px rgba(0,0,0,.18); }
+.fab:active { transform: scale(.95); }
+@media (max-width:768px) {
+  .fab { display: flex; }
+}
+
+/* #20 Card hover lift */
+.dash-feed-card {
+  transition: transform .2s var(--ease-out), box-shadow .2s var(--ease-out);
+}
+.dash-feed-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+.garden-card {
+  transition: transform .2s var(--ease-out), box-shadow .2s var(--ease-out);
+}
+.garden-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* #16 Ctrl+K hint in search */
+.search-shortcut {
+  font-size: .65rem; font-weight: 600;
+  color: var(--text-muted);
+  background: var(--border-light);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  line-height: 1.4;
+  pointer-events: none;
+}
+
 /* ── Card financial section ── */
 .hwc-financial { border-top: 1px solid var(--border-light); padding: 12px 18px; }
 .hwc-fin-row   { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px,1fr)); gap: 8px; margin-bottom: 8px; }

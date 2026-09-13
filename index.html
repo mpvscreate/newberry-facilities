@@ -63,6 +63,7 @@
       <label for="global-search" class="sr-only">Search</label>
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input type="search" id="global-search" placeholder="Search…" autocomplete="off">
+      <kbd class="search-shortcut">⌘K</kbd>
     </div>
     <button class="btn btn-primary no-print" onclick="navigate(&#39;newproject&#39;)" id="new-project-btn">+ New Project</button>
   </header>
@@ -272,14 +273,14 @@
           <div class="table-wrap">
             <table>
               <thead><tr>
-                <th onclick="sortProjects(&#39;projectNumber&#39;)">Ref ⇅</th>
-                <th onclick="sortProjects(&#39;projectName&#39;)">Project Name ⇅</th>
-                <th onclick="sortProjects(&#39;category&#39;)">Category ⇅</th>
+                <th onclick="sortProjects(&#39;projectNumber&#39;)">Ref <span class="sort-arrow">⇅</span></th>
+                <th onclick="sortProjects(&#39;projectName&#39;)">Project Name <span class="sort-arrow">⇅</span></th>
+                <th onclick="sortProjects(&#39;category&#39;)">Category <span class="sort-arrow">⇅</span></th>
                 <th id="col-site" style="display:none">Campus</th>
-                <th onclick="sortProjects(&#39;location&#39;)">Location ⇅</th>
-                <th onclick="sortProjects(&#39;estimatedBudget&#39;)">Budget ⇅</th>
-                <th onclick="sortProjects(&#39;status&#39;)">Status ⇅</th>
-                <th onclick="sortProjects(&#39;dateCreated&#39;)">Created ⇅</th>
+                <th onclick="sortProjects(&#39;location&#39;)">Location <span class="sort-arrow">⇅</span></th>
+                <th onclick="sortProjects(&#39;estimatedBudget&#39;)">Budget <span class="sort-arrow">⇅</span></th>
+                <th onclick="sortProjects(&#39;status&#39;)">Status <span class="sort-arrow">⇅</span></th>
+                <th onclick="sortProjects(&#39;dateCreated&#39;)">Created <span class="sort-arrow">⇅</span></th>
                 <th>Actions</th>
               </tr></thead>
               <tbody id="project-list-body"><tr><td colspan="8" class="table-empty">No projects.</td></tr></tbody>
@@ -967,6 +968,7 @@
 </div>
 
 <div id="toast-container"></div>
+<button class="fab no-print" onclick="navigate('newproject')" aria-label="New project">+</button>
 <script src="./app.js"></script>
 <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');</script>
 

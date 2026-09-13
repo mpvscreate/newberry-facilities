@@ -644,6 +644,8 @@ function renderDashboard() {
 
   // Project feed
   renderDashFeed();
+  if (typeof animateCounters === 'function') setTimeout(animateCounters, 50);
+  if (typeof updateNavBadges === 'function') updateNavBadges();
 }
 
 /* ── Dashboard project feed (live, searchable, filterable) ── */
@@ -1968,8 +1970,13 @@ function renderContractors() {
   c.innerHTML = State.contractors.map(con => {
     const projs = State.projects.filter(p => p.contractorName && p.contractorName.toLowerCase() === con.name.toLowerCase());
     const spend = projs.reduce((s,p) => s + parseFloat(p.approvedBudget||p.estimatedBudget||0), 0);
+    var initials = con.name.split(/\s+/).map(w=>w[0]).join('').substring(0,2).toUpperCase();
+    var hue = (con.name.charCodeAt(0)*37 + (con.name.charCodeAt(1)||0)*59) % 360;
     return `<div class="contractor-card">
-      <div class="contractor-name">${esc(con.name)}</div>
+      <div class="contractor-card-header">
+        <div class="con-avatar" style="background:hsl(${hue},45%,42%)">${initials}</div>
+        <div class="contractor-name">${esc(con.name)}</div>
+      </div>
       <div class="contractor-meta">
         ${con.contactPerson ? 'Contact: '+esc(con.contactPerson)+'<br>' : ''}
         ${con.email ? 'Email: <a href="mailto:'+esc(con.email)+'">'+esc(con.email)+'</a><br>' : ''}
@@ -4122,3 +4129,97 @@ function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
+/* ============================================================
+   UX POLISH — ROUND 2
+   ============================================================ */
+
+/* #12 Topbar scroll shadow */
+(function() {
+  var content = document.getElementById('content');
+  if (!content) return;
+  var topbar = document.getElementById('topbar');
+  if (!topbar) return;
+  content.addEventListener('scroll', function() {
+    topbar.classList.toggle('scrolled', content.scrollTop > 8);
+  });
+  window.addEventListener('scroll', function() {
+    topbar.classList.toggle('scrolled', window.scrollY > 8);
+  });
+})();
+
+/* #13 Animated stat counters */
+function animateCounters() {
+  document.querySelectorAll('.stat-value').forEach(function(el) {
+    var text = el.textContent.trim();
+    var match = text.match(/^R?\s?([\d\s,.]+)/);
+    if (!match) return;
+    var raw = match[1].replace(/\s/g,'').replace(/,/g,'');
+    var target = parseFloat(raw);
+    if (isNaN(target) || target === 0) return;
+    var isRand = text.charAt(0) === 'R';
+    var start = 0;
+    var duration = 600;
+    var startTime = null;
+    function step(ts) {
+      if (!startTime) startTime = ts;
+      var progress = Math.min((ts - startTime) / duration, 1);
+      var eased = 1 - Math.pow(1 - progress, 3);
+      var current = Math.round(start + (target - start) * eased);
+      el.textContent = isRand ? fmt.currency(current) : current.toLocaleString();
+      if (progress < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  });
+}
+
+/* #15 Notification badge on sidebar */
+function updateNavBadges() {
+  var allProjects = State.projects || [];
+  var hwProjects = [];
+  try { hwProjects = JSON.parse(localStorage.getItem(hwKey()) || '[]'); } catch(e) {}
+  var overdueCount = 0;
+  var now = new Date();
+  allProjects.concat(hwProjects.map(function(h) {
+    return { completionDate: h.completionDate || h.dueDate, status: h.status };
+  })).forEach(function(p) {
+    if (p.completionDate && p.status !== 'Completed' && p.status !== 'Archived') {
+      if (new Date(p.completionDate) < now) overdueCount++;
+    }
+  });
+  document.querySelectorAll('.nav-item').forEach(function(nav) {
+    var existing = nav.querySelector('.nav-badge');
+    if (existing) existing.remove();
+    if (nav.dataset.page === 'dashboard' && overdueCount > 0) {
+      nav.insertAdjacentHTML('beforeend', '<span class="nav-badge">' + overdueCount + '</span>');
+    }
+  });
+}
+
+/* #16 Ctrl+K keyboard shortcut */
+document.addEventListener('keydown', function(e) {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+    e.preventDefault();
+    var input = document.getElementById('global-search');
+    if (input) { input.focus(); input.select(); }
+  }
+});
+
+/* #18 Better sort indicators */
+var _origSortProjects = typeof sortProjects === 'function' ? sortProjects : null;
+sortProjects = function(f) {
+  if (_origSortProjects) _origSortProjects(f);
+  document.querySelectorAll('#project-list-body').forEach(function(){});
+  var dir = State.projectSort.dir;
+  var field = State.projectSort.field;
+  document.querySelectorAll('th[onclick*="sortProjects"]').forEach(function(th) {
+    th.classList.remove('sort-active');
+    var arrow = th.querySelector('.sort-arrow');
+    if (arrow) arrow.textContent = '⇅';
+    var col = th.getAttribute('onclick').match(/sortProjects\('(\w+)'\)/);
+    if (col && col[1] === field) {
+      th.classList.add('sort-active');
+      if (arrow) arrow.textContent = dir === 'asc' ? '↑' : '↓';
+    }
+  });
+};
