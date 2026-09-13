@@ -239,7 +239,7 @@ function loadSiteData() {
   State.gardens     = DB.load(k.gardens);
   State.settings    = DB.loadObj(k.settings, {
     schoolName:   currentSite.name,
-    facilityMgr:  'Design & Facilities Lead',
+    facilityMgr:  'Design & Facilities',
     reportFooter: currentSite.name + ' — Facilities Department',
     emailTo:      '',
   });
