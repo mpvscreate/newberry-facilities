@@ -410,6 +410,25 @@ async function pushSettingsToSupabase() {
   } catch { /* silent */ }
 }
 
+async function pushHWProjectsToSupabase() {
+  try {
+    const projs = loadHWProjects();
+    const rows = projs.map(p => ({
+      id:           p.id,
+      site_id:      currentSiteId,
+      project_name: p.title || 'Untitled',
+      status:       p.status || 'Planning',
+      category:     p.category || null,
+      priority:     p.priority || null,
+      holiday:      p.holiday || null,
+      date_created: p.dateCreated || null,
+      date_updated: p.dateUpdated || null,
+      data:         p,
+    }));
+    if (rows.length) await SB.upsert('hw_projects', rows);
+  } catch (e) { console.error('pushHWProjects error:', e); }
+}
+
 function switchSite(siteId) {
   if (!SITES[siteId]) return;
   // Exit combined view when switching to a specific site
@@ -2335,7 +2354,7 @@ function renderGardenCostPanel() {
 // Storage key helper
 const hwKey = () => 'nhfm_holidaywork_' + currentSiteId;
 function loadHWProjects()  { try { return JSON.parse(localStorage.getItem(hwKey())) || []; } catch { return []; } }
-function saveHWProjects(d) { try { localStorage.setItem(hwKey(), JSON.stringify(d)); return true; } catch(e) { toast('Save error: '+e.message,'error'); return false; } }
+function saveHWProjects(d) { try { localStorage.setItem(hwKey(), JSON.stringify(d)); if (SUPABASE_URL) pushHWProjectsToSupabase(); return true; } catch(e) { toast('Save error: '+e.message,'error'); return false; } }
 
 // State
 let hwProjects = [];
