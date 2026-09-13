@@ -533,10 +533,40 @@ document.addEventListener('click', e => {
 State.dashFilter  = 'all';   // category filter
 State.dashStatus  = 'all';   // status filter from stat card clicks
 
+function setDashScope(scope) {
+  State.dashScope = scope;
+  document.querySelectorAll('.dash-scope-tab').forEach(t => t.classList.toggle('active', t.textContent.trim().toLowerCase().replace(/\s+/g,'') === scope));
+  renderDashboard();
+  renderDashFeed();
+}
+
 function renderDashboard() {
-  const P = State.combinedView
+  if (!State.dashScope) State.dashScope = 'all';
+  const scope = State.dashScope;
+
+  let regProjects = State.combinedView
     ? [...DB.load(DB.keys('lourensford').projects), ...DB.load(DB.keys('spier').projects)]
     : State.projects;
+
+  let hwProjects = [];
+  if (scope !== 'projects') {
+    if (State.combinedView) {
+      const hw1 = (function(){ const old = currentSiteId; currentSiteId='lourensford'; const d=loadHWProjects(); currentSiteId=old; return d; })();
+      const hw2 = (function(){ const old = currentSiteId; currentSiteId='spier'; const d=loadHWProjects(); currentSiteId=old; return d; })();
+      hwProjects = [...hw1, ...hw2];
+    } else {
+      hwProjects = loadHWProjects();
+    }
+  }
+
+  const mappedHW = hwProjects.map(h => ({
+    ...h, projectName: h.title || 'Untitled HW',
+    approvedBudget: h.budget || 0, estimatedBudget: h.budget || 0,
+    invoices: h.invoices || [], quotes: h.quotes || [],
+  }));
+  const P = scope === 'holidaywork' ? mappedHW
+          : scope === 'projects'    ? regProjects
+          : [...regProjects, ...mappedHW];
 
   const totalBudget = P.reduce((s,p) => s + parseFloat(p.approvedBudget||p.estimatedBudget||0), 0);
   const totalSpend  = P.reduce((s,p) => s + (p.invoices||[]).reduce((t,i) => t + parseFloat(i.amount||0), 0), 0);
@@ -594,10 +624,37 @@ function renderDashboard() {
 /* ── Dashboard project feed (live, searchable, filterable) ── */
 function renderDashFeed() {
   const container = $('dash-project-cards'); if (!container) return;
-  const P = State.combinedView
+  const scope = State.dashScope || 'all';
+
+  let P = State.combinedView
     ? [...DB.load(DB.keys('lourensford').projects).map(p=>({...p,_site:'Lourensford'})),
        ...DB.load(DB.keys('spier').projects).map(p=>({...p,_site:'Spier'}))]
     : State.projects;
+  if (scope === 'holidaywork') P = [];
+
+  let hwItems = [];
+  if (scope !== 'projects') {
+    let hwRaw;
+    if (State.combinedView) {
+      const old = currentSiteId;
+      currentSiteId='lourensford'; const hw1=loadHWProjects().map(p=>({...p,_site:'Lourensford'}));
+      currentSiteId='spier'; const hw2=loadHWProjects().map(p=>({...p,_site:'Spier'}));
+      currentSiteId=old; hwRaw=[...hw1,...hw2];
+    } else { hwRaw = loadHWProjects(); }
+    hwItems = hwRaw.map(h => ({
+      id: h.id, _isHW: true,
+      projectName: h.title || 'Untitled HW', projectNumber: h.holiday || 'Holiday Work',
+      category: h.category || 'Holiday Work', location: h.location || '',
+      status: h.status || 'Planning', priority: h.priority || 'Medium',
+      dateUpdated: h.dateUpdated, dateCreated: h.dateCreated,
+      contractorName: h.contractor || '',
+      approvedBudget: h.budget || 0, estimatedBudget: h.budget || 0,
+      invoices: h.invoices || [], quotes: h.quotes || [], photos: [],
+      startDate: h.startDate, completionDate: h.endDate, _site: h._site,
+    }));
+  }
+  if (scope === 'holidaywork') P = hwItems;
+  else if (scope === 'all') P = [...P, ...hwItems];
 
   const search = ($('dash-search')?.value || '').trim().toLowerCase();
   let items = [...P];

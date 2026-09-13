@@ -5,11 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Facilities management application for Newberry House Montessori School">
   <meta name="theme-color" content="#1F3D1D">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="Facilities">
-  <link rel="manifest" href="./manifest.json">
-  <link rel="apple-touch-icon" href="icon-192.png">
   <title>Newberry House Facilities Manager</title>
   <link rel="stylesheet" href="./styles.css">
 </head>
@@ -72,6 +67,13 @@
 
     <!-- DASHBOARD -->
     <section id="page-dashboard" class="page" aria-label="Dashboard">
+
+      <!-- â”€â”€ Dashboard scope tabs â”€â”€ -->
+      <div class="dash-scope-tabs" id="dash-scope-tabs">
+        <button class="dash-scope-tab active" onclick="setDashScope('all')">All</button>
+        <button class="dash-scope-tab" onclick="setDashScope('projects')">Projects</button>
+        <button class="dash-scope-tab" onclick="setDashScope('holidaywork')">Holiday Work</button>
+      </div>
 
       <!-- â”€â”€ Stat Cards â”€â”€ -->
       <div class="stat-grid" id="stat-grid">
@@ -963,10 +965,4 @@
 <div id="toast-container"></div>
 <script src="./app.js"></script>
 
-</div><script>
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js');
-}
-</script>
-</body></html>
-
+</div></body></html>
