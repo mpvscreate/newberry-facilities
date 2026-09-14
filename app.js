@@ -2361,14 +2361,26 @@ function renderGardens() {
     html += '</div></div>';
 
     // ── Scope of Work section ──────────────────────────────
-    if (gn.scopeDescription || gn.startDate || gn.targetDate || gn.scopeNotes) {
+    var gscopeItems = gn.scopeItems || [];
+    var gscopeDone = gscopeItems.filter(function(s){return s.done}).length;
+    if (gn.scopeDescription || gn.startDate || gn.targetDate || gn.scopeNotes || gscopeItems.length) {
       html += '<div class="gcf-section">';
-      html += '<div class="gcf-section-title">Scope of Work</div>';
+      html += '<div class="gcf-section-title">Scope of Work' + (gscopeItems.length ? ' (' + gscopeDone + '/' + gscopeItems.length + ' done)' : '') + '</div>';
       if (gn.scopeDescription) html += '<div style="font-size:.85rem;color:var(--text-secondary);margin-bottom:8px;line-height:1.5">' + esc(gn.scopeDescription) + '</div>';
       html += '<div class="gcf-grid">';
       if (gn.startDate)  html += '<div class="gcf-item"><div class="gcf-label">Start Date</div><div class="gcf-val">' + fmt.date(gn.startDate) + '</div></div>';
       if (gn.targetDate) html += '<div class="gcf-item"><div class="gcf-label">Target Completion</div><div class="gcf-val">' + fmt.date(gn.targetDate) + '</div></div>';
       html += '</div>';
+      if (gscopeItems.length) {
+        var gscopePct = Math.round(gscopeDone / gscopeItems.length * 100);
+        html += '<div style="margin-top:8px"><div style="height:6px;background:var(--platinum);border-radius:3px;overflow:hidden"><div style="height:100%;width:' + gscopePct + '%;background:var(--pk-green);border-radius:3px;transition:width .3s"></div></div>';
+        html += '<div style="font-size:.7rem;color:var(--text-muted);margin-top:3px">' + gscopePct + '% complete</div></div>';
+        html += '<div class="hw-scope-list" style="margin-top:8px">';
+        html += gscopeItems.map(function(s,i) {
+          return '<label class="hw-scope-item"><input type="checkbox" ' + (s.done?'checked':'') + ' onchange="toggleGardenScopeItem(\'' + id + '\',' + i + ',this.checked)" style="accent-color:var(--pk-green)"><span style="' + (s.done?'text-decoration:line-through;opacity:.6':'') + '">' + esc(s.text) + '</span></label>';
+        }).join('');
+        html += '</div>';
+      }
       if (gn.scopeNotes) html += '<div style="font-size:.78rem;color:var(--text-muted);margin-top:6px;font-style:italic">' + esc(gn.scopeNotes) + '</div>';
       html += '</div>';
     }
@@ -2470,7 +2482,8 @@ function openGardenModal(id) {
   // Switch to general tab FIRST so all panels are in correct visibility state
   switchGardenTab(document.querySelector('#garden-modal .gm-tab'), 'g-tab-general');
 
-  // Render expense list (g-tab-costs is hidden but DOM exists — that's fine)
+  // Render scope items and expense list
+  renderGardenScopeList(gn ? gn.scopeItems || [] : []);
   renderGardenExpenseList(gn);
 
   // Delay cost calc until after modal is open and DOM settled
@@ -2480,6 +2493,45 @@ function openGardenModal(id) {
   }, 50);
 
   openModal('garden-modal');
+}
+
+function renderGardenScopeList(items) {
+  const el = $('gf-scope-list'); if (!el) return;
+  if (!items.length) { el.innerHTML = '<p class="hint-msg" style="margin-bottom:4px">No scope items yet. Click "+ Add Item" to start.</p>'; return; }
+  el.innerHTML = items.map((s,i) => `<div class="hw-scope-row" data-idx="${i}">
+    <input type="checkbox" class="hwsr-done" ${s.done?'checked':''} style="accent-color:var(--pk-green);flex-shrink:0">
+    <input type="text" class="hwsr-text" value="${esc(s.text)}" placeholder="Scope item description…" style="flex:1">
+    <button type="button" class="btn btn-xs btn-danger" onclick="this.closest('.hw-scope-row').remove()">&#215;</button>
+  </div>`).join('');
+}
+
+function addGardenScopeItem() {
+  const el = $('gf-scope-list');
+  if (el.querySelector('.hint-msg')) el.innerHTML = '';
+  const row = document.createElement('div');
+  row.className = 'hw-scope-row';
+  row.innerHTML = `
+    <input type="checkbox" class="hwsr-done" style="accent-color:var(--pk-green);flex-shrink:0">
+    <input type="text" class="hwsr-text" placeholder="e.g. Clear beds, plant seedlings, install irrigation…" style="flex:1">
+    <button type="button" class="btn btn-xs btn-danger" onclick="this.closest('.hw-scope-row').remove()">&#215;</button>`;
+  el.appendChild(row);
+  row.querySelector('.hwsr-text').focus();
+}
+
+function toggleGardenScopeItem(gardenId, idx, checked) {
+  const gn = State.gardens.find(x => x.id === gardenId);
+  if (gn && gn.scopeItems && gn.scopeItems[idx] !== undefined) {
+    gn.scopeItems[idx].done = checked;
+    saveGardens();
+    renderGardens();
+  }
+}
+
+function collectGardenScopeItems() {
+  return Array.from(document.querySelectorAll('#gf-scope-list .hw-scope-row')).map(row => ({
+    text: row.querySelector('.hwsr-text')?.value || '',
+    done: row.querySelector('.hwsr-done')?.checked || false,
+  })).filter(s => s.text.trim());
 }
 
 function saveGarden() {
@@ -2515,6 +2567,7 @@ function saveGarden() {
     startDate:          $('gf-startDate')?.value||'',
     targetDate:         $('gf-targetDate')?.value||'',
     scopeNotes:         $('gf-scopeNotes')?.value||'',
+    scopeItems:         collectGardenScopeItems(),
     expenses,
   };
   if (existingId) { const gn = State.gardens.find(x => x.id === existingId); Object.assign(gn, data); }
