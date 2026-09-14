@@ -1,8 +1,10 @@
 {
+  "id": "newberry-facilities",
   "name": "Newberry House Facilities Manager",
   "short_name": "Facilities",
   "description": "Facilities management application for Newberry House Montessori School",
-  "start_url": "./",
+  "start_url": "/index.html",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#FFFDEE",
   "theme_color": "#1F3D1D",

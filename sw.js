@@ -1,4 +1,4 @@
-const CACHE = 'nhfm-v1';
+const CACHE = 'nhfm-v2';
 
 self.addEventListener('message', e => {
   if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
