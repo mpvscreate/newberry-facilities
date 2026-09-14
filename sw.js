@@ -1,20 +1,15 @@
-const CACHE = 'nhfm-v2';
-
-self.addEventListener('message', e => {
-  if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
-});
-
-const PRECACHE = [
-  './',
-  './index.html',
-  './app.js',
-  './styles.css',
-  './manifest.json'
-];
+const CACHE = 'nhfm-v3';
 
 self.addEventListener('install', e => {
+  self.skipWaiting();
   e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(PRECACHE))
+    caches.open(CACHE).then(c => c.addAll([
+      './',
+      './index.html',
+      './app.js',
+      './styles.css',
+      './manifest.json'
+    ]))
   );
 });
 

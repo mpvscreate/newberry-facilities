@@ -1135,5 +1135,13 @@
 <button class="fab no-print" onclick="navigate('newproject')" aria-label="New project">+</button>
 <script src="./app.js"></script>
 
-</div><script>if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');</script>
+</div><script>
+if('serviceWorker' in navigator) {
+  caches.keys().then(ks => ks.forEach(k => caches.delete(k)));
+  navigator.serviceWorker.getRegistrations().then(regs => {
+    regs.forEach(r => r.unregister());
+    setTimeout(() => navigator.serviceWorker.register('./sw.js'), 500);
+  });
+}
+</script>
 </body></html>
