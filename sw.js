@@ -1,4 +1,4 @@
-const CACHE = 'nhfm-v5';
+const CACHE = 'nhfm-v6';
 
 self.addEventListener('install', e => {
   self.skipWaiting();
