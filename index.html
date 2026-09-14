@@ -988,111 +988,189 @@
 
 <!-- GARDEN MODAL -->
 <div class="modal-overlay open" id="garden-modal" role="dialog" aria-modal="true" aria-labelledby="garden-modal-title">
-  <div class="modal" style="max-width:720px">
-    <div class="modal-header">
-      <h2 class="modal-title" id="garden-modal-title">Edit Garden Project</h2>
-      <button class="modal-close" onclick="closeModal(&#39;garden-modal&#39;)" aria-label="Close dialog">×</button>
+  <div class="modal gm-modal" style="max-width:760px">
+    <div class="modal-header gm-header">
+      <div class="gm-header-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 20h10"/><path d="M12 20v-6"/><path d="M12 14c-3.5 0-6-2.5-6-6 0-3 2-5 4-5 .5 2 2 4 5 4 0 3-1.5 7-3 7z"/><path d="M12 14c3.5 0 6-2.5 6-6 0-3-2-5-4-5-.5 2-2 4-5 4 0 3 1.5 7 3 7z"/></svg>
+      </div>
+      <div class="gm-header-text">
+        <h2 class="modal-title" id="garden-modal-title">Edit Garden Project</h2>
+        <p class="gm-header-sub">Configure garden details, planting, maintenance and costs</p>
+      </div>
+      <button class="modal-close" onclick="closeModal('garden-modal')" aria-label="Close dialog">&times;</button>
     </div>
-    <div class="modal-body">
+    <div class="modal-body gm-body">
       <input type="hidden" id="gf-id" value="mqg7q4dc6e06z">
-      <div class="tabs">
-        <div class="tab active" onclick="switchGardenTab(this,&#39;g-tab-general&#39;)">General</div>
-        <div class="tab" onclick="switchGardenTab(this,&#39;g-tab-planting&#39;)">Planting</div>
-        <div class="tab" onclick="switchGardenTab(this,&#39;g-tab-maintenance&#39;)">Maintenance</div>
-        <div class="tab" onclick="switchGardenTab(this,&#39;g-tab-education&#39;)">Educational Value</div>
-        <div class="tab" onclick="switchGardenTab(this,&#39;g-tab-costs&#39;)">Cost Analysis</div>
+      <div class="gm-tabs">
+        <div class="gm-tab active" onclick="switchGardenTab(this,'g-tab-general')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          <span>General</span>
+        </div>
+        <div class="gm-tab" onclick="switchGardenTab(this,'g-tab-planting')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 20h10"/><path d="M12 20v-6"/><path d="M12 14c-3.5 0-6-2.5-6-6 0-3 2-5 4-5 .5 2 2 4 5 4 0 3-1.5 7-3 7z"/><path d="M12 14c3.5 0 6-2.5 6-6 0-3-2-5-4-5-.5 2-2 4-5 4 0 3 1.5 7 3 7z"/></svg>
+          <span>Planting</span>
+        </div>
+        <div class="gm-tab" onclick="switchGardenTab(this,'g-tab-maintenance')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10z"/><path d="M14.31 8l5.74 9.94"/><path d="M9.69 8h11.48"/><path d="M7.38 12l5.74-9.94"/><path d="M9.69 16L3.95 6.06"/><path d="M14.31 16H2.83"/><path d="M16.62 12l-5.74 9.94"/></svg>
+          <span>Maintenance</span>
+        </div>
+        <div class="gm-tab" onclick="switchGardenTab(this,'g-tab-education')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+          <span>Education</span>
+        </div>
+        <div class="gm-tab" onclick="switchGardenTab(this,'g-tab-costs')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          <span>Costs</span>
+        </div>
       </div>
 
       <div id="g-tab-general" style="display: block;">
+        <div class="gm-section-hint">Basic garden details and responsible person</div>
         <div class="form-grid">
-          <div class="form-group full"><label for="gf-gardenName">Garden Name *</label><input type="text" id="gf-gardenName" placeholder="e.g. Kitchen Garden, Herb Spiral…"></div>
-          <div class="form-group"><label for="gf-location">Location</label><input type="text" id="gf-location" placeholder="e.g. Lower Courtyard"></div>
-          <div class="form-group"><label for="gf-areaSize">Area Size (m²)</label><input type="number" id="gf-areaSize" placeholder="0" min="0" oninput="updateCostPerSqm()"></div>
-          <div class="form-group"><label for="gf-contactPerson">Contact Person</label><input type="text" id="gf-contactPerson" placeholder="Name of responsible person"></div>
-          <div class="form-group"><label for="gf-cellNumber">Cell Number</label><input type="tel" id="gf-cellNumber" placeholder="0XX XXX XXXX"></div>
+          <div class="form-group full">
+            <label for="gf-gardenName">Garden Name <span class="gm-req">*</span></label>
+            <input type="text" id="gf-gardenName" placeholder="e.g. Kitchen Garden, Herb Spiral...">
+          </div>
+          <div class="form-group">
+            <label for="gf-location">Location</label>
+            <input type="text" id="gf-location" placeholder="e.g. Lower Courtyard">
+          </div>
+          <div class="form-group">
+            <label for="gf-areaSize">Area Size (m&sup2;)</label>
+            <input type="number" id="gf-areaSize" placeholder="0" min="0" oninput="updateCostPerSqm()">
+          </div>
+        </div>
+        <div class="gm-divider"></div>
+        <div class="gm-section-label">Contact Information</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="gf-contactPerson">Contact Person</label>
+            <input type="text" id="gf-contactPerson" placeholder="Name of responsible person">
+          </div>
+          <div class="form-group">
+            <label for="gf-cellNumber">Cell Number</label>
+            <input type="tel" id="gf-cellNumber" placeholder="0XX XXX XXXX">
+          </div>
         </div>
       </div>
 
       <div id="g-tab-planting" style="display:none">
+        <div class="gm-section-hint">Track what's planted and when to expect harvest</div>
         <div class="form-grid">
-          <div class="form-group full"><label for="gf-crop">Crop / Plant</label><input type="text" id="gf-crop" placeholder="e.g. Mixed vegetables, Sunflowers…"></div>
-          <div class="form-group"><label for="gf-plantingDate">Planting Date</label><input type="date" id="gf-plantingDate"></div>
-          <div class="form-group"><label for="gf-harvestDate">Expected Harvest</label><input type="date" id="gf-harvestDate"></div>
+          <div class="form-group full">
+            <label for="gf-crop">Crop / Plant</label>
+            <input type="text" id="gf-crop" placeholder="e.g. Mixed vegetables, Sunflowers...">
+          </div>
+          <div class="form-group">
+            <label for="gf-plantingDate">Planting Date</label>
+            <input type="date" id="gf-plantingDate">
+          </div>
+          <div class="form-group">
+            <label for="gf-harvestDate">Expected Harvest</label>
+            <input type="date" id="gf-harvestDate">
+          </div>
         </div>
       </div>
 
       <div id="g-tab-maintenance" style="display:none">
+        <div class="gm-section-hint">Schedules and notes for ongoing garden care</div>
         <div class="form-grid">
-          <div class="form-group full"><label for="gf-wateringSchedule">Watering Schedule</label><textarea id="gf-wateringSchedule" placeholder="e.g. Mon / Wed / Fri 07:00…"></textarea></div>
-          <div class="form-group full"><label for="gf-weedingSchedule">Weeding Schedule</label><textarea id="gf-weedingSchedule" placeholder="e.g. Weekly on Fridays, remove by hand…"></textarea></div>
-          <div class="form-group full"><label for="gf-fertiliserSchedule">Fertiliser Schedule</label><textarea id="gf-fertiliserSchedule" placeholder="e.g. Monthly compost top dressing…"></textarea></div>
-          <div class="form-group full"><label for="gf-pestControlNotes">Pest Control Notes</label><textarea id="gf-pestControlNotes" placeholder="Integrated pest management approach…"></textarea></div>
+          <div class="form-group full">
+            <label for="gf-wateringSchedule">Watering Schedule</label>
+            <textarea id="gf-wateringSchedule" placeholder="e.g. Mon / Wed / Fri 07:00..."></textarea>
+          </div>
+          <div class="form-group full">
+            <label for="gf-weedingSchedule">Weeding Schedule</label>
+            <textarea id="gf-weedingSchedule" placeholder="e.g. Weekly on Fridays, remove by hand..."></textarea>
+          </div>
+          <div class="form-group full">
+            <label for="gf-fertiliserSchedule">Fertiliser Schedule</label>
+            <textarea id="gf-fertiliserSchedule" placeholder="e.g. Monthly compost top dressing..."></textarea>
+          </div>
+          <div class="form-group full">
+            <label for="gf-pestControlNotes">Pest Control Notes</label>
+            <textarea id="gf-pestControlNotes" placeholder="Integrated pest management approach..."></textarea>
+          </div>
         </div>
       </div>
 
       <div id="g-tab-education" style="display:none">
+        <div class="gm-section-hint">Link this garden to the school curriculum</div>
         <div class="form-grid">
-          <div class="form-group"><label for="gf-gradeLevel">Grade Level</label><input type="text" id="gf-gradeLevel" placeholder="e.g. Grade 4 to 7"></div>
-          <div class="form-group"><label for="gf-subjectLinks">Subject Links</label><input type="text" id="gf-subjectLinks" placeholder="e.g. Natural Science, Life Skills"></div>
-          <div class="form-group full"><label for="gf-curriculumNotes">Curriculum Notes</label><textarea id="gf-curriculumNotes" placeholder="CAPS alignment, learning outcomes…"></textarea></div>
+          <div class="form-group">
+            <label for="gf-gradeLevel">Grade Level</label>
+            <input type="text" id="gf-gradeLevel" placeholder="e.g. Grade 4 to 7">
+          </div>
+          <div class="form-group">
+            <label for="gf-subjectLinks">Subject Links</label>
+            <input type="text" id="gf-subjectLinks" placeholder="e.g. Natural Science, Life Skills">
+          </div>
+          <div class="form-group full">
+            <label for="gf-curriculumNotes">Curriculum Notes</label>
+            <textarea id="gf-curriculumNotes" placeholder="CAPS alignment, learning outcomes..."></textarea>
+          </div>
         </div>
       </div>
 
       <!-- COST ANALYSIS TAB -->
       <div id="g-tab-costs" style="display:none">
+        <div class="gm-section-hint">Budget tracking and expense management</div>
         <div class="form-grid three" style="margin-bottom:16px">
           <div class="form-group">
             <label for="gf-budget">Total Budget (R)</label>
             <input type="number" id="gf-budget" placeholder="0.00" step="0.01" min="0" oninput="updateGardenCostSummary()">
           </div>
           <div class="form-group">
-            <label for="gf-costPerSqm">Cost per m² (R)</label>
-            <input type="number" id="gf-costPerSqm" placeholder="Auto-calculated" step="0.01" min="0" readonly="" style="background:var(--ivory);color:var(--text-muted)">
+            <label for="gf-costPerSqm">Cost per m&sup2; (R)</label>
+            <input type="number" id="gf-costPerSqm" placeholder="Auto-calculated" step="0.01" min="0" readonly style="background:var(--ivory);color:var(--text-muted)">
           </div>
           <div class="form-group">
             <label for="gf-fundingSource">Funding Source</label>
-            <input type="text" id="gf-fundingSource" placeholder="e.g. School Fund, Donation…">
+            <input type="text" id="gf-fundingSource" placeholder="e.g. School Fund, Donation...">
           </div>
         </div>
 
         <!-- Expense line items -->
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-          <div style="font-size:.82rem;font-weight:700;color:var(--pk-green)">Expense Line Items</div>
+        <div class="gm-expense-header">
+          <div class="gm-section-label" style="margin:0">Expense Line Items</div>
           <button type="button" class="btn btn-primary btn-sm" onclick="addGardenExpenseRow()">+ Add Expense</button>
         </div>
         <div id="gf-expense-list"><p class="hint-msg">No expenses yet. Click "+ Add Expense" to start.</p></div>
 
         <!-- Running totals (live) -->
         <div id="gf-cost-summary" class="garden-cost-summary" style="margin-top:16px">
-    <div class="gcost-tracker">
-      <div class="gcost-row">
-        <div class="gcost-item">
-          <div class="gcost-label">Budget</div>
-          <div class="gcost-val">—</div>
+          <div class="gcost-tracker">
+            <div class="gcost-row">
+              <div class="gcost-item">
+                <div class="gcost-label">Budget</div>
+                <div class="gcost-val">&mdash;</div>
+              </div>
+              <div class="gcost-item">
+                <div class="gcost-label">Total Spent</div>
+                <div class="gcost-val">R&nbsp;0,00</div>
+              </div>
+              <div class="gcost-item">
+                <div class="gcost-label">Remaining</div>
+                <div class="gcost-val under">R&nbsp;0,00</div>
+              </div>
+            </div>
+            <div class="gcost-bar-outer">
+              <div class="gcost-bar-inner" style="width:0%"></div>
+            </div>
+            <div style="font-size:.72rem;color:var(--text-muted);margin-top:4px">
+              0.0% of budget used
+            </div>
+          </div>
         </div>
-        <div class="gcost-item">
-          <div class="gcost-label">Total Spent</div>
-          <div class="gcost-val ">R&nbsp;0,00</div>
-        </div>
-        <div class="gcost-item">
-          <div class="gcost-label">Remaining</div>
-          <div class="gcost-val under">R&nbsp;0,00</div>
-        </div>
-      </div>
-      <div class="gcost-bar-outer">
-        <div class="gcost-bar-inner " style="width:0%"></div>
-      </div>
-      <div style="font-size:.72rem;color:var(--text-muted);margin-top:4px">
-        0.0% of budget used
-      </div>
-      
-    </div></div>
       </div>
 
     </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal(&#39;garden-modal&#39;)">Cancel</button>
-      <button class="btn btn-primary" onclick="saveGarden()">Save Garden Project</button>
+    <div class="modal-footer gm-footer">
+      <button class="btn btn-secondary" onclick="closeModal('garden-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveGarden()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><polyline points="20 6 9 17 4 12"/></svg>
+        Save Garden Project
+      </button>
     </div>
   </div>
 </div>

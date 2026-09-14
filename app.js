@@ -2385,7 +2385,7 @@ async function deleteGarden(id) {
 }
 
 function switchGardenTab(tabEl, id) {
-  document.querySelectorAll('#garden-modal .tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('#garden-modal .gm-tab').forEach(t => t.classList.remove('active'));
   if (tabEl) tabEl.classList.add('active');
   ['g-tab-general','g-tab-planting','g-tab-maintenance','g-tab-education','g-tab-costs'].forEach(t => {
     const el = $(t); if (el) el.style.display = t===id ? 'block' : 'none';
