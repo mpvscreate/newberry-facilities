@@ -1,14 +1,14 @@
-const CACHE = 'nhfm-v3';
+const CACHE = 'nhfm-v4';
 
 self.addEventListener('install', e => {
   self.skipWaiting();
   e.waitUntil(
     caches.open(CACHE).then(c => c.addAll([
-      './',
-      './index.html',
-      './app.js',
-      './styles.css',
-      './manifest.json'
+      './styles.css?v=3',
+      './app.js?v=3',
+      './manifest.json',
+      './icon-192.png',
+      './icon-512.png'
     ]))
   );
 });
@@ -25,6 +25,7 @@ self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
   if (url.origin !== location.origin) return;
+  if (url.pathname.endsWith('.html') || url.pathname === '/') return;
   e.respondWith(
     fetch(e.request).then(res => {
       const clone = res.clone();
