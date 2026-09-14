@@ -274,12 +274,13 @@ async function syncFromSupabase() {
   setSyncStatus('syncing');
   showSyncSkeletons();
   try {
-    const [projects, contractors, gardens, settingsRows, hwRows] = await Promise.all([
+    const [projects, contractors, gardens, settingsRows, hwRows, nbRows] = await Promise.all([
       SB.get(`projects?site_id=eq.${currentSiteId}&select=*&order=date_created.desc`),
       SB.get(`contractors?site_id=eq.${currentSiteId}&select=*`),
       SB.get(`gardens?site_id=eq.${currentSiteId}&select=*`),
       SB.get(`settings?site_id=eq.${currentSiteId}&select=*`),
       SB.get(`hw_projects?site_id=eq.${currentSiteId}&select=*&order=date_created.desc`),
+      SB.get(`new_builds?site_id=eq.${currentSiteId}&select=*&order=date_created.desc`),
     ]);
 
     if (projects === null) { setSyncStatus('offline'); return; }
@@ -321,6 +322,18 @@ async function syncFromSupabase() {
       if (localHW.length > 0) pushHWProjectsToSupabase();
     }
 
+    if (nbRows && nbRows.length > 0) {
+      const mappedNB = nbRows.map(row => ({ ...row.data, id: row.id, site_id: row.site_id }));
+      localStorage.setItem(nbKey(), JSON.stringify(mappedNB));
+      nbProjects = mappedNB;
+    } else if (nbRows) {
+      localStorage.setItem(nbKey(), JSON.stringify([]));
+      nbProjects = [];
+    } else {
+      const localNB = loadNBProjects();
+      if (localNB.length > 0) pushNBProjectsToSupabase();
+    }
+
     // Re-render current page with fresh data
     const page = State.currentPage;
     if (page === 'dashboard')   renderDashboard();
@@ -328,6 +341,7 @@ async function syncFromSupabase() {
     if (page === 'contractors') renderContractors();
     if (page === 'gardens')     { renderGardens(); renderGardenCostPanel(); }
     if (page === 'holidaywork') renderHolidayWork();
+    if (page === 'newbuild')    renderNewBuild();
 
     DB.save(k.syncAt, new Date().toISOString());
     setSyncStatus('synced');
@@ -519,7 +533,7 @@ function navigate(page, projectId) {
   const titles = {
     dashboard:'Dashboard', projects:'All Projects', newproject:'New Project',
     contractors:'Contractor Database', gardens:'Garden Projects',
-    holidaywork:'Holiday Work',
+    holidaywork:'Holiday Work', newbuild:'New Build',
     reports:'Report Generator', settings:'Settings',
   };
   $('topbar-title').textContent = titles[page] || '';
@@ -530,6 +544,7 @@ function navigate(page, projectId) {
   if (page === 'contractors')  renderContractors();
   if (page === 'gardens')      { renderGardens(); renderGardenCostPanel(); }
   if (page === 'holidaywork')  renderHolidayWork();
+  if (page === 'newbuild')     renderNewBuild();
   if (page === 'reports')      renderReportPage();
   if (page === 'settings')     renderSettings();
 
@@ -575,7 +590,7 @@ function renderDashboard() {
     : State.projects;
 
   let hwProjects = [];
-  if (scope !== 'projects') {
+  if (scope !== 'projects' && scope !== 'newbuild') {
     if (State.combinedView) {
       const hw1 = (function(){ const old = currentSiteId; currentSiteId='lourensford'; const d=loadHWProjects(); currentSiteId=old; return d; })();
       const hw2 = (function(){ const old = currentSiteId; currentSiteId='spier'; const d=loadHWProjects(); currentSiteId=old; return d; })();
@@ -585,14 +600,31 @@ function renderDashboard() {
     }
   }
 
+  let nbProjectsDash = [];
+  if (scope !== 'projects' && scope !== 'holidaywork') {
+    if (State.combinedView) {
+      const nb1 = (function(){ const old = currentSiteId; currentSiteId='lourensford'; const d=loadNBProjects(); currentSiteId=old; return d; })();
+      const nb2 = (function(){ const old = currentSiteId; currentSiteId='spier'; const d=loadNBProjects(); currentSiteId=old; return d; })();
+      nbProjectsDash = [...nb1, ...nb2];
+    } else {
+      nbProjectsDash = loadNBProjects();
+    }
+  }
+
   const mappedHW = hwProjects.map(h => ({
     ...h, projectName: h.title || 'Untitled HW',
     approvedBudget: h.budget || 0, estimatedBudget: h.budget || 0,
     invoices: h.invoices || [], quotes: h.quotes || [],
   }));
+  const mappedNB = nbProjectsDash.map(n => ({
+    ...n, projectName: n.title || 'Untitled NB',
+    approvedBudget: n.budget || 0, estimatedBudget: n.budget || 0,
+    invoices: n.invoices || [], quotes: n.quotes || [],
+  }));
   const P = scope === 'holidaywork' ? mappedHW
+          : scope === 'newbuild'    ? mappedNB
           : scope === 'projects'    ? regProjects
-          : [...regProjects, ...mappedHW];
+          : [...regProjects, ...mappedHW, ...mappedNB];
 
   const totalBudget = P.reduce((s,p) => s + parseFloat(p.approvedBudget||p.estimatedBudget||0), 0);
   const totalSpend  = P.reduce((s,p) => s + (p.invoices||[]).reduce((t,i) => t + parseFloat(i.amount||0), 0), 0);
@@ -645,11 +677,12 @@ function renderDashboard() {
 
   // Scope tab count badges
   const regCount = regProjects.length;
-  const hwCount  = (scope === 'projects') ? mappedHW.length : hwProjects.length;
+  const hwCount  = (scope === 'projects' || scope === 'newbuild') ? loadHWProjects().length : hwProjects.length;
+  const nbCount  = (scope === 'projects' || scope === 'holidaywork') ? loadNBProjects().length : nbProjectsDash.length;
   document.querySelectorAll('.dash-scope-tab').forEach(t => {
     const s = t.dataset.scope;
-    const count = s === 'all' ? (regCount + hwCount) : s === 'projects' ? regCount : hwCount;
-    const label = s === 'all' ? 'All' : s === 'projects' ? 'Projects' : 'Holiday Work';
+    const count = s === 'all' ? (regCount + hwCount + nbCount) : s === 'projects' ? regCount : s === 'holidaywork' ? hwCount : nbCount;
+    const label = s === 'all' ? 'All' : s === 'projects' ? 'Projects' : s === 'holidaywork' ? 'Holiday Work' : 'New Build';
     t.innerHTML = label + ' <span class="dash-scope-count">' + count + '</span>';
   });
 
@@ -668,10 +701,10 @@ function renderDashFeed() {
     ? [...DB.load(DB.keys('lourensford').projects).map(p=>({...p,_site:'Lourensford'})),
        ...DB.load(DB.keys('spier').projects).map(p=>({...p,_site:'Spier'}))]
     : State.projects;
-  if (scope === 'holidaywork') P = [];
+  if (scope === 'holidaywork' || scope === 'newbuild') P = [];
 
   let hwItems = [];
-  if (scope !== 'projects') {
+  if (scope !== 'projects' && scope !== 'newbuild') {
     let hwRaw;
     if (State.combinedView) {
       const old = currentSiteId;
@@ -691,8 +724,33 @@ function renderDashFeed() {
       startDate: h.startDate, completionDate: h.endDate, _site: h._site,
     }));
   }
+
+  let nbItems = [];
+  if (scope !== 'projects' && scope !== 'holidaywork') {
+    let nbRaw;
+    if (State.combinedView) {
+      const old = currentSiteId;
+      currentSiteId='lourensford'; const nb1=loadNBProjects().map(p=>({...p,_site:'Lourensford'}));
+      currentSiteId='spier'; const nb2=loadNBProjects().map(p=>({...p,_site:'Spier'}));
+      currentSiteId=old; nbRaw=[...nb1,...nb2];
+    } else { nbRaw = loadNBProjects(); }
+    nbItems = nbRaw.map(n => ({
+      id: n.id, _isNB: true,
+      projectName: n.title || 'Untitled NB', projectNumber: 'New Build',
+      category: n.category || 'New Build', location: n.location || '',
+      status: n.status || 'Planning', priority: n.priority || 'Medium',
+      dateUpdated: n.dateUpdated, dateCreated: n.dateAdded,
+      contractorName: n.contractor || '',
+      approvedBudget: n.budget || 0, estimatedBudget: n.budget || 0,
+      invoices: n.invoices || [], quotes: n.quotes || [], photos: [],
+      startDate: n.startDate, completionDate: n.endDate, _site: n._site,
+    }));
+  }
+
   if (scope === 'holidaywork') P = hwItems;
-  else if (scope === 'all') P = [...P, ...hwItems];
+  else if (scope === 'newbuild') P = nbItems;
+  else if (scope === 'all') P = [...P, ...hwItems, ...nbItems];
+  else P = [...P];
 
   const search = ($('dash-search')?.value || '').trim().toLowerCase();
   let items = [...P];
@@ -758,7 +816,9 @@ function renderDashFeed() {
     var clickFn = p._isGarden
       ? 'openGardenModal(\'' + (p._gardenId||'') + '\')'
       : p._isHW
-      ? 'showPage(\"holidaywork\");setTimeout(function(){var el=document.getElementById(\"hwc-'+p.id+'\");if(el)el.scrollIntoView({behavior:\"smooth\",block:\"center\"})},200)'
+      ? 'navigate(\"holidaywork\");setTimeout(function(){var el=document.getElementById(\"hwc-'+p.id+'\");if(el)el.scrollIntoView({behavior:\"smooth\",block:\"center\"})},200)'
+      : p._isNB
+      ? 'navigate(\"newbuild\")'
       : 'openDashDrawer(\'' + (p.id||'') + '\')';
 
     var refHtml = p._isGarden
@@ -3343,6 +3403,532 @@ async function deleteHWProject(id) {
   }
 }
 
+/* ── New Build ────────────────────────────────────────────── */
+
+const nbKey = () => 'nhfm_newbuild_' + currentSiteId;
+function loadNBProjects()  { try { return JSON.parse(localStorage.getItem(nbKey())) || []; } catch { return []; } }
+function saveNBProjects(d) { try { localStorage.setItem(nbKey(), JSON.stringify(d)); if (SUPABASE_URL) pushNBProjectsToSupabase(); return true; } catch(e) { toast('Save error: '+e.message,'error'); return false; } }
+
+let nbProjects = [];
+let nbCurrentCat = 'All';
+
+function renderNewBuild() {
+  nbProjects = loadNBProjects();
+  renderNBStats();
+  renderNBGrid();
+}
+
+function renderNBStats() {
+  const el = $('nb-stats'); if (!el) return;
+  const all       = nbProjects;
+  const active    = all.filter(p => ['Planning','Design','Approved','Tender','Awarded','In Progress','Snag List'].includes(p.status));
+  const done      = all.filter(p => p.status === 'Completed');
+  const budget    = all.reduce((s,p) => s + parseFloat(p.budget||0), 0);
+  const totalSpend= all.reduce((s,p) => s + (p.invoices||[]).reduce((t,i)=>t+parseFloat(i.amount||0),0), 0);
+  const totalQuotes = all.reduce((s,p) => s + (p.quotes||[]).length, 0);
+  const overBudget= all.filter(p => {
+    const b = parseFloat(p.budget||0);
+    const sp= (p.invoices||[]).reduce((t,i)=>t+parseFloat(i.amount||0),0);
+    return b > 0 && sp > b;
+  }).length;
+
+  el.innerHTML = [
+    { label:'Total Projects', val: all.length,       sub:'all new builds' },
+    { label:'Active',         val: active.length,    sub:'in progress / planned' },
+    { label:'Completed',      val: done.length,      sub:'finished' },
+    { label:'Total Budget',   val: budget ? fmt.currency(budget) : 'R 0.00',    sub:'all build projects', big:true },
+    { label:'Actual Spend',   val: totalSpend ? fmt.currency(totalSpend) : 'R 0.00', sub: overBudget ? overBudget+' over budget' : 'total invoiced', big:true, warn: overBudget > 0 },
+    { label:'Total Quotes',   val: totalQuotes,      sub:'across all projects' },
+  ].map(s => `<div class="stat-card ${s.warn?'stat-warn':''}">
+    <div class="stat-label">${s.label}</div>
+    <div class="stat-value" style="${s.big ? 'font-size:1rem' : ''}">${s.val}</div>
+    <div class="stat-sub">${s.sub}</div>
+  </div>`).join('');
+}
+
+function switchNBTab(btn) {
+  document.querySelectorAll('#nb-filter-tabs .hw-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  nbCurrentCat = btn.dataset.nbcat;
+  renderNBGrid();
+}
+
+function renderNBGrid() {
+  const el = $('nb-grid'); if (!el) return;
+  const items = nbCurrentCat === 'All' ? nbProjects : nbProjects.filter(p => p.category === nbCurrentCat);
+  if (!items.length) {
+    el.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+      <div class="empty-icon">🏗</div>
+      <h3>No build projects${nbCurrentCat!=='All'?' in this category':''}</h3>
+      <p>${nbCurrentCat!=='All'?'Try selecting a different category.':'Track new buildings, extensions and infrastructure projects.'}</p>
+      ${nbCurrentCat==='All'?'<button class="btn btn-primary btn-sm" onclick="openNBModal()">+ New Build Project</button>':''}
+    </div>`;
+    return;
+  }
+  el.innerHTML = items.map(p => {
+    const scopeItems = p.scopeItems || [];
+    const milestones = p.milestones || [];
+    const doneScope  = scopeItems.filter(s => s.done).length;
+    const today      = new Date();
+    const daysToStart = p.startDate ? Math.ceil((new Date(p.startDate) - today) / 86400000) : null;
+    const daysToEnd   = p.endDate   ? Math.ceil((new Date(p.endDate)   - today) / 86400000) : null;
+    const isOverdue   = daysToEnd !== null && daysToEnd < 0 && p.status !== 'Completed';
+
+    const statusMap = {
+      'Planning':'draft','Design':'planning','Approved':'approved','Tender':'awaiting-quotes',
+      'Awarded':'awaiting-approval','In Progress':'in-progress','Snag List':'quotes-received',
+      'Completed':'completed','On Hold':'archived'
+    };
+    const sBadge = `<span class="badge badge-${statusMap[p.status]||'draft'}">${esc(p.status)}</span>`;
+
+    let countBadge = '';
+    if (p.status === 'Completed') countBadge = '';
+    else if (isOverdue) countBadge = `<span class="hw-count-badge hw-overdue">${Math.abs(daysToEnd)}d overdue</span>`;
+    else if (daysToStart !== null && daysToStart >= 0 && daysToStart <= 14) countBadge = `<span class="hw-count-badge hw-soon">Starts in ${daysToStart}d</span>`;
+    else if (daysToEnd !== null && daysToEnd >= 0 && daysToEnd <= 7) countBadge = `<span class="hw-count-badge hw-urgent">${daysToEnd}d left</span>`;
+
+    const scopePct = scopeItems.length ? Math.round(doneScope / scopeItems.length * 100) : null;
+
+    return `<div class="hw-card">
+      <div class="hwc-header">
+        <div style="flex:1;min-width:0">
+          <div class="hwc-cat"><span class="nb-editable" onclick="nbInlineEdit('${p.id}','category',this,event)" title="Click to edit category">${esc(p.category)}</span>${p.size ? ' · '+p.size+' m²' : ''}</div>
+          <div class="hwc-title nb-editable" onclick="nbInlineEdit('${p.id}','title',this,event)" title="Click to edit title">${esc(p.title)}</div>
+          <div class="hwc-location nb-editable" onclick="nbInlineEdit('${p.id}','location',this,event)" title="Click to edit location">${esc(p.location||'Add location…')}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;display:flex;flex-direction:column;gap:4px;align-items:flex-end">
+          <span class="badge badge-${statusMap[p.status]||'draft'} nb-editable" onclick="nbInlineEdit('${p.id}','status',this,event)" title="Click to change status" style="cursor:pointer">${esc(p.status)}</span>
+          ${countBadge}
+          <span class="badge badge-${(p.priority||'medium').toLowerCase()} nb-editable" onclick="nbInlineEdit('${p.id}','priority',this,event)" title="Click to change priority" style="font-size:.66rem;cursor:pointer">${esc(p.priority||'Medium')}</span>
+        </div>
+      </div>
+
+      <div class="hwc-dates">
+        <span class="nb-editable" onclick="nbInlineEdit('${p.id}','startDate',this,event)" title="Click to edit start date">Start: <strong>${p.startDate ? fmt.date(p.startDate) : '—'}</strong></span>
+        <span class="nb-editable" onclick="nbInlineEdit('${p.id}','endDate',this,event)" title="Click to edit end date">End: <strong>${p.endDate ? fmt.date(p.endDate) : '—'}</strong></span>
+        <span class="nb-editable" onclick="nbInlineEdit('${p.id}','handoverDate',this,event)" title="Click to edit handover date">Handover: <strong>${p.handoverDate ? fmt.date(p.handoverDate) : '—'}</strong></span>
+      </div>
+
+      ${(p.scopeSummary || scopeItems.length) ? `<div class="panel" style="margin-top:10px;border-radius:var(--radius-sm)">
+        <div class="panel-header" style="padding:8px 12px;font-size:.78rem">
+          <span class="panel-title" style="font-size:.78rem">Scope of Work${scopeItems.length ? ` (${doneScope}/${scopeItems.length} done)` : ''}</span>
+          <span class="panel-toggle">&#9660;</span>
+        </div>
+        <div class="panel-body" style="padding:10px 12px">
+          ${p.scopeSummary ? `<p style="font-size:.8rem;color:var(--text-secondary);line-height:1.5;margin-bottom:${scopeItems.length?'10px':'0'}">${esc(p.scopeSummary)}</p>` : ''}
+          ${scopeItems.length ? `<div class="hw-scope-list">
+            ${scopeItems.map((s,i) => `<label class="hw-scope-item">
+              <input type="checkbox" ${s.done?'checked':''} onchange="toggleNBScopeItem('${p.id}',${i},this.checked)" style="accent-color:var(--pk-green)">
+              <span style="${s.done?'text-decoration:line-through;color:var(--text-muted)':''}">${esc(s.text)}</span>
+            </label>`).join('')}
+          </div>` : ''}
+          ${scopePct !== null ? `<div style="margin-top:8px;height:5px;background:var(--platinum);border-radius:3px;overflow:hidden">
+            <div style="height:100%;width:${scopePct}%;background:var(--pk-green);border-radius:3px;transition:width .3s"></div>
+          </div>` : ''}
+        </div>
+      </div>` : ''}
+
+      ${milestones.length ? `<div class="panel" style="margin-top:8px;border-radius:var(--radius-sm)">
+        <div class="panel-header" style="padding:8px 12px">
+          <span class="panel-title" style="font-size:.78rem">Milestones (${milestones.filter(m=>m.done).length}/${milestones.length})</span>
+          <span class="panel-toggle">&#9660;</span>
+        </div>
+        <div class="panel-body" style="padding:10px 12px">
+          <div class="hw-milestone-list">
+            ${milestones.map((m,i) => `<div class="hw-milestone-item">
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+                <input type="checkbox" ${m.done?'checked':''} onchange="toggleNBMilestone('${p.id}',${i},this.checked)" style="accent-color:var(--pk-green);flex-shrink:0">
+                <span style="${m.done?'text-decoration:line-through;color:var(--text-muted)':''};">${esc(m.text)}</span>
+              </label>
+              ${m.date ? `<span class="hw-milestone-date">${fmt.date(m.date)}</span>` : ''}
+            </div>`).join('')}
+          </div>
+        </div>
+      </div>` : ''}
+
+      ${(() => {
+        const budget     = parseFloat(p.budget||0);
+        const quotes     = (p.quotes||[]).sort((a,b)=>parseFloat(a.total||a.amount||0)-parseFloat(b.total||b.amount||0));
+        const invoices   = p.invoices||[];
+        const totalSpend = invoices.reduce((s,i)=>s+parseFloat(i.amount||0),0);
+        const paid       = invoices.filter(i=>i.paid).reduce((s,i)=>s+parseFloat(i.amount||0),0);
+        const over       = totalSpend > budget && budget > 0;
+        const pct        = budget > 0 ? Math.min(totalSpend/budget*100,100).toFixed(0) : null;
+        const rec        = quotes[0]?.recommendation || '';
+        if (!budget && !quotes.length && !invoices.length) return '';
+        let html = '<div class="hwc-financial">';
+        if (budget || totalSpend) {
+          html += '<div class="hwc-fin-row">';
+          if (budget)     html += '<div class="hwc-fin-item"><div class="hwc-fin-label">Budget</div><div class="hwc-fin-val">' + fmt.currency(budget) + '</div></div>';
+          if (totalSpend) html += '<div class="hwc-fin-item"><div class="hwc-fin-label">Invoiced</div><div class="hwc-fin-val ' + (over?'hwc-over':'') + '">' + fmt.currency(totalSpend) + '</div></div>';
+          if (paid > 0)   html += '<div class="hwc-fin-item"><div class="hwc-fin-label">Paid</div><div class="hwc-fin-val" style="color:#2e7d32">' + fmt.currency(paid) + '</div></div>';
+          if (budget && totalSpend) html += '<div class="hwc-fin-item"><div class="hwc-fin-label">' + (over?'Over':'Left') + '</div><div class="hwc-fin-val ' + (over?'hwc-over':'hwc-under') + '">' + fmt.currency(Math.abs(budget-totalSpend)) + '</div></div>';
+          html += '</div>';
+          if (pct!==null) html += '<div class="hwc-fin-bar-outer"><div class="hwc-fin-bar ' + (over?'hwc-over':'') + '" style="width:' + pct + '%"></div></div>';
+        }
+        if (quotes.length) {
+          html += '<div class="hwc-quotes-summary"><div class="hwc-qs-title">Quotes (' + quotes.length + ')</div>';
+          quotes.slice(0,3).forEach((q,i) => {
+            html += '<div class="hwc-qs-row ' + (i===0?'hwc-qs-best':'') + '"><span>' + esc(q.contractor) + '</span><span>' + fmt.currency(q.total||q.amount||0) + '</span>' + (i===0?'<span class="badge badge-approved" style="font-size:.58rem">Lowest</span>':'') + '</div>';
+          });
+          if (rec) html += '<div class="hwc-rec">' + esc(rec.slice(0,100)) + (rec.length>100?'…':'') + '</div>';
+          html += '</div>';
+        }
+        html += '</div>';
+        return html;
+      })()}
+
+      <div style="font-size:.78rem;color:var(--text-muted);padding:8px 16px 4px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        ${p.architect ? `<span>Architect: <strong style="color:var(--text-primary)">${esc(p.architect)}</strong></span>` : ''}
+        <span class="nb-editable" onclick="nbInlineEdit('${p.id}','contractor',this,event)" title="Click to edit contractor">Contractor: <strong style="color:var(--text-primary)">${esc(p.contractor||'Add…')}</strong></span>
+        ${p.cell ? '<div onclick="event.stopPropagation()" style="display:inline-block">' + (typeof waButtonGroup==='function' ? waButtonGroup(p.cell, {id:p.id, projectName:p.title, projectNumber:'NB', contactPerson:p.contractor, telephone:p.cell, location:p.location||'', startDate:p.startDate||'', completionDate:p.endDate||'', quoteDueDate:'', description:p.scopeSummary||'', status:p.status||''}, 'nb') : '') + '</div>' : ''}
+      </div>
+      <div class="nb-editable" style="font-size:.78rem;color:var(--text-secondary);padding:8px 16px 4px;line-height:1.5;border-top:1px solid var(--border);cursor:pointer" onclick="nbInlineEdit('${p.id}','notes',this,event)" title="Click to edit notes">${p.notes ? esc(p.notes.slice(0,140)) + (p.notes.length>140?'…':'') : '<span style="color:var(--text-muted);font-style:italic">Add notes…</span>'}</div>
+
+      <div class="hwc-actions">
+        <span style="font-size:.7rem;color:var(--text-muted)">Added ${fmt.date(p.dateAdded)}</span>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-sm btn-outline" onclick="openNBModal('${p.id}')">Edit</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteNBProject('${p.id}')">Delete</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleNBScopeItem(pid, idx, checked) {
+  const projs = loadNBProjects();
+  const p = projs.find(x => x.id === pid); if (!p) return;
+  if (p.scopeItems && p.scopeItems[idx] !== undefined) p.scopeItems[idx].done = checked;
+  saveNBProjects(projs);
+  nbProjects = projs;
+  renderNBStats();
+}
+
+function toggleNBMilestone(pid, idx, checked) {
+  const projs = loadNBProjects();
+  const p = projs.find(x => x.id === pid); if (!p) return;
+  if (p.milestones && p.milestones[idx] !== undefined) p.milestones[idx].done = checked;
+  saveNBProjects(projs);
+  nbProjects = projs;
+}
+
+function nbInlineEdit(pid, field, el, ev) {
+  ev.stopPropagation();
+  if (el.querySelector('input,select')) return;
+  const projs = loadNBProjects();
+  const p = projs.find(x => x.id === pid);
+  if (!p) return;
+
+  const val = p[field] || '';
+  const selectOpts = {
+    status:   ['Planning','Design','Approved','Tender','Awarded','In Progress','Snag List','Completed','On Hold'],
+    priority: ['Low','Medium','High'],
+    category: ['New Building','Extension','Infrastructure','Conversion','Other'],
+  };
+
+  let input;
+  if (selectOpts[field]) {
+    input = document.createElement('select');
+    selectOpts[field].forEach(o => {
+      const opt = document.createElement('option');
+      opt.value = o; opt.textContent = o;
+      if (o === val) opt.selected = true;
+      input.appendChild(opt);
+    });
+  } else if (['startDate','endDate','handoverDate','designDate'].includes(field)) {
+    input = document.createElement('input');
+    input.type = 'date';
+    input.value = val;
+  } else {
+    input = document.createElement('input');
+    input.type = 'text';
+    input.value = val;
+  }
+
+  input.className = 'hw-inline-input';
+  input.style.cssText = 'font-size:inherit;font-weight:inherit;color:inherit;padding:2px 6px;border:2px solid var(--asp-green);border-radius:4px;background:var(--ivory);outline:none;width:100%;box-sizing:border-box;min-width:80px;';
+
+  const save = () => {
+    const nv = input.value;
+    if (nv === val) { renderNBGrid(); return; }
+    const projs2 = loadNBProjects();
+    const p2 = projs2.find(x => x.id === pid);
+    if (p2) {
+      p2[field] = nv;
+      p2.dateUpdated = new Date().toISOString();
+      saveNBProjects(projs2);
+      nbProjects = projs2;
+    }
+    renderNewBuild();
+    toast(field.replace(/([A-Z])/g,' $1').replace(/^./,s=>s.toUpperCase()) + ' updated');
+  };
+
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); save(); } if (e.key === 'Escape') { renderNBGrid(); } });
+
+  el.textContent = '';
+  el.appendChild(input);
+  if (input.tagName === 'SELECT') input.addEventListener('change', save);
+  setTimeout(() => {
+    input.focus();
+    if (input.type === 'text') input.select();
+    input.addEventListener('blur', save);
+  }, 0);
+}
+
+function openNBModal(id) {
+  nbProjects = loadNBProjects();
+  const p = id ? nbProjects.find(x => x.id === id) : null;
+  $('nb-modal-title').textContent = p ? 'Edit Build Project' : 'New Build Project';
+  $('nbf-id').value = id || '';
+
+  const set = (fid, val) => { const el=$(fid); if(el) el.value = val||''; };
+  set('nbf-title',          p?.title||'');
+  set('nbf-category',       p?.category||'New Building');
+  set('nbf-priority',       p?.priority||'Medium');
+  set('nbf-status',         p?.status||'Planning');
+  set('nbf-location',       p?.location||'');
+  set('nbf-architect',      p?.architect||'');
+  set('nbf-contractor',     p?.contractor||'');
+  set('nbf-cell',           p?.cell||'');
+  set('nbf-budget',         p?.budget||'');
+  set('nbf-size',           p?.size||'');
+  set('nbf-scope-summary',  p?.scopeSummary||'');
+  set('nbf-exclusions',     p?.exclusions||'');
+  set('nbf-design-date',    p?.designDate||'');
+  set('nbf-start-date',     p?.startDate||'');
+  set('nbf-end-date',       p?.endDate||'');
+  set('nbf-handover-date',  p?.handoverDate||'');
+  set('nbf-timeline-notes', p?.timelineNotes||'');
+  set('nbf-notes',          p?.notes||'');
+
+  _nbEditingQuotes = p ? (p.quotes ? [...p.quotes] : []) : [];
+
+  renderNBScopeList(p?.scopeItems || []);
+  renderNBMilestoneList(p?.milestones || []);
+  renderNBQuoteList(p?.quotes || []);
+  renderNBInvoiceList(p?.invoices || [], parseFloat(p?.budget||0));
+
+  openModal('nb-modal');
+}
+
+function renderNBScopeList(items) {
+  const el = $('nbf-scope-list'); if (!el) return;
+  if (!items.length) { el.innerHTML = '<p class="hint-msg" style="margin-bottom:4px">No scope items yet.</p>'; return; }
+  el.innerHTML = items.map((s,i) => `<div class="hw-scope-row" data-idx="${i}">
+    <input type="checkbox" class="hwsr-done" ${s.done?'checked':''} style="accent-color:var(--pk-green);flex-shrink:0">
+    <input type="text" class="hwsr-text" value="${esc(s.text)}" placeholder="Scope item description…" style="flex:1">
+    <button type="button" class="btn btn-xs btn-danger" onclick="this.closest('.hw-scope-row').remove()">&#215;</button>
+  </div>`).join('');
+}
+
+function addNBScopeItem() {
+  const el = $('nbf-scope-list');
+  if (el.querySelector('.hint-msg')) el.innerHTML = '';
+  const row = document.createElement('div');
+  row.className = 'hw-scope-row';
+  row.innerHTML = `
+    <input type="checkbox" class="hwsr-done" style="accent-color:var(--pk-green);flex-shrink:0">
+    <input type="text" class="hwsr-text" placeholder="e.g. Foundation slab complete…" style="flex:1">
+    <button type="button" class="btn btn-xs btn-danger" onclick="this.closest('.hw-scope-row').remove()">&#215;</button>`;
+  el.appendChild(row);
+  row.querySelector('.hwsr-text').focus();
+}
+
+function collectNBScopeItems() {
+  return Array.from(document.querySelectorAll('#nbf-scope-list .hw-scope-row')).map(row => ({
+    text: row.querySelector('.hwsr-text')?.value || '',
+    done: row.querySelector('.hwsr-done')?.checked || false,
+  })).filter(s => s.text.trim());
+}
+
+function renderNBMilestoneList(items) {
+  const el = $('nbf-milestone-list'); if (!el) return;
+  if (!items.length) { el.innerHTML = '<p class="hint-msg" style="margin-bottom:4px">No milestones yet.</p>'; return; }
+  el.innerHTML = items.map((m,i) => `<div class="hw-milestone-row" data-idx="${i}">
+    <input type="checkbox" class="hwmr-done" ${m.done?'checked':''} style="accent-color:var(--pk-green);flex-shrink:0">
+    <input type="text" class="hwmr-text" value="${esc(m.text)}" placeholder="Milestone description…" style="flex:1">
+    <input type="date" class="hwmr-date" value="${esc(m.date||'')}" style="width:140px">
+    <button type="button" class="btn btn-xs btn-danger" onclick="this.closest('.hw-milestone-row').remove()">&#215;</button>
+  </div>`).join('');
+}
+
+function addNBMilestone() {
+  const el = $('nbf-milestone-list');
+  if (el.querySelector('.hint-msg')) el.innerHTML = '';
+  const row = document.createElement('div');
+  row.className = 'hw-milestone-row';
+  row.innerHTML = `
+    <input type="checkbox" class="hwmr-done" style="accent-color:var(--pk-green);flex-shrink:0">
+    <input type="text" class="hwmr-text" placeholder="e.g. Roof structure complete…" style="flex:1">
+    <input type="date" class="hwmr-date" style="width:140px">
+    <button type="button" class="btn btn-xs btn-danger" onclick="this.closest('.hw-milestone-row').remove()">&#215;</button>`;
+  el.appendChild(row);
+  row.querySelector('.hwmr-text').focus();
+}
+
+function collectNBMilestones() {
+  return Array.from(document.querySelectorAll('#nbf-milestone-list .hw-milestone-row')).map(row => ({
+    text: row.querySelector('.hwmr-text')?.value || '',
+    date: row.querySelector('.hwmr-date')?.value || '',
+    done: row.querySelector('.hwmr-done')?.checked || false,
+  })).filter(m => m.text.trim());
+}
+
+let _nbEditingQuotes = [];
+
+function renderNBQuoteList(quotes) {
+  const el = $('nbf-quotes-list'); if (!el) return;
+  _nbEditingQuotes = quotes && quotes.length ? [...quotes] : [];
+  if (!_nbEditingQuotes.length) { el.innerHTML = '<p class="hint-msg">No quotations added yet.</p>'; return; }
+  el.innerHTML = _nbEditingQuotes.map((q,i) => `<div class="hw-quote-row" style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;align-items:end;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)">
+    <div class="form-group"><label>Contractor</label><input type="text" class="nbqr-contractor" value="${esc(q.contractor||'')}" placeholder="Company name"></div>
+    <div class="form-group"><label>Amount (excl. VAT)</label><input type="number" class="nbqr-amount" value="${q.amount||''}" step="0.01" min="0" placeholder="0.00"></div>
+    <div class="form-group"><label>Total (incl. VAT)</label><input type="number" class="nbqr-total" value="${q.total||''}" step="0.01" min="0" placeholder="0.00"></div>
+    <button type="button" class="btn btn-xs btn-danger" style="margin-bottom:4px" onclick="removeNBQuote(${i})">&#215;</button>
+  </div>`).join('');
+}
+
+function addNBQuoteRow() {
+  _nbEditingQuotes.push({contractor:'',amount:'',total:''});
+  renderNBQuoteList(_nbEditingQuotes);
+}
+
+function removeNBQuote(i) {
+  _nbEditingQuotes = collectNBQuotes();
+  _nbEditingQuotes.splice(i,1);
+  renderNBQuoteList(_nbEditingQuotes);
+}
+
+function collectNBQuotes() {
+  return Array.from(document.querySelectorAll('#nbf-quotes-list .hw-quote-row')).map(row => ({
+    contractor: row.querySelector('.nbqr-contractor')?.value || '',
+    amount:     row.querySelector('.nbqr-amount')?.value || '',
+    total:      row.querySelector('.nbqr-total')?.value || '',
+  })).filter(q => q.contractor || q.amount || q.total);
+}
+
+function renderNBInvoiceList(invoices, budget) {
+  const el = $('nbf-invoices-list'); if (!el) return;
+  if (!invoices || !invoices.length) { el.innerHTML = '<p class="hint-msg">No invoices added yet.</p>'; return; }
+  el.innerHTML = invoices.map((inv,i) => `<div class="hw-invoice-row" style="display:grid;grid-template-columns:1fr 1fr auto auto;gap:8px;align-items:end;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)">
+    <div class="form-group"><label>Description</label><input type="text" class="nbir-desc" value="${esc(inv.description||'')}" placeholder="Invoice description"></div>
+    <div class="form-group"><label>Amount (R)</label><input type="number" class="nbir-amount" value="${inv.amount||''}" step="0.01" min="0"></div>
+    <label style="display:flex;align-items:center;gap:4px;font-size:.78rem;margin-bottom:4px"><input type="checkbox" class="nbir-paid" ${inv.paid?'checked':''}>Paid</label>
+    <button type="button" class="btn btn-xs btn-danger" style="margin-bottom:4px" onclick="this.closest('.hw-invoice-row').remove()">&#215;</button>
+  </div>`).join('');
+
+  const tracker = $('nbf-spend-tracker');
+  if (tracker && budget > 0) {
+    const total = invoices.reduce((s,i)=>s+parseFloat(i.amount||0),0);
+    const pct = Math.min(total/budget*100,100).toFixed(0);
+    const over = total > budget;
+    tracker.innerHTML = `<div style="font-size:.8rem;color:var(--text-muted);margin-bottom:6px">Spend: ${fmt.currency(total)} of ${fmt.currency(budget)} (${pct}%)</div>
+      <div style="height:6px;background:var(--platinum);border-radius:3px;overflow:hidden"><div style="height:100%;width:${pct}%;background:${over?'var(--danger)':'var(--pk-green)'};border-radius:3px"></div></div>`;
+  }
+}
+
+function addNBInvoiceRow() {
+  const el = $('nbf-invoices-list');
+  if (el.querySelector('.hint-msg')) el.innerHTML = '';
+  const invoices = collectNBInvoices();
+  invoices.push({description:'',amount:'',paid:false});
+  renderNBInvoiceList(invoices, parseFloat($('nbf-budget')?.value||0));
+}
+
+function collectNBInvoices() {
+  return Array.from(document.querySelectorAll('#nbf-invoices-list .hw-invoice-row')).map(row => ({
+    description: row.querySelector('.nbir-desc')?.value || '',
+    amount:      row.querySelector('.nbir-amount')?.value || '',
+    paid:        row.querySelector('.nbir-paid')?.checked || false,
+  })).filter(i => i.description || i.amount);
+}
+
+function saveNBProject() {
+  const title = ($('nbf-title')?.value || '').trim();
+  if (!title) { toast('Project title is required', 'error'); return; }
+  const existingId = $('nbf-id').value;
+  const projs = loadNBProjects();
+
+  const data = {
+    title,
+    category:      $('nbf-category')?.value     || 'New Building',
+    priority:      $('nbf-priority')?.value      || 'Medium',
+    status:        $('nbf-status')?.value        || 'Planning',
+    location:      $('nbf-location')?.value      || '',
+    architect:     $('nbf-architect')?.value      || '',
+    contractor:    $('nbf-contractor')?.value     || '',
+    cell:          $('nbf-cell')?.value           || '',
+    budget:        $('nbf-budget')?.value         || '',
+    size:          $('nbf-size')?.value           || '',
+    scopeSummary:  $('nbf-scope-summary')?.value  || '',
+    exclusions:    $('nbf-exclusions')?.value     || '',
+    designDate:    $('nbf-design-date')?.value    || '',
+    startDate:     $('nbf-start-date')?.value     || '',
+    endDate:       $('nbf-end-date')?.value       || '',
+    handoverDate:  $('nbf-handover-date')?.value  || '',
+    timelineNotes: $('nbf-timeline-notes')?.value || '',
+    notes:         $('nbf-notes')?.value          || '',
+    scopeItems:    collectNBScopeItems(),
+    milestones:    collectNBMilestones(),
+    quotes:        collectNBQuotes(),
+    invoices:      collectNBInvoices(),
+  };
+
+  if (existingId) {
+    const idx = projs.findIndex(x => x.id === existingId);
+    if (idx >= 0) projs[idx] = { ...projs[idx], ...data, dateUpdated: new Date().toISOString() };
+  } else {
+    projs.push({ id: uid(), dateAdded: new Date().toISOString(), quotes: [], invoices: [], ...data });
+  }
+
+  if (saveNBProjects(projs)) {
+    nbProjects = projs;
+    closeModal('nb-modal');
+    renderNewBuild();
+    toast('Build project saved');
+  }
+}
+
+async function deleteNBProject(id) {
+  if (!confirm('Delete this build project?')) return;
+  const projs = loadNBProjects().filter(p => p.id !== id);
+  localStorage.setItem(nbKey(), JSON.stringify(projs));
+  nbProjects = projs;
+  renderNewBuild();
+  toast('Deleted');
+  if (SUPABASE_URL) {
+    setSyncStatus('syncing');
+    const res = await SB.delete('new_builds?id=eq.' + id);
+    setSyncStatus(res !== null ? 'synced' : 'error');
+  }
+}
+
+async function pushNBProjectsToSupabase() {
+  try {
+    const projs = loadNBProjects();
+    const localIds = new Set(projs.map(p => p.id));
+    const rows = projs.map(p => ({
+      id:           p.id,
+      site_id:      currentSiteId,
+      project_name: p.title || 'Untitled',
+      status:       p.status || 'Planning',
+      category:     p.category || null,
+      priority:     p.priority || null,
+      date_created: p.dateAdded || null,
+      date_updated: p.dateUpdated || null,
+      data:         p,
+    }));
+    if (rows.length) await SB.upsert('new_builds', rows);
+    const remote = await SB.get('new_builds?site_id=eq.' + currentSiteId + '&select=id');
+    if (remote) {
+      for (const r of remote) {
+        if (!localIds.has(r.id)) await SB.delete('new_builds?id=eq.' + r.id);
+      }
+    }
+  } catch (e) { console.error('pushNBProjects error:', e); }
+}
+
 /* ── Reports ─────────────────────────────────────────────── */
 function renderReportPage() {
   // Always re-read projects from storage so the dropdown reflects all saves
@@ -4200,10 +4786,14 @@ function updateNavBadges() {
   var allProjects = State.projects || [];
   var hwProjects = [];
   try { hwProjects = JSON.parse(localStorage.getItem(hwKey()) || '[]'); } catch(e) {}
+  var nbProjectsBadge = [];
+  try { nbProjectsBadge = JSON.parse(localStorage.getItem(nbKey()) || '[]'); } catch(e) {}
   var overdueCount = 0;
   var now = new Date();
   allProjects.concat(hwProjects.map(function(h) {
     return { completionDate: h.completionDate || h.endDate || h.dueDate, status: h.status };
+  })).concat(nbProjectsBadge.map(function(n) {
+    return { completionDate: n.endDate, status: n.status };
   })).forEach(function(p) {
     var d = p.completionDate || p.endDate;
     if (d && p.status !== 'Completed' && p.status !== 'Archived') {
