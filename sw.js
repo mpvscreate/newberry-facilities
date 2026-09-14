@@ -1,11 +1,11 @@
-const CACHE = 'nhfm-v4';
+const CACHE = 'nhfm-v5';
 
 self.addEventListener('install', e => {
   self.skipWaiting();
   e.waitUntil(
     caches.open(CACHE).then(c => c.addAll([
-      './styles.css?v=3',
-      './app.js?v=3',
+      './styles.css',
+      './app.js',
       './manifest.json',
       './icon-192.png',
       './icon-512.png'
