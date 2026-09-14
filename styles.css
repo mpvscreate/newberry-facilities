@@ -340,6 +340,28 @@ body {
 .topbar-search input::placeholder { color: var(--text-muted); }
 .topbar-search span { color: var(--text-muted); font-size: .84rem; }
 
+/* ── Undo / Redo ── */
+.undo-redo-group { display: flex; gap: 2px; align-items: center; }
+.undo-redo-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--ivory);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all .2s var(--ease-out);
+}
+.undo-redo-btn:hover:not(:disabled) {
+  background: #fff;
+  border-color: var(--asp-green);
+  color: var(--pk-green);
+  box-shadow: 0 0 0 3px rgba(125,162,75,.12);
+}
+.undo-redo-btn:active:not(:disabled) { transform: scale(.92); }
+.undo-redo-btn:disabled { opacity: .35; cursor: not-allowed; }
+@media (max-width:600px) { .undo-redo-group { order: 5; } }
+
 /* ── Buttons ── */
 .btn {
   display: inline-flex; align-items: center; gap: 6px;

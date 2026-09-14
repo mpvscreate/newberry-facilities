@@ -124,6 +124,104 @@ let currentSiteId = localStorage.getItem('nhfm_current_site') || 'lourensford';
 let currentSite   = SITES[currentSiteId] || SITES.lourensford;
 let editingProjectId = null;
 
+/* ── Undo / Redo ────────────────────────────────────────── */
+const UndoManager = {
+  _undoStack: [],
+  _redoStack: [],
+  _maxHistory: 30,
+
+  _snapshot() {
+    return {
+      projects:    JSON.stringify(State.projects),
+      contractors: JSON.stringify(State.contractors),
+      gardens:     JSON.stringify(State.gardens),
+      settings:    JSON.stringify(State.settings),
+      hw:          JSON.stringify(hwProjects),
+      nb:          JSON.stringify(nbProjects),
+    };
+  },
+
+  push(label) {
+    this._undoStack.push({ snap: this._snapshot(), label: label || 'change', page: State.currentPage });
+    if (this._undoStack.length > this._maxHistory) this._undoStack.shift();
+    this._redoStack.length = 0;
+    this._updateUI();
+  },
+
+  undo() {
+    if (!this._undoStack.length) return;
+    const entry = this._undoStack.pop();
+    this._redoStack.push({ snap: this._snapshot(), label: entry.label, page: entry.page });
+    this._restore(entry.snap);
+    this._persist();
+    this._rerender(entry.page);
+    toast('Undo: ' + entry.label);
+    this._updateUI();
+  },
+
+  redo() {
+    if (!this._redoStack.length) return;
+    const entry = this._redoStack.pop();
+    this._undoStack.push({ snap: this._snapshot(), label: entry.label, page: entry.page });
+    this._restore(entry.snap);
+    this._persist();
+    this._rerender(entry.page);
+    toast('Redo: ' + entry.label);
+    this._updateUI();
+  },
+
+  _restore(snap) {
+    State.projects    = JSON.parse(snap.projects);
+    State.contractors = JSON.parse(snap.contractors);
+    State.gardens     = JSON.parse(snap.gardens);
+    State.settings    = JSON.parse(snap.settings);
+    hwProjects        = JSON.parse(snap.hw);
+    nbProjects        = JSON.parse(snap.nb);
+  },
+
+  _persist() {
+    const k = DB.keys(currentSiteId);
+    DB.save(k.projects,    State.projects);
+    DB.save(k.contractors, State.contractors);
+    DB.save(k.gardens,     State.gardens);
+    DB.save(k.settings,    State.settings);
+    try { localStorage.setItem(hwKey(), JSON.stringify(hwProjects)); } catch {}
+    try { localStorage.setItem(nbKey(), JSON.stringify(nbProjects)); } catch {}
+  },
+
+  _rerender(page) {
+    const p = page || State.currentPage;
+    if (p === 'dashboard')   renderDashboard();
+    if (p === 'projects')    renderProjectList();
+    if (p === 'contractors') renderContractors();
+    if (p === 'gardens')     { renderGardens(); renderGardenCostPanel(); }
+    if (p === 'holidaywork') renderHolidayWork();
+    if (p === 'newbuild')    renderNewBuild();
+    if (p === 'newproject' && editingProjectId) renderNewProjectForm(editingProjectId);
+    updateNavBadges();
+  },
+
+  _updateUI() {
+    const undoBtn = $('undo-btn');
+    const redoBtn = $('redo-btn');
+    if (undoBtn) {
+      undoBtn.disabled = !this._undoStack.length;
+      undoBtn.title = this._undoStack.length
+        ? 'Undo: ' + this._undoStack[this._undoStack.length - 1].label + ' (Ctrl+Z)'
+        : 'Nothing to undo';
+    }
+    if (redoBtn) {
+      redoBtn.disabled = !this._redoStack.length;
+      redoBtn.title = this._redoStack.length
+        ? 'Redo: ' + this._redoStack[this._redoStack.length - 1].label + ' (Ctrl+Y)'
+        : 'Nothing to redo';
+    }
+  },
+
+  get canUndo() { return this._undoStack.length > 0; },
+  get canRedo() { return this._redoStack.length > 0; },
+};
+
 /* ── Utilities ───────────────────────────────────────────── */
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
 
@@ -1318,6 +1416,7 @@ function sortProjects(f) {
 }
 async function deleteProject(id) {
   if (!confirm('Delete this project? This cannot be undone.')) return;
+  UndoManager.push('delete project');
   State.projects = State.projects.filter(p => p.id !== id);
   DB.save(DB.keys(currentSiteId).projects, State.projects);
   renderProjectList();
@@ -1378,6 +1477,7 @@ function renderNewProjectForm(projectId) {
 function saveProject() {
   const name = ($('f-projectName')?.value || '').trim();
   if (!name) { toast('Project name is required', 'error'); return; }
+  UndoManager.push(editingProjectId ? 'edit project' : 'create project');
 
   // Capture form values first, before any re-render
   const data = buildFormData();
@@ -2067,6 +2167,7 @@ function renderContractors() {
 }
 function saveContractorNotes(id) {
   const c = State.contractors.find(x => x.id === id); if (!c) return;
+  UndoManager.push('edit contractor notes');
   c.notes = $('con-notes-'+id).value;
   saveContractors();
   toast('Notes saved');
@@ -2235,6 +2336,7 @@ function openGardenModal(id) {
 function saveGarden() {
   const name = ($('gf-gardenName')?.value||'').trim();
   if (!name) { toast('Garden name is required','error'); return; }
+  UndoManager.push($('gf-id').value ? 'edit garden project' : 'create garden project');
   const existingId = $('gf-id').value;
 
   // Collect expenses from DOM rows
@@ -2271,6 +2373,7 @@ function saveGarden() {
 
 async function deleteGarden(id) {
   if (!confirm('Delete this garden project?')) return;
+  UndoManager.push('delete garden project');
   State.gardens = State.gardens.filter(g => g.id !== id);
   DB.save(DB.keys(currentSiteId).gardens, State.gardens);
   renderGardens(); renderGardenCostPanel(); toast('Deleted');
@@ -2810,6 +2913,7 @@ function hwInlineEdit(pid, field, el, ev) {
   const save = () => {
     const nv = input.value;
     if (nv === val) { renderHWGrid(); return; }
+    UndoManager.push('edit HW ' + field);
     const projs2 = loadHWProjects();
     const p2 = projs2.find(x => x.id === pid);
     if (p2) {
@@ -3347,6 +3451,7 @@ function applyHWTemplate() {
 function saveHWProject() {
   const title = ($('hwf-title')?.value || '').trim();
   if (!title) { toast('Project title is required', 'error'); return; }
+  UndoManager.push($('hwf-id').value ? 'edit HW project' : 'create HW project');
   const existingId = $('hwf-id').value;
   const projs = loadHWProjects();
 
@@ -3391,6 +3496,7 @@ function saveHWProject() {
 
 async function deleteHWProject(id) {
   if (!confirm('Delete this holiday project?')) return;
+  UndoManager.push('delete HW project');
   const projs = loadHWProjects().filter(p => p.id !== id);
   localStorage.setItem(hwKey(), JSON.stringify(projs));
   hwProjects = projs;
@@ -3652,6 +3758,7 @@ function nbInlineEdit(pid, field, el, ev) {
   const save = () => {
     const nv = input.value;
     if (nv === val) { renderNBGrid(); return; }
+    UndoManager.push('edit build ' + field);
     const projs2 = loadNBProjects();
     const p2 = projs2.find(x => x.id === pid);
     if (p2) {
@@ -3847,6 +3954,7 @@ function collectNBInvoices() {
 function saveNBProject() {
   const title = ($('nbf-title')?.value || '').trim();
   if (!title) { toast('Project title is required', 'error'); return; }
+  UndoManager.push($('nbf-id').value ? 'edit new build' : 'create new build');
   const existingId = $('nbf-id').value;
   const projs = loadNBProjects();
 
@@ -3892,6 +4000,7 @@ function saveNBProject() {
 
 async function deleteNBProject(id) {
   if (!confirm('Delete this build project?')) return;
+  UndoManager.push('delete new build');
   const projs = loadNBProjects().filter(p => p.id !== id);
   localStorage.setItem(nbKey(), JSON.stringify(projs));
   nbProjects = projs;
@@ -4815,6 +4924,16 @@ document.addEventListener('keydown', function(e) {
     e.preventDefault();
     var input = document.getElementById('global-search');
     if (input) { input.focus(); input.select(); }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA' || document.activeElement.isContentEditable)) return;
+    e.preventDefault();
+    UndoManager.undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+    if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA' || document.activeElement.isContentEditable)) return;
+    e.preventDefault();
+    UndoManager.redo();
   }
 });
 
