@@ -1322,42 +1322,65 @@ function renderProjectList() {
   }
 
   if (State.projectFilter === 'all' || State.projectFilter === 'Holiday Work') {
-    const hwItems = loadHWProjects().map(h => ({
-      id:             'hw_' + h.id,
-      _isHW:          true,
-      projectNumber:  'HW',
-      projectName:    h.title,
-      category:       'Holiday Work',
-      location:       h.location || '—',
-      estimatedBudget: h.budget || '',
-      approvedBudget: '',
-      status:         h.status || 'Planning',
-      dateCreated:    h.dateAdded || '',
-      _hwId:          h.id,
-      _holiday:       h.holiday,
-      _contractor:    h.contractor,
-      _priority:      h.priority,
-    }));
+    const hwItems = loadHWProjects().map(h => {
+      var spent = (h.invoices||[]).reduce(function(t,i){return t+parseFloat(i.amount||0)},0);
+      var scopeDone = (h.scopeItems||[]).filter(function(s){return s.done}).length;
+      var scopeTotal = (h.scopeItems||[]).length;
+      return {
+        id:             'hw_' + h.id,
+        _isHW:          true,
+        projectNumber:  'HW',
+        projectName:    h.title,
+        category:       'Holiday Work',
+        location:       h.location || '—',
+        estimatedBudget: h.budget || '',
+        approvedBudget: '',
+        status:         h.status || 'Planning',
+        dateCreated:    h.dateAdded || '',
+        _hwId:          h.id,
+        _holiday:       h.holiday,
+        _contractor:    h.contractor,
+        _cell:          h.cell,
+        _priority:      h.priority,
+        _startDate:     h.startDate,
+        _endDate:       h.endDate,
+        _spent:         spent,
+        _scopeDone:     scopeDone,
+        _scopeTotal:    scopeTotal,
+        _quotes:        (h.quotes||[]).length,
+      };
+    });
     items = [...items, ...hwItems];
   }
 
   if (State.projectFilter === 'all' || State.projectFilter === 'New Build') {
-    const nbItems = loadNBProjects().map(n => ({
-      id:             'nb_' + n.id,
-      _isNB:          true,
-      projectNumber:  'NB',
-      projectName:    n.title,
-      category:       'New Build',
-      location:       n.location || '—',
-      estimatedBudget: n.budget || '',
-      approvedBudget: '',
-      status:         n.status || 'Planning',
-      dateCreated:    n.dateAdded || '',
-      _nbId:          n.id,
-      _architect:     n.architect,
-      _contractor:    n.contractor,
-      _size:          n.size,
-    }));
+    const nbItems = loadNBProjects().map(n => {
+      var spent = (n.invoices||[]).reduce(function(t,i){return t+parseFloat(i.amount||0)},0);
+      var scopeDone = (n.scopeItems||[]).filter(function(s){return s.done}).length;
+      var scopeTotal = (n.scopeItems||[]).length;
+      return {
+        id:             'nb_' + n.id,
+        _isNB:          true,
+        projectNumber:  'NB',
+        projectName:    n.title,
+        category:       'New Build',
+        location:       n.location || '—',
+        estimatedBudget: n.budget || '',
+        approvedBudget: '',
+        status:         n.status || 'Planning',
+        dateCreated:    n.dateAdded || '',
+        _nbId:          n.id,
+        _architect:     n.architect,
+        _contractor:    n.contractor,
+        _size:          n.size,
+        _startDate:     n.startDate,
+        _endDate:       n.endDate,
+        _spent:         spent,
+        _scopeDone:     scopeDone,
+        _scopeTotal:    scopeTotal,
+        _quotes:        (n.quotes||[]).length,
+      };
+    });
     items = [...items, ...nbItems];
   }
 
@@ -1371,7 +1394,9 @@ function renderProjectList() {
       (p.projectName||'').toLowerCase().includes(q) ||
       (p.projectNumber||'').toLowerCase().includes(q) ||
       (p.location||'').toLowerCase().includes(q) ||
-      (p.contractorName||'').toLowerCase().includes(q)
+      (p.contractorName||'').toLowerCase().includes(q) ||
+      (p._contractor||'').toLowerCase().includes(q) ||
+      (p._holiday||'').toLowerCase().includes(q)
     );
   }
 
@@ -1417,16 +1442,31 @@ function renderProjectList() {
 
         if (p._isHW) {
           var hwid = p._hwId || '';
+          var hwBudget = parseFloat(p.estimatedBudget)||0;
           var r = '<tr style="background:#fef9ee">';
-          r += '<td><span class="module-badge module-hw">HOLIDAY</span></td>';
-          r += '<td style="max-width:200px"><strong>' + esc(p.projectName) + '</strong>';
-          if (p._holiday) r += '<div style="font-size:.74rem;color:var(--text-muted)">' + esc(p._holiday) + '</div>';
-          if (p._contractor) r += '<div style="font-size:.74rem;color:var(--text-muted)">' + esc(p._contractor) + '</div>';
+          r += '<td><span class="module-badge module-hw">HOLIDAY</span>';
+          if (p._priority === 'High' || p._priority === 'Urgent') r += '<div style="font-size:.64rem;color:var(--danger);font-weight:700;margin-top:2px">' + esc(p._priority) + '</div>';
           r += '</td>';
-          r += '<td><span class="cat-badge">Holiday Work</span></td>';
+          r += '<td style="max-width:220px"><strong>' + esc(p.projectName) + '</strong>';
+          if (p._contractor) r += '<div style="font-size:.74rem;color:var(--text-muted)">' + esc(p._contractor) + '</div>';
+          if (p._startDate || p._endDate) {
+            r += '<div style="font-size:.72rem;color:var(--text-muted)">';
+            if (p._startDate) r += fmt.date(p._startDate);
+            if (p._startDate && p._endDate) r += ' → ';
+            if (p._endDate) r += fmt.date(p._endDate);
+            r += '</div>';
+          }
+          if (p._scopeTotal > 0) r += '<div style="font-size:.72rem;color:var(--text-muted)">Scope: ' + p._scopeDone + '/' + p._scopeTotal + ' done</div>';
+          r += '</td>';
+          r += '<td><span class="cat-badge">' + esc(p._holiday||'Holiday Work') + '</span></td>';
           if (State.combinedView) r += '<td></td>';
           r += '<td style="color:var(--text-muted);font-size:.82rem">' + esc(p.location||'') + '</td>';
-          r += '<td>' + (p.estimatedBudget ? fmt.currency(p.estimatedBudget) : '—') + '</td>';
+          r += '<td>';
+          if (hwBudget) {
+            r += fmt.currency(hwBudget);
+            if (p._spent > 0) r += '<div style="font-size:.72rem;color:' + (p._spent > hwBudget ? 'var(--danger)' : 'var(--text-muted)') + '">Spent: ' + fmt.currency(p._spent) + '</div>';
+          } else { r += '—'; }
+          r += '</td>';
           r += '<td>' + statusBadge(p.status||'Planning') + '</td>';
           r += '<td style="color:var(--text-muted);font-size:.8rem">' + fmt.date(p.dateCreated) + '</td>';
           r += '<td class="actions"><div style="display:flex;gap:4px">';
@@ -1438,16 +1478,29 @@ function renderProjectList() {
 
         if (p._isNB) {
           var nbid = p._nbId || '';
+          var nbBudget = parseFloat(p.estimatedBudget)||0;
           var nb = '<tr style="background:#eef3fb">';
           nb += '<td><span class="module-badge module-nb">BUILD</span></td>';
-          nb += '<td style="max-width:200px"><strong>' + esc(p.projectName) + '</strong>';
-          if (p._architect) nb += '<div style="font-size:.74rem;color:var(--text-muted)">Architect: ' + esc(p._architect) + '</div>';
-          if (p._size) nb += '<div style="font-size:.74rem;color:var(--text-muted)">' + esc(p._size) + ' m²</div>';
+          nb += '<td style="max-width:220px"><strong>' + esc(p.projectName) + '</strong>';
+          if (p._contractor) nb += '<div style="font-size:.74rem;color:var(--text-muted)">' + esc(p._contractor) + '</div>';
+          if (p._startDate || p._endDate) {
+            nb += '<div style="font-size:.72rem;color:var(--text-muted)">';
+            if (p._startDate) nb += fmt.date(p._startDate);
+            if (p._startDate && p._endDate) nb += ' → ';
+            if (p._endDate) nb += fmt.date(p._endDate);
+            nb += '</div>';
+          }
+          if (p._scopeTotal > 0) nb += '<div style="font-size:.72rem;color:var(--text-muted)">Scope: ' + p._scopeDone + '/' + p._scopeTotal + ' done</div>';
           nb += '</td>';
           nb += '<td><span class="cat-badge">New Build</span></td>';
           if (State.combinedView) nb += '<td></td>';
           nb += '<td style="color:var(--text-muted);font-size:.82rem">' + esc(p.location||'') + '</td>';
-          nb += '<td>' + (p.estimatedBudget ? fmt.currency(p.estimatedBudget) : '—') + '</td>';
+          nb += '<td>';
+          if (nbBudget) {
+            nb += fmt.currency(nbBudget);
+            if (p._spent > 0) nb += '<div style="font-size:.72rem;color:' + (p._spent > nbBudget ? 'var(--danger)' : 'var(--text-muted)') + '">Spent: ' + fmt.currency(p._spent) + '</div>';
+          } else { nb += '—'; }
+          nb += '</td>';
           nb += '<td>' + statusBadge(p.status||'Planning') + '</td>';
           nb += '<td style="color:var(--text-muted);font-size:.8rem">' + fmt.date(p.dateCreated) + '</td>';
           nb += '<td class="actions"><div style="display:flex;gap:4px">';
