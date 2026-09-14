@@ -641,6 +641,15 @@ td.actions { white-space: nowrap; }
   font-size: .68rem; font-weight: 600;
   background: rgba(125,162,75,.12); color: var(--pk-green);
 }
+.module-badge {
+  display: inline-block;
+  font-size: .68rem; font-weight: 700;
+  padding: 2px 8px; border-radius: 10px;
+  letter-spacing: .03em;
+}
+.module-garden { color: var(--asp-green); background: #d4edda; }
+.module-hw     { color: #8b6914; background: #fef3cd; }
+.module-nb     { color: #1a56db; background: #dbeafe; }
 
 /* ============================================================
    FORMS

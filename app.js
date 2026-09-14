@@ -1302,17 +1302,15 @@ function renderProjectList() {
     items = [...State.projects];
   }
 
-  // When filtering by Garden Projects, also include Garden module entries
-  // as virtual read-only rows so all garden data is visible in one place
   if (State.projectFilter === 'all' || State.projectFilter === 'Garden Projects') {
     const gardenItems = State.gardens.map(g => ({
-      id:             'garden_' + g.id,     // prefix to distinguish
+      id:             'garden_' + g.id,
       _isGarden:      true,
       projectNumber:  'GDN',
       projectName:    g.gardenName,
       category:       'Garden Projects',
       location:       g.location || '—',
-      estimatedBudget:'',
+      estimatedBudget: g.budget || '',
       approvedBudget: '',
       status:         g.harvestDate && new Date(g.harvestDate) < new Date() ? 'Completed' : 'In Progress',
       dateCreated:    g.dateAdded || '',
@@ -1321,6 +1319,46 @@ function renderProjectList() {
       _area:          g.areaSize,
     }));
     items = [...items, ...gardenItems];
+  }
+
+  if (State.projectFilter === 'all' || State.projectFilter === 'Holiday Work') {
+    const hwItems = loadHWProjects().map(h => ({
+      id:             'hw_' + h.id,
+      _isHW:          true,
+      projectNumber:  'HW',
+      projectName:    h.title,
+      category:       'Holiday Work',
+      location:       h.location || '—',
+      estimatedBudget: h.budget || '',
+      approvedBudget: '',
+      status:         h.status || 'Planning',
+      dateCreated:    h.dateAdded || '',
+      _hwId:          h.id,
+      _holiday:       h.holiday,
+      _contractor:    h.contractor,
+      _priority:      h.priority,
+    }));
+    items = [...items, ...hwItems];
+  }
+
+  if (State.projectFilter === 'all' || State.projectFilter === 'New Build') {
+    const nbItems = loadNBProjects().map(n => ({
+      id:             'nb_' + n.id,
+      _isNB:          true,
+      projectNumber:  'NB',
+      projectName:    n.title,
+      category:       'New Build',
+      location:       n.location || '—',
+      estimatedBudget: n.budget || '',
+      approvedBudget: '',
+      status:         n.status || 'Planning',
+      dateCreated:    n.dateAdded || '',
+      _nbId:          n.id,
+      _architect:     n.architect,
+      _contractor:    n.contractor,
+      _size:          n.size,
+    }));
+    items = [...items, ...nbItems];
   }
 
   // Category filter
@@ -1359,7 +1397,7 @@ function renderProjectList() {
 
         if (p._isGarden) {
           var row = '<tr style="background:#f2f8eb">';
-          row += '<td><span style="font-size:.72rem;font-weight:700;color:var(--asp-green);background:#d4edda;padding:2px 7px;border-radius:10px">GARDEN</span></td>';
+          row += '<td><span class="module-badge module-garden">GARDEN</span></td>';
           row += '<td style="max-width:200px"><strong>' + esc(p.projectName) + '</strong>';
           if (p._crop) row += '<div style="font-size:.74rem;color:var(--text-muted)">Crop: ' + esc(p._crop) + '</div>';
           if (p._area) row += '<div style="font-size:.74rem;color:var(--text-muted)">' + esc(p._area) + ' m\u00b2</div>';
@@ -1367,14 +1405,56 @@ function renderProjectList() {
           row += '<td><span class="cat-badge">Garden Projects</span></td>';
           if (State.combinedView) row += '<td></td>';
           row += '<td style="color:var(--text-muted);font-size:.82rem">' + esc(p.location||'') + '</td>';
-          row += '<td style="color:var(--text-muted)">—</td>';
+          row += '<td>' + (p.estimatedBudget ? fmt.currency(p.estimatedBudget) : '—') + '</td>';
           row += '<td>' + statusBadge(p.status||'Draft') + '</td>';
           row += '<td style="color:var(--text-muted);font-size:.8rem">' + fmt.date(p.dateCreated) + '</td>';
-          row += '<td class="actions">';
-          row += '<button class="btn btn-sm btn-outline" onclick="openGardenModal(\'' + gid + '\')">Edit</button> ';
+          row += '<td class="actions"><div style="display:flex;gap:4px">';
+          row += '<button class="btn btn-sm btn-outline" onclick="openGardenModal(\'' + gid + '\')">Edit</button>';
           row += '<button class="btn btn-sm btn-danger" onclick="deleteGarden(\'' + gid + '\');renderProjectList()">Delete</button>';
-          row += '</td></tr>';
+          row += '</div></td></tr>';
           return row;
+        }
+
+        if (p._isHW) {
+          var hwid = p._hwId || '';
+          var r = '<tr style="background:#fef9ee">';
+          r += '<td><span class="module-badge module-hw">HOLIDAY</span></td>';
+          r += '<td style="max-width:200px"><strong>' + esc(p.projectName) + '</strong>';
+          if (p._holiday) r += '<div style="font-size:.74rem;color:var(--text-muted)">' + esc(p._holiday) + '</div>';
+          if (p._contractor) r += '<div style="font-size:.74rem;color:var(--text-muted)">' + esc(p._contractor) + '</div>';
+          r += '</td>';
+          r += '<td><span class="cat-badge">Holiday Work</span></td>';
+          if (State.combinedView) r += '<td></td>';
+          r += '<td style="color:var(--text-muted);font-size:.82rem">' + esc(p.location||'') + '</td>';
+          r += '<td>' + (p.estimatedBudget ? fmt.currency(p.estimatedBudget) : '—') + '</td>';
+          r += '<td>' + statusBadge(p.status||'Planning') + '</td>';
+          r += '<td style="color:var(--text-muted);font-size:.8rem">' + fmt.date(p.dateCreated) + '</td>';
+          r += '<td class="actions"><div style="display:flex;gap:4px">';
+          r += '<button class="btn btn-sm btn-outline" onclick="openHWModal(\'' + hwid + '\')">Edit</button>';
+          r += '<button class="btn btn-sm btn-danger" onclick="deleteHWProject(\'' + hwid + '\');renderProjectList()">Delete</button>';
+          r += '</div></td></tr>';
+          return r;
+        }
+
+        if (p._isNB) {
+          var nbid = p._nbId || '';
+          var nb = '<tr style="background:#eef3fb">';
+          nb += '<td><span class="module-badge module-nb">BUILD</span></td>';
+          nb += '<td style="max-width:200px"><strong>' + esc(p.projectName) + '</strong>';
+          if (p._architect) nb += '<div style="font-size:.74rem;color:var(--text-muted)">Architect: ' + esc(p._architect) + '</div>';
+          if (p._size) nb += '<div style="font-size:.74rem;color:var(--text-muted)">' + esc(p._size) + ' m²</div>';
+          nb += '</td>';
+          nb += '<td><span class="cat-badge">New Build</span></td>';
+          if (State.combinedView) nb += '<td></td>';
+          nb += '<td style="color:var(--text-muted);font-size:.82rem">' + esc(p.location||'') + '</td>';
+          nb += '<td>' + (p.estimatedBudget ? fmt.currency(p.estimatedBudget) : '—') + '</td>';
+          nb += '<td>' + statusBadge(p.status||'Planning') + '</td>';
+          nb += '<td style="color:var(--text-muted);font-size:.8rem">' + fmt.date(p.dateCreated) + '</td>';
+          nb += '<td class="actions"><div style="display:flex;gap:4px">';
+          nb += '<button class="btn btn-sm btn-outline" onclick="openNBModal(\'' + nbid + '\')">Edit</button>';
+          nb += '<button class="btn btn-sm btn-danger" onclick="deleteNBProject(\'' + nbid + '\');renderProjectList()">Delete</button>';
+          nb += '</div></td></tr>';
+          return nb;
         }
 
         var row2 = '<tr>';
