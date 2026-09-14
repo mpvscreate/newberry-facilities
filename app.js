@@ -2355,8 +2355,23 @@ function renderGardens() {
     html += '</div>';
     html += '</div>';
     html += '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">';
+    if (gn.status) html += '<span class="garden-badge" style="background:var(--asp-green);color:#fff">' + esc(gn.status) + '</span>';
+    if (gn.priority) html += '<span class="garden-badge" style="background:' + (gn.priority==='High'?'var(--danger)':gn.priority==='Medium'?'#e67e22':'var(--text-muted)') + ';color:#fff">' + esc(gn.priority) + '</span>';
     html += harvestBadge + plantBadge;
     html += '</div></div>';
+
+    // ── Scope of Work section ──────────────────────────────
+    if (gn.scopeDescription || gn.startDate || gn.targetDate || gn.scopeNotes) {
+      html += '<div class="gcf-section">';
+      html += '<div class="gcf-section-title">Scope of Work</div>';
+      if (gn.scopeDescription) html += '<div style="font-size:.85rem;color:var(--text-secondary);margin-bottom:8px;line-height:1.5">' + esc(gn.scopeDescription) + '</div>';
+      html += '<div class="gcf-grid">';
+      if (gn.startDate)  html += '<div class="gcf-item"><div class="gcf-label">Start Date</div><div class="gcf-val">' + fmt.date(gn.startDate) + '</div></div>';
+      if (gn.targetDate) html += '<div class="gcf-item"><div class="gcf-label">Target Completion</div><div class="gcf-val">' + fmt.date(gn.targetDate) + '</div></div>';
+      html += '</div>';
+      if (gn.scopeNotes) html += '<div style="font-size:.78rem;color:var(--text-muted);margin-top:6px;font-style:italic">' + esc(gn.scopeNotes) + '</div>';
+      html += '</div>';
+    }
 
     // ── Planting section ───────────────────────────────────
     if (gn.crop || gn.plantingDate || gn.harvestDate) {
@@ -2447,12 +2462,13 @@ function openGardenModal(id) {
   ['gardenName','location','areaSize','crop','plantingDate','harvestDate',
    'wateringSchedule','weedingSchedule','fertiliserSchedule','pestControlNotes',
    'gradeLevel','subjectLinks','curriculumNotes','budget','fundingSource',
-   'contactPerson','cellNumber']
+   'contactPerson','cellNumber',
+   'scopeDescription','status','priority','startDate','targetDate','scopeNotes']
     .forEach(f => { const el = $('gf-'+f); if (el) el.value = gn ? (gn[f]||'') : ''; });
   $('gf-id').value = id || '';
 
   // Switch to general tab FIRST so all panels are in correct visibility state
-  switchGardenTab(document.querySelector('#garden-modal .tab'), 'g-tab-general');
+  switchGardenTab(document.querySelector('#garden-modal .gm-tab'), 'g-tab-general');
 
   // Render expense list (g-tab-costs is hidden but DOM exists — that's fine)
   renderGardenExpenseList(gn);
@@ -2493,6 +2509,12 @@ function saveGarden() {
     fundingSource:      $('gf-fundingSource')?.value||'',
     contactPerson:      $('gf-contactPerson')?.value||'',
     cellNumber:         $('gf-cellNumber')?.value||'',
+    scopeDescription:   $('gf-scopeDescription')?.value||'',
+    status:             $('gf-status')?.value||'',
+    priority:           $('gf-priority')?.value||'',
+    startDate:          $('gf-startDate')?.value||'',
+    targetDate:         $('gf-targetDate')?.value||'',
+    scopeNotes:         $('gf-scopeNotes')?.value||'',
     expenses,
   };
   if (existingId) { const gn = State.gardens.find(x => x.id === existingId); Object.assign(gn, data); }
