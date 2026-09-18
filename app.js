@@ -4889,20 +4889,25 @@ function saveSettings() {
 }
 
 /* ── Data management ─────────────────────────────────────── */
+function _siteExportObj(siteId) {
+  const k = DB.keys(siteId);
+  const hwData = (() => { try { return JSON.parse(localStorage.getItem('nhfm_holidaywork_' + siteId)) || []; } catch { return []; } })();
+  const nbData = (() => { try { return JSON.parse(localStorage.getItem('nhfm_newbuild_' + siteId)) || []; } catch { return []; } })();
+  return { projects:DB.load(k.projects), contractors:DB.load(k.contractors), gardens:DB.load(k.gardens), holidayWork:hwData, newBuild:nbData, settings:DB.loadObj(k.settings,{}) };
+}
+
 function exportData(siteId) {
   siteId = siteId || currentSiteId;
   let data;
   if (siteId === 'combined') {
-    const lk = DB.keys('lourensford'), sk = DB.keys('spier');
     data = {
-      combined: true,
-      lourensford: { projects:DB.load(lk.projects), contractors:DB.load(lk.contractors), gardens:DB.load(lk.gardens), settings:DB.loadObj(lk.settings,{}) },
-      spier:       { projects:DB.load(sk.projects), contractors:DB.load(sk.contractors), gardens:DB.load(sk.gardens), settings:DB.loadObj(sk.settings,{}) },
+      combined: true, version: 2,
+      lourensford: _siteExportObj('lourensford'),
+      spier:       _siteExportObj('spier'),
       exported: new Date().toISOString(),
     };
   } else {
-    const k = DB.keys(siteId);
-    data = { site:siteId, projects:DB.load(k.projects), contractors:DB.load(k.contractors), gardens:DB.load(k.gardens), settings:DB.loadObj(k.settings,{}), exported:new Date().toISOString() };
+    data = { site:siteId, version:2, ..._siteExportObj(siteId), exported:new Date().toISOString() };
   }
   const blob = new Blob([JSON.stringify(data,null,2)], { type:'application/json' });
   const a = document.createElement('a');
@@ -4910,6 +4915,16 @@ function exportData(siteId) {
   a.download = 'nhfm-' + siteId + '-' + new Date().toISOString().split('T')[0] + '.json';
   a.click();
   toast('Data exported');
+}
+
+function _importSiteData(sid, obj) {
+  const k = DB.keys(sid);
+  if (obj.projects)    DB.save(k.projects,    obj.projects);
+  if (obj.contractors) DB.save(k.contractors, obj.contractors);
+  if (obj.gardens)     DB.save(k.gardens,     obj.gardens);
+  if (obj.settings)    DB.save(k.settings,    obj.settings);
+  if (obj.holidayWork) { try { localStorage.setItem('nhfm_holidaywork_' + sid, JSON.stringify(obj.holidayWork)); } catch {} }
+  if (obj.newBuild)    { try { localStorage.setItem('nhfm_newbuild_' + sid, JSON.stringify(obj.newBuild)); } catch {} }
 }
 
 function importData(e) {
@@ -4921,19 +4936,11 @@ function importData(e) {
       if (data.combined) {
         ['lourensford','spier'].forEach(sid => {
           if (!data[sid]) return;
-          const k = DB.keys(sid);
-          if (data[sid].projects)    DB.save(k.projects,    data[sid].projects);
-          if (data[sid].contractors) DB.save(k.contractors, data[sid].contractors);
-          if (data[sid].gardens)     DB.save(k.gardens,     data[sid].gardens);
-          if (data[sid].settings)    DB.save(k.settings,    data[sid].settings);
+          _importSiteData(sid, data[sid]);
         });
         toast('Both campuses imported');
       } else {
-        const k = DB.keys(currentSiteId);
-        if (data.projects)    DB.save(k.projects,    data.projects);
-        if (data.contractors) DB.save(k.contractors, data.contractors);
-        if (data.gardens)     DB.save(k.gardens,     data.gardens);
-        if (data.settings)    DB.save(k.settings,    data.settings);
+        _importSiteData(currentSiteId, data);
         toast('Data imported into ' + currentSite.name);
       }
       loadSiteData();
