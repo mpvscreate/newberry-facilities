@@ -2496,29 +2496,34 @@ function renderGardens() {
     html += harvestBadge + plantBadge;
     html += '</div></div>';
 
-    // ── Scope of Work section ──────────────────────────────
+    // ── Scope of Work section (collapsible panel) ─────────
     var gscopeItems = gn.scopeItems || [];
     var gscopeDone = gscopeItems.filter(function(s){return s.done}).length;
     if (gn.scopeDescription || gn.startDate || gn.targetDate || gn.scopeNotes || gscopeItems.length) {
-      html += '<div class="gcf-section">';
-      html += '<div class="gcf-section-title">Scope of Work' + (gscopeItems.length ? ' (' + gscopeDone + '/' + gscopeItems.length + ' done)' : '') + '</div>';
-      if (gn.scopeDescription) html += '<div style="font-size:.85rem;color:var(--text-secondary);margin-bottom:8px;line-height:1.5">' + esc(gn.scopeDescription) + '</div>';
-      html += '<div class="gcf-grid">';
-      if (gn.startDate)  html += '<div class="gcf-item"><div class="gcf-label">Start Date</div><div class="gcf-val">' + fmt.date(gn.startDate) + '</div></div>';
-      if (gn.targetDate) html += '<div class="gcf-item"><div class="gcf-label">Target Completion</div><div class="gcf-val">' + fmt.date(gn.targetDate) + '</div></div>';
+      var gscopePct = gscopeItems.length ? Math.round(gscopeDone / gscopeItems.length * 100) : null;
+      html += '<div class="panel" style="margin:10px 14px;border-radius:var(--radius-sm)">';
+      html += '<div class="panel-header" style="padding:8px 12px;font-size:.78rem">';
+      html += '<span class="panel-title" style="font-size:.78rem">Scope of Work' + (gscopeItems.length ? ' (' + gscopeDone + '/' + gscopeItems.length + ' done)' : '') + '</span>';
+      html += '<span class="panel-toggle">&#9660;</span>';
       html += '</div>';
+      html += '<div class="panel-body" style="padding:10px 12px">';
+      if (gn.scopeDescription) html += '<p style="font-size:.8rem;color:var(--text-secondary);line-height:1.5;margin-bottom:' + (gscopeItems.length || gn.startDate ? '10px' : '0') + '">' + esc(gn.scopeDescription) + '</p>';
+      if (gn.startDate || gn.targetDate) {
+        html += '<div class="gcf-grid" style="margin-bottom:8px">';
+        if (gn.startDate)  html += '<div class="gcf-item"><div class="gcf-label">Start Date</div><div class="gcf-val">' + fmt.date(gn.startDate) + '</div></div>';
+        if (gn.targetDate) html += '<div class="gcf-item"><div class="gcf-label">Target Completion</div><div class="gcf-val">' + fmt.date(gn.targetDate) + '</div></div>';
+        html += '</div>';
+      }
       if (gscopeItems.length) {
-        var gscopePct = Math.round(gscopeDone / gscopeItems.length * 100);
-        html += '<div style="margin-top:8px"><div style="height:6px;background:var(--platinum);border-radius:3px;overflow:hidden"><div style="height:100%;width:' + gscopePct + '%;background:var(--pk-green);border-radius:3px;transition:width .3s"></div></div>';
-        html += '<div style="font-size:.7rem;color:var(--text-muted);margin-top:3px">' + gscopePct + '% complete</div></div>';
-        html += '<div class="hw-scope-list" style="margin-top:8px">';
+        html += '<div class="hw-scope-list">';
         html += gscopeItems.map(function(s,i) {
-          return '<label class="hw-scope-item"><input type="checkbox" ' + (s.done?'checked':'') + ' onchange="toggleGardenScopeItem(\'' + id + '\',' + i + ',this.checked)" style="accent-color:var(--pk-green)"><span style="' + (s.done?'text-decoration:line-through;opacity:.6':'') + '">' + esc(s.text) + '</span></label>';
+          return '<label class="hw-scope-item"><input type="checkbox" ' + (s.done?'checked':'') + ' onchange="toggleGardenScopeItem(\'' + id + '\',' + i + ',this.checked)" style="accent-color:var(--pk-green)"><span style="' + (s.done?'text-decoration:line-through;color:var(--text-muted)':'') + '">' + esc(s.text) + '</span></label>';
         }).join('');
         html += '</div>';
       }
+      if (gscopePct !== null) html += '<div style="margin-top:8px;height:5px;background:var(--platinum);border-radius:3px;overflow:hidden"><div style="height:100%;width:' + gscopePct + '%;background:var(--pk-green);border-radius:3px;transition:width .3s"></div></div>';
       if (gn.scopeNotes) html += '<div style="font-size:.78rem;color:var(--text-muted);margin-top:6px;font-style:italic">' + esc(gn.scopeNotes) + '</div>';
-      html += '</div>';
+      html += '</div></div>';
     }
 
     // ── Planting section ───────────────────────────────────
