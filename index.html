@@ -62,6 +62,8 @@
     <!-- Sync status -->
     <span id="sync-status" class="sync-indicator sync-ok">✓ Synced</span>
 
+    <button id="theme-toggle" class="theme-toggle no-print" onclick="toggleTheme()" title="Toggle dark mode" aria-label="Toggle dark mode">&#9789;</button>
+
     <div class="undo-redo-group no-print">
       <button id="undo-btn" class="undo-redo-btn" onclick="UndoManager.undo()" disabled title="Nothing to undo">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
@@ -245,12 +247,24 @@
 
       </div><!-- /dash-main-grid -->
 
+      <!-- ── Activity Log Panel ── -->
+      <div class="card" style="margin-top:20px" id="dash-activity-card">
+        <div class="card-header">
+          <h3 class="card-title">Activity Log</h3>
+          <button class="btn btn-outline btn-sm" onclick="clearActivityLog()">Clear</button>
+        </div>
+        <div class="card-body" style="padding:0;max-height:360px;overflow-y:auto">
+          <div id="dash-activity-log" style="padding:12px 20px"></div>
+        </div>
+      </div>
+
       <!-- ── Project Detail Drawer ── -->
       <div id="dash-drawer" class="dash-drawer">
         <div class="dash-drawer-header">
           <div id="dash-drawer-title" class="dash-drawer-proj-name"></div>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
             <div id="dash-drawer-wa"></div>
+            <button class="btn btn-outline btn-sm" id="dash-drawer-share-btn" onclick="shareDrawerToWhatsApp()" title="Share as image">Share</button>
             <button class="btn btn-primary btn-sm" id="dash-drawer-edit-btn">Edit Project</button>
             <button class="dash-drawer-close" onclick="closeDashDrawer()">×</button>
           </div>
@@ -672,6 +686,20 @@
           <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px">
             <button class="btn btn-outline" onclick="exportData(&#39;combined&#39;)">Export Both Campuses</button>
             <button class="btn btn-danger btn-sm" onclick="clearBothSites()" style="margin-left:auto">Clear Both Campuses</button>
+          </div>
+
+          <div style="font-size:.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Auto-Backup</div>
+          <div style="background:var(--ivory);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:20px">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+              <label for="s-autoBackup" style="font-size:.82rem;font-weight:600;color:var(--text-primary);flex:1">Schedule automatic JSON backups</label>
+              <select id="s-autoBackup" onchange="setAutoBackup(this.value)" style="width:auto;font-size:.8rem;padding:4px 8px">
+                <option value="off">Off</option>
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="change">On every save</option>
+              </select>
+            </div>
+            <div id="backup-status" class="backup-info backup-off"><span class="backup-dot"></span><span>No auto-backup configured</span></div>
           </div>
 
           <div style="font-size:.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Supabase Cloud Sync</div>

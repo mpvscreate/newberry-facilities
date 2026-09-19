@@ -563,17 +563,17 @@ function refreshProjectsFromStorage() {
 /* Save to localStorage immediately (synchronous), then push to Supabase async */
 function saveProjects() {
   const ok = DB.save(DB.keys(currentSiteId).projects, State.projects);
-  if (ok) pushProjectsToSupabase();
+  if (ok) { pushProjectsToSupabase(); triggerBackupOnSave(); }
   return ok;
 }
 function saveContractors() {
   const ok = DB.save(DB.keys(currentSiteId).contractors, State.contractors);
-  if (ok) pushContractorsToSupabase();
+  if (ok) { pushContractorsToSupabase(); triggerBackupOnSave(); }
   return ok;
 }
 function saveGardens() {
   const ok = DB.save(DB.keys(currentSiteId).gardens, State.gardens);
-  if (ok) pushGardensToSupabase();
+  if (ok) { pushGardensToSupabase(); triggerBackupOnSave(); }
   return ok;
 }
 
@@ -876,6 +876,7 @@ function renderDashboard() {
 
   // Project feed
   renderDashFeed();
+  renderDashActivityLog();
   if (typeof animateCounters === 'function') setTimeout(animateCounters, 50);
   if (typeof updateNavBadges === 'function') updateNavBadges();
 }
@@ -1184,9 +1185,9 @@ function openDashDrawer(projectId) {
       <p style="font-size:.82rem;color:var(--text-secondary);line-height:1.6;white-space:pre-wrap">${esc(p.notes)}</p>
     </div>` : ''}
 
-    <!-- Activity log -->
+    <!-- Project Activity -->
     ${(p.activity||[]).length ? `<div class="drawer-section">
-      <div class="drawer-section-title">Recent Activity</div>
+      <div class="drawer-section-title">Project Activity</div>
       <div class="activity-list">
         ${(p.activity||[]).slice(0,6).map(a=>`<div class="activity-item">
           <div class="activity-dot"></div>
@@ -1195,6 +1196,9 @@ function openDashDrawer(projectId) {
         </div>`).join('')}
       </div>
     </div>` : ''}
+
+    <!-- Global Activity Log -->
+    ${renderActivityInDrawer()}
   `;
 
   // Open drawer
@@ -1667,9 +1671,11 @@ function sortProjects(f) {
 async function deleteProject(id) {
   if (!confirm('Delete this project? This cannot be undone.')) return;
   UndoManager.push('delete project');
+  const delP = State.projects.find(p => p.id === id);
   State.projects = State.projects.filter(p => p.id !== id);
   DB.save(DB.keys(currentSiteId).projects, State.projects);
   renderProjectList();
+  if (delP) ActivityLog.add('delete', 'Deleted project <strong>' + esc(delP.projectName || 'Untitled') + '</strong>');
   toast('Project deleted');
   // Delete from Supabase
   setSyncStatus('syncing');
@@ -1743,12 +1749,16 @@ function saveProject() {
     const oldStatus = p.status;
     Object.assign(p, data);       // merge form data, preserving quotes/photos/documents/activity
     p.dateUpdated = now;
-    addActivity(p, oldStatus !== p.status
-      ? `Status changed from "${oldStatus}" to "${p.status}"`
-      : 'Project details updated');
+    if (oldStatus !== p.status) {
+      addActivity(p, `Status changed from "${oldStatus}" to "${p.status}"`);
+      ActivityLog.add('status', '<strong>' + esc(p.projectName) + '</strong> status: ' + esc(oldStatus) + ' → ' + esc(p.status));
+    } else {
+      addActivity(p, 'Project details updated');
+    }
   } else {
     p = { id:uid(), dateCreated:now, dateUpdated:now, quotes:[], photos:[], documents:[], activity:[], invoices:[], ...data };
     addActivity(p, 'Project created');
+    ActivityLog.add('create', 'Created project <strong>' + esc(p.projectName) + '</strong>');
     State.projects.push(p);
     editingProjectId = p.id;
   }
@@ -1801,6 +1811,7 @@ function duplicateProject() {
   copy.activity = [{ id:uid(), text:'Duplicated from: ' + orig.projectName, ts:now }];
   State.projects.push(copy);
   saveProjects();
+  ActivityLog.add('create', 'Duplicated project <strong>' + esc(copy.projectName) + '</strong>');
   toast('Project duplicated');
   navigate('newproject', copy.id);
 }
@@ -3835,6 +3846,8 @@ function saveHWProject() {
     hwProjects = projs;
     closeModal('hw-modal');
     renderHolidayWork();
+    ActivityLog.add(existingId ? 'status' : 'create', (existingId ? 'Updated' : 'Created') + ' HW project <strong>' + esc(title) + '</strong>');
+    triggerBackupOnSave();
     toast('Holiday project saved');
   }
 }
@@ -3842,10 +3855,12 @@ function saveHWProject() {
 async function deleteHWProject(id) {
   if (!confirm('Delete this holiday project?')) return;
   UndoManager.push('delete HW project');
+  const delP = loadHWProjects().find(p => p.id === id);
   const projs = loadHWProjects().filter(p => p.id !== id);
   localStorage.setItem(hwKey(), JSON.stringify(projs));
   hwProjects = projs;
   renderHolidayWork();
+  if (delP) ActivityLog.add('delete', 'Deleted HW project <strong>' + esc(delP.title || 'Untitled') + '</strong>');
   toast('Deleted');
   if (SUPABASE_URL) {
     setSyncStatus('syncing');
@@ -4352,6 +4367,8 @@ function saveNBProject() {
     nbProjects = projs;
     closeModal('nb-modal');
     renderNewBuild();
+    ActivityLog.add(existingId ? 'status' : 'create', (existingId ? 'Updated' : 'Created') + ' NB project <strong>' + esc(title) + '</strong>');
+    triggerBackupOnSave();
     toast('Build project saved');
   }
 }
@@ -4359,10 +4376,12 @@ function saveNBProject() {
 async function deleteNBProject(id) {
   if (!confirm('Delete this build project?')) return;
   UndoManager.push('delete new build');
+  const delP = loadNBProjects().find(p => p.id === id);
   const projs = loadNBProjects().filter(p => p.id !== id);
   localStorage.setItem(nbKey(), JSON.stringify(projs));
   nbProjects = projs;
   renderNewBuild();
+  if (delP) ActivityLog.add('delete', 'Deleted NB project <strong>' + esc(delP.title || 'Untitled') + '</strong>');
   toast('Deleted');
   if (SUPABASE_URL) {
     setSyncStatus('syncing');
@@ -5373,6 +5392,12 @@ function init() {
   // Ensure campus column is hidden on startup (not combined)
   const col = $('col-site'); if (col) col.style.display = 'none';
 
+  // Dark mode — restore saved preference
+  initTheme();
+
+  // Auto-backup — start timer if configured
+  initAutoBackup();
+
   // Load site data and launch
   loadSiteData();
   updateSiteUI();
@@ -5489,3 +5514,212 @@ sortProjects = function(f) {
     }
   });
 };
+
+/* ============================================================
+   DARK MODE
+   ============================================================ */
+function initTheme() {
+  const saved = localStorage.getItem('nhfm_theme');
+  if (saved === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+  updateThemeIcon();
+}
+
+function toggleTheme() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  if (isDark) {
+    document.documentElement.removeAttribute('data-theme');
+    localStorage.setItem('nhfm_theme', 'light');
+  } else {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    localStorage.setItem('nhfm_theme', 'dark');
+  }
+  updateThemeIcon();
+}
+
+function updateThemeIcon() {
+  const btn = $('theme-toggle');
+  if (!btn) return;
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  btn.innerHTML = isDark ? '&#9788;' : '&#9789;';
+  btn.title = isDark ? 'Switch to light mode' : 'Switch to dark mode';
+}
+
+/* ============================================================
+   ACTIVITY LOG (Global)
+   ============================================================ */
+const ActivityLog = {
+  _key() { return 'nhfm_activity_' + currentSiteId; },
+
+  load() {
+    try { return JSON.parse(localStorage.getItem(this._key())) || []; }
+    catch { return []; }
+  },
+
+  add(type, text) {
+    const log = this.load();
+    log.unshift({ type, text, ts: new Date().toISOString() });
+    if (log.length > 200) log.length = 200;
+    try { localStorage.setItem(this._key(), JSON.stringify(log)); } catch {}
+    this._pushToSupabase(type, text);
+  },
+
+  async _pushToSupabase(type, text) {
+    try {
+      await SB.post('activity_log', {
+        site_id: currentSiteId,
+        type: type,
+        text: text,
+        created_at: new Date().toISOString(),
+      });
+    } catch {}
+  },
+};
+
+function renderDashActivityLog() {
+  const el = $('dash-activity-log'); if (!el) return;
+  const log = ActivityLog.load();
+  if (!log.length) {
+    el.innerHTML = '<p style="font-size:.82rem;color:var(--text-muted);padding:8px 0">No activity recorded yet. Actions like creating, editing, and deleting projects will appear here.</p>';
+    return;
+  }
+  const typeClass = { create:'al-create', status:'al-status', finance:'al-finance', delete:'al-delete', backup:'al-status' };
+  el.innerHTML = '<div class="activity-log-global">'
+    + log.slice(0, 50).map(function(a) {
+        return '<div class="al-item">'
+          + '<span class="al-dot ' + (typeClass[a.type]||'') + '"></span>'
+          + '<div class="al-body"><div class="al-text">' + a.text + '</div>'
+          + '<div class="al-time">' + fmt.dateTime(a.ts) + '</div></div></div>';
+      }).join('')
+    + '</div>';
+}
+
+function clearActivityLog() {
+  if (!confirm('Clear the activity log for ' + currentSite.name + '?')) return;
+  localStorage.removeItem('nhfm_activity_' + currentSiteId);
+  renderDashActivityLog();
+  toast('Activity log cleared');
+}
+
+function renderActivityInDrawer() {
+  const log = ActivityLog.load();
+  if (!log.length) return '';
+  const typeClass = { create:'al-create', status:'al-status', finance:'al-finance', delete:'al-delete' };
+  return '<div class="drawer-section"><div class="drawer-section-title">Activity Log</div>'
+    + '<div class="activity-log-global">'
+    + log.slice(0, 30).map(function(a) {
+        return '<div class="al-item">'
+          + '<span class="al-dot ' + (typeClass[a.type]||'') + '"></span>'
+          + '<div class="al-body"><div class="al-text">' + a.text + '</div>'
+          + '<div class="al-time">' + fmt.dateTime(a.ts) + '</div></div></div>';
+      }).join('')
+    + '</div></div>';
+}
+
+/* ============================================================
+   SHARE DRAWER TO WHATSAPP (project detail)
+   ============================================================ */
+async function shareDrawerToWhatsApp() {
+  const drawer = $('dash-drawer');
+  if (!drawer) return;
+  toast('Capturing project detail…');
+  try {
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+    const body = drawer.querySelector('.dash-drawer-body');
+    if (!body) return;
+    const canvas = await window.html2canvas(body, {
+      scale: 2, useCORS: true,
+      backgroundColor: document.documentElement.getAttribute('data-theme') === 'dark' ? '#1e2124' : '#ffffff',
+      logging: false, removeContainer: true,
+    });
+    canvas.toBlob(async function(blob) {
+      if (!blob) { toast('Could not capture', 'error'); return; }
+      const file = new File([blob], 'project-detail.png', { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], title: 'Project Detail' });
+          toast('Shared');
+        } catch (e) {
+          if (e.name !== 'AbortError') toast('Share cancelled', 'warning');
+        }
+      } else {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'project-detail.png';
+        a.click();
+        URL.revokeObjectURL(a.href);
+        toast('Image downloaded — attach it in WhatsApp');
+      }
+    }, 'image/png');
+  } catch (e) {
+    console.error('Share error:', e);
+    toast('Could not capture', 'error');
+  }
+}
+
+/* ============================================================
+   AUTO-BACKUP
+   ============================================================ */
+let _autoBackupTimer = null;
+
+function initAutoBackup() {
+  const mode = localStorage.getItem('nhfm_autobackup') || 'off';
+  const sel = $('s-autoBackup');
+  if (sel) sel.value = mode;
+  updateBackupStatus();
+  if (mode === 'daily' || mode === 'weekly') startBackupTimer(mode);
+}
+
+function setAutoBackup(mode) {
+  localStorage.setItem('nhfm_autobackup', mode);
+  if (_autoBackupTimer) { clearInterval(_autoBackupTimer); _autoBackupTimer = null; }
+  if (mode === 'daily' || mode === 'weekly') startBackupTimer(mode);
+  updateBackupStatus();
+  toast('Auto-backup: ' + (mode === 'off' ? 'disabled' : mode));
+}
+
+function startBackupTimer(mode) {
+  const ms = mode === 'daily' ? 24*60*60*1000 : 7*24*60*60*1000;
+  const lastKey = 'nhfm_lastbackup';
+  const last = parseInt(localStorage.getItem(lastKey) || '0', 10);
+  const elapsed = Date.now() - last;
+  if (elapsed >= ms) {
+    runAutoBackup();
+  } else {
+    _autoBackupTimer = setTimeout(function() { runAutoBackup(); startBackupTimer(mode); }, ms - elapsed);
+  }
+}
+
+function runAutoBackup() {
+  localStorage.setItem('nhfm_lastbackup', String(Date.now()));
+  exportData('combined');
+  ActivityLog.add('backup', 'Auto-backup exported');
+  updateBackupStatus();
+}
+
+function triggerBackupOnSave() {
+  const mode = localStorage.getItem('nhfm_autobackup');
+  if (mode === 'change') {
+    const now = Date.now();
+    const last = parseInt(localStorage.getItem('nhfm_lastbackup') || '0', 10);
+    if (now - last > 60000) {
+      localStorage.setItem('nhfm_lastbackup', String(now));
+      exportData('combined');
+      updateBackupStatus();
+    }
+  }
+}
+
+function updateBackupStatus() {
+  const el = $('backup-status');
+  if (!el) return;
+  const mode = localStorage.getItem('nhfm_autobackup') || 'off';
+  const last = parseInt(localStorage.getItem('nhfm_lastbackup') || '0', 10);
+  if (mode === 'off') {
+    el.className = 'backup-info backup-off';
+    el.innerHTML = '<span class="backup-dot"></span><span>No auto-backup configured</span>';
+  } else {
+    el.className = 'backup-info';
+    el.innerHTML = '<span class="backup-dot"></span><span>Mode: ' + mode
+      + (last ? ' · Last backup: ' + fmt.dateTime(new Date(last).toISOString()) : '') + '</span>';
+  }
+}
