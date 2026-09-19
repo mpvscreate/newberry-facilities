@@ -461,6 +461,15 @@ function showSyncSkeletons() {
 async function syncFromSupabase() {
   setSyncStatus('syncing');
   showSyncSkeletons();
+  const k = DB.keys(currentSiteId);
+  const snapshot = {
+    projects:    localStorage.getItem(k.projects),
+    contractors: localStorage.getItem(k.contractors),
+    gardens:     localStorage.getItem(k.gardens),
+    settings:    localStorage.getItem(k.settings),
+    hw:          localStorage.getItem(hwKey()),
+    nb:          localStorage.getItem(nbKey()),
+  };
   try {
     const [projects, contractors, gardens, settingsRows, hwRows, nbRows] = await Promise.all([
       SB.get(`projects?site_id=eq.${currentSiteId}&select=*&order=date_created.desc`),
@@ -472,10 +481,6 @@ async function syncFromSupabase() {
     ]);
 
     if (projects === null) { setSyncStatus('offline'); return; }
-
-    // Always write Supabase results to local cache — including empty arrays
-    // (so deletes on another device propagate correctly)
-    const k = DB.keys(currentSiteId);
 
     const mappedProjects = projects.map(row => ({ ...row.data, id: row.id, site_id: row.site_id }));
     State.projects = mappedProjects;
@@ -522,7 +527,6 @@ async function syncFromSupabase() {
       if (localNB.length > 0) pushNBProjectsToSupabase();
     }
 
-    // Re-render current page with fresh data
     const page = State.currentPage;
     if (page === 'dashboard')   renderDashboard();
     if (page === 'projects')    renderProjectList();
@@ -534,7 +538,11 @@ async function syncFromSupabase() {
     DB.save(k.syncAt, new Date().toISOString());
     setSyncStatus('synced');
   } catch (e) {
-    console.warn('Sync failed:', e);
+    console.warn('Sync failed, rolling back localStorage:', e);
+    const rollbacks = [[k.projects, snapshot.projects], [k.contractors, snapshot.contractors], [k.gardens, snapshot.gardens], [k.settings, snapshot.settings], [hwKey(), snapshot.hw], [nbKey(), snapshot.nb]];
+    for (const [lsKey, val] of rollbacks) {
+      if (val !== null) localStorage.setItem(lsKey, val); else localStorage.removeItem(lsKey);
+    }
     setSyncStatus('error');
   }
 }
@@ -656,9 +664,8 @@ async function pushHWProjectsToSupabase() {
     if (rows.length) await SB.upsert('hw_projects', rows);
     const remote = await SB.get('hw_projects?site_id=eq.' + currentSiteId + '&select=id');
     if (remote) {
-      for (const r of remote) {
-        if (!localIds.has(r.id)) await SB.delete('hw_projects?id=eq.' + r.id);
-      }
+      const stale = remote.filter(r => !localIds.has(r.id)).map(r => r.id);
+      if (stale.length) await SB.delete('hw_projects?id=in.(' + stale.join(',') + ')');
     }
   } catch (e) { console.error('pushHWProjects error:', e); }
 }
@@ -845,9 +852,9 @@ function renderDashboard() {
   // Deadline alerts
   const today = new Date(), alerts = [];
   P.forEach(p => {
-    if (p.quoteDueDate) { const d=Math.ceil((new Date(p.quoteDueDate)-today)/86400000); if(d>=0&&d<=5&&p.status==='Awaiting Quotes') alerts.push({t:'warning',m:`Quote due in ${d} day(s): <strong>${p.projectName}</strong>`,id:p.id}); }
-    if (p.startDate)    { const d=Math.ceil((new Date(p.startDate)-today)/86400000);    if(d>=0&&d<=3&&p.status==='Approved')         alerts.push({t:'info',   m:`Work starts in ${d} day(s): <strong>${p.projectName}</strong>`,id:p.id}); }
-    if (p.completionDate&&p.status==='In Progress') { const d=Math.ceil((new Date(p.completionDate)-today)/86400000); if(d<0) alerts.push({t:'danger',m:`Overdue: <strong>${p.projectName}</strong> — due ${fmt.date(p.completionDate)}`,id:p.id}); }
+    if (p.quoteDueDate) { const d=Math.ceil((new Date(p.quoteDueDate)-today)/86400000); if(d>=0&&d<=5&&p.status==='Awaiting Quotes') alerts.push({t:'warning',m:`Quote due in ${d} day(s): <strong>${esc(p.projectName)}</strong>`,id:p.id}); }
+    if (p.startDate)    { const d=Math.ceil((new Date(p.startDate)-today)/86400000);    if(d>=0&&d<=3&&p.status==='Approved')         alerts.push({t:'info',   m:`Work starts in ${d} day(s): <strong>${esc(p.projectName)}</strong>`,id:p.id}); }
+    if (p.completionDate&&p.status==='In Progress') { const d=Math.ceil((new Date(p.completionDate)-today)/86400000); if(d<0) alerts.push({t:'danger',m:`Overdue: <strong>${esc(p.projectName)}</strong> — due ${fmt.date(p.completionDate)}`,id:p.id}); }
   });
   $('alerts-container').innerHTML = alerts.slice(0,5).map(a =>
     `<div class="alert alert-${a.t}" onclick="openDashDrawer('${a.id}')" style="cursor:pointer">${a.m} <span style="float:right;font-size:.75rem;opacity:.7">View ›</span></div>`
@@ -3959,7 +3966,7 @@ function renderNBGrid() {
       <div class="hwc-header">
         <span class="drag-handle" title="Drag to reorder">&#9776;</span>
         <div style="flex:1;min-width:0">
-          <div class="hwc-cat"><span class="nb-editable" onclick="nbInlineEdit('${p.id}','category',this,event)" title="Click to edit category">${esc(p.category)}</span>${p.size ? ' · '+p.size+' m²' : ''}</div>
+          <div class="hwc-cat"><span class="nb-editable" onclick="nbInlineEdit('${p.id}','category',this,event)" title="Click to edit category">${esc(p.category)}</span>${p.size ? ' · '+esc(p.size)+' m²' : ''}</div>
           <div class="hwc-title nb-editable" onclick="nbInlineEdit('${p.id}','title',this,event)" title="Click to edit title">${esc(p.title)}</div>
           <div class="hwc-location nb-editable" onclick="nbInlineEdit('${p.id}','location',this,event)" title="Click to edit location">${esc(p.location||'Add location…')}</div>
         </div>
@@ -4408,9 +4415,8 @@ async function pushNBProjectsToSupabase() {
     if (rows.length) await SB.upsert('new_builds', rows);
     const remote = await SB.get('new_builds?site_id=eq.' + currentSiteId + '&select=id');
     if (remote) {
-      for (const r of remote) {
-        if (!localIds.has(r.id)) await SB.delete('new_builds?id=eq.' + r.id);
-      }
+      const stale = remote.filter(r => !localIds.has(r.id)).map(r => r.id);
+      if (stale.length) await SB.delete('new_builds?id=in.(' + stale.join(',') + ')');
     }
   } catch (e) { console.error('pushNBProjects error:', e); }
 }
@@ -4645,7 +4651,7 @@ function generateReport() {
 function buildFullReportDoc(reportEl) {
   const logoEl  = document.querySelector('.sidebar-logo-img');
   const logoSrc = logoEl ? logoEl.src : '';
-  const title   = reportEl.querySelector('.report-project-name')?.textContent || 'Facilities Report';
+  const title   = esc(reportEl.querySelector('.report-project-name')?.textContent || 'Facilities Report');
 
   // ── Rebuild logo bar with real <img> ──────────────────────
   const logoTextEl = reportEl.querySelector('.report-logo-text');
@@ -5520,7 +5526,11 @@ sortProjects = function(f) {
    ============================================================ */
 function initTheme() {
   const saved = localStorage.getItem('nhfm_theme');
-  if (saved === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+  if (saved === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    const mc = document.querySelector('meta[name="theme-color"]');
+    if (mc) mc.setAttribute('content', '#15181b');
+  }
   updateThemeIcon();
 }
 
@@ -5534,6 +5544,8 @@ function toggleTheme() {
     localStorage.setItem('nhfm_theme', 'dark');
   }
   updateThemeIcon();
+  const mc = document.querySelector('meta[name="theme-color"]');
+  if (mc) mc.setAttribute('content', isDark ? '#1F3D1D' : '#15181b');
 }
 
 function updateThemeIcon() {

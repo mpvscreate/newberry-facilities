@@ -1,4 +1,4 @@
-const CACHE = 'nhfm-v11';
+const CACHE = 'nhfm-v12';
 
 self.addEventListener('install', e => {
   self.skipWaiting();
@@ -10,7 +10,8 @@ self.addEventListener('install', e => {
       './app.js',
       './manifest.json',
       './icon-192.png',
-      './icon-512.png'
+      './icon-512.png',
+      './logo.png'
     ]))
   );
 });
