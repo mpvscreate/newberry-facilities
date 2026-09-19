@@ -3327,7 +3327,8 @@ function openHWModal(id) {
   set('hwf-handover-date',  p?.handoverDate||'');
   set('hwf-timeline-notes', p?.timelineNotes||'');
   set('hwf-notes',          p?.notes||'');
-  set('hwf-template', '');
+  set('hwf-template', p?.template||'');
+  const tplEl = $('hwf-template'); if (tplEl) tplEl.dataset.applied = p?.template||'';
 
   // Init quote/invoice editing state
   _hwEditingQuotes   = p ? (p.quotes   ? [...p.quotes]   : []) : [];
@@ -3807,6 +3808,7 @@ function applyHWTemplate() {
   renderHWScopeList(t.scopeItems || []);
   renderHWMilestoneList(t.milestones || []);
   if (!$('hwf-title').value) $('hwf-title').value = key.charAt(0).toUpperCase() + key.slice(1) + ' — ' + getCurrentHoliday();
+  $('hwf-template').dataset.applied = key;
   toast('Template applied');
 }
 
@@ -3818,6 +3820,7 @@ function saveHWProject() {
   const existingId = $('hwf-id').value;
   const projs = loadHWProjects();
 
+  const tplEl = $('hwf-template');
   const data = {
     title,
     category:      $('hwf-category')?.value     || 'Renovation',
@@ -3836,6 +3839,7 @@ function saveHWProject() {
     handoverDate:  $('hwf-handover-date')?.value || '',
     timelineNotes: $('hwf-timeline-notes')?.value|| '',
     notes:         $('hwf-notes')?.value         || '',
+    template:      tplEl?.dataset.applied || tplEl?.value || '',
     scopeItems:    collectHWScopeItems(),
     milestones:    collectHWMilestones(),
     quotes:        collectHWQuotes(),
