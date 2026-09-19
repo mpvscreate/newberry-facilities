@@ -5174,11 +5174,13 @@ async function clearBothSites() {
 /* ── Drag-to-reorder ────────────────────────────────────── */
 function enableDragSort(containerId, itemSelector, onReorder) {
   const container = $(containerId); if (!container) return;
-  let dragIdx = null;
+  let dragIdx = null, handleGrabbed = false;
+
+  container.addEventListener('mousedown', e => { handleGrabbed = !!e.target.closest('.drag-handle'); });
 
   container.addEventListener('dragstart', e => {
     const item = e.target.closest(itemSelector);
-    if (!item || !e.target.closest('.drag-handle')) { e.preventDefault(); return; }
+    if (!item || !handleGrabbed) { e.preventDefault(); return; }
     dragIdx = [...container.querySelectorAll(itemSelector)].indexOf(item);
     item.classList.add('drag-active');
     e.dataTransfer.effectAllowed = 'move';
@@ -5292,11 +5294,13 @@ function enableDragSort(containerId, itemSelector, onReorder) {
 
 function enableTableDragSort(tbodyId, onReorder) {
   const tbody = $(tbodyId); if (!tbody) return;
-  let dragIdx = null;
+  let dragIdx = null, handleGrabbed = false;
+
+  tbody.addEventListener('mousedown', e => { handleGrabbed = !!e.target.closest('.drag-handle'); });
 
   tbody.addEventListener('dragstart', e => {
     const row = e.target.closest('tr');
-    if (!row || !e.target.closest('.drag-handle')) { e.preventDefault(); return; }
+    if (!row || !handleGrabbed) { e.preventDefault(); return; }
     dragIdx = [...tbody.children].indexOf(row);
     row.classList.add('drag-active');
     e.dataTransfer.effectAllowed = 'move';
