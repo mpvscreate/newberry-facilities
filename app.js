@@ -291,6 +291,96 @@ const WA_MSG = {
   },
 };
 
+/* ── Card share (WhatsApp as image) ─────────────────────── */
+function toggleCardMenu(btn, ev) {
+  ev.stopPropagation();
+  const menu = btn.nextElementSibling;
+  const wasOpen = menu.classList.contains('open');
+  document.querySelectorAll('.card-menu.open').forEach(m => m.classList.remove('open'));
+  if (!wasOpen) menu.classList.add('open');
+}
+
+async function shareCardToWhatsApp(btn) {
+  const card = btn.closest('.hw-card, .garden-card-full');
+  if (!card) return;
+  const menu = btn.closest('.card-menu');
+  if (menu) menu.classList.remove('open');
+  toast('Capturing card…');
+  try {
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+    card.style.transform = 'none';
+    const canvas = await window.html2canvas(card, {
+      scale: 2, useCORS: true, backgroundColor: '#ffffff',
+      logging: false, removeContainer: true,
+    });
+    canvas.toBlob(async blob => {
+      if (!blob) { toast('Could not capture card', 'error'); return; }
+      const file = new File([blob], 'project-card.png', { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], title: 'Project Card' });
+          toast('Shared');
+        } catch (e) {
+          if (e.name !== 'AbortError') toast('Share cancelled', 'warning');
+        }
+      } else {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'project-card.png';
+        a.click();
+        URL.revokeObjectURL(a.href);
+        toast('Image downloaded — attach it in WhatsApp');
+      }
+    }, 'image/png');
+  } catch (e) {
+    console.error('Share error:', e);
+    toast('Could not capture card', 'error');
+  }
+}
+
+function cardMenuHtml() {
+  return `<div class="card-menu-wrap">
+    <button type="button" class="card-menu-btn" onclick="toggleCardMenu(this,event)" title="More options">&#8942;</button>
+    <div class="card-menu">
+      <button type="button" class="card-menu-item" onclick="shareCardToWhatsApp(this)">
+        <svg viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.625.846 5.059 2.284 7.034L.789 23.492l4.636-1.467A11.927 11.927 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.75c-2.17 0-4.207-.69-5.87-1.875l-.42-.281-2.752.871.883-2.672-.306-.457A9.706 9.706 0 012.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75z"/></svg>
+        Share to WhatsApp
+      </button>
+      <button type="button" class="card-menu-item" onclick="downloadCardImage(this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Save as Image
+      </button>
+    </div>
+  </div>`;
+}
+
+async function downloadCardImage(btn) {
+  const card = btn.closest('.hw-card, .garden-card-full');
+  if (!card) return;
+  const menu = btn.closest('.card-menu');
+  if (menu) menu.classList.remove('open');
+  toast('Capturing card…');
+  try {
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+    card.style.transform = 'none';
+    const canvas = await window.html2canvas(card, {
+      scale: 2, useCORS: true, backgroundColor: '#ffffff',
+      logging: false, removeContainer: true,
+    });
+    canvas.toBlob(blob => {
+      if (!blob) { toast('Could not capture card', 'error'); return; }
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'project-card.png';
+      a.click();
+      URL.revokeObjectURL(a.href);
+      toast('Image saved');
+    }, 'image/png');
+  } catch (e) {
+    toast('Could not capture card', 'error');
+  }
+}
+
 function waButtonGroup(phone, project, type) {
   const pid = (project.id || '').replace(/['"]/g, '');
   const ph  = (phone || '').replace(/['"\\]/g, '');
@@ -325,7 +415,7 @@ function toggleWAMenu(menuId) {
 }
 
 document.addEventListener('click', function() {
-  document.querySelectorAll('.wa-menu.open').forEach(function(m) { m.classList.remove('open'); });
+  document.querySelectorAll('.wa-menu.open, .card-menu.open').forEach(function(m) { m.classList.remove('open'); });
 });
 
 /* ── Site management ─────────────────────────────────────── */
@@ -2483,9 +2573,10 @@ function renderGardens() {
     // ── Footer ─────────────────────────────────────────────
     html += '<div class="gcf-footer">';
     html += '<span>Added ' + fmt.date(gn.dateAdded) + '</span>';
-    html += '<div style="display:flex;gap:6px">';
+    html += '<div style="display:flex;gap:6px;align-items:center">';
     html += '<button class="btn btn-sm btn-outline" onclick="openGardenModal(\'' + id + '\')">Edit</button>';
     html += '<button class="btn btn-sm btn-danger" onclick="deleteGarden(\'' + id + '\')">Delete</button>';
+    html += cardMenuHtml();
     html += '</div></div>';
 
     html += '</div>'; // /garden-card-full
@@ -3087,9 +3178,10 @@ function renderHWGrid() {
       <!-- Actions -->
       <div class="hwc-actions">
         <span style="font-size:.7rem;color:var(--text-muted)">Added ${fmt.date(p.dateAdded)}</span>
-        <div style="display:flex;gap:6px">
+        <div style="display:flex;gap:6px;align-items:center">
           <button class="btn btn-sm btn-outline" onclick="openHWModal('${p.id}')">Edit</button>
           <button class="btn btn-sm btn-danger" onclick="deleteHWProject('${p.id}')">Delete</button>
+          ${cardMenuHtml()}
         </div>
       </div>
     </div>`;
@@ -3947,9 +4039,10 @@ function renderNBGrid() {
 
       <div class="hwc-actions">
         <span style="font-size:.7rem;color:var(--text-muted)">Added ${fmt.date(p.dateAdded)}</span>
-        <div style="display:flex;gap:6px">
+        <div style="display:flex;gap:6px;align-items:center">
           <button class="btn btn-sm btn-outline" onclick="openNBModal('${p.id}')">Edit</button>
           <button class="btn btn-sm btn-danger" onclick="deleteNBProject('${p.id}')">Delete</button>
+          ${cardMenuHtml()}
         </div>
       </div>
     </div>`;
