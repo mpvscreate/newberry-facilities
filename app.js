@@ -1421,7 +1421,8 @@ function renderProjectList() {
         var pid    = p.id || '';
 
         if (p._isGarden) {
-          var row = '<tr style="background:#f2f8eb">';
+          var row = '<tr style="background:#f2f8eb" draggable="true">';
+          row += '<td><span class="drag-handle" title="Drag to reorder">&#9776;</span></td>';
           row += '<td><span class="module-badge module-garden">GARDEN</span></td>';
           row += '<td style="max-width:200px"><strong>' + esc(p.projectName) + '</strong>';
           if (p._crop) row += '<div style="font-size:.74rem;color:var(--text-muted)">Crop: ' + esc(p._crop) + '</div>';
@@ -1443,7 +1444,8 @@ function renderProjectList() {
         if (p._isHW) {
           var hwid = p._hwId || '';
           var hwBudget = parseFloat(p.estimatedBudget)||0;
-          var r = '<tr style="background:#fef9ee">';
+          var r = '<tr style="background:#fef9ee" draggable="true">';
+          r += '<td><span class="drag-handle" title="Drag to reorder">&#9776;</span></td>';
           r += '<td><span class="module-badge module-hw">HOLIDAY</span>';
           if (p._priority === 'High' || p._priority === 'Urgent') r += '<div style="font-size:.64rem;color:var(--danger);font-weight:700;margin-top:2px">' + esc(p._priority) + '</div>';
           r += '</td>';
@@ -1479,7 +1481,8 @@ function renderProjectList() {
         if (p._isNB) {
           var nbid = p._nbId || '';
           var nbBudget = parseFloat(p.estimatedBudget)||0;
-          var nb = '<tr style="background:#eef3fb">';
+          var nb = '<tr style="background:#eef3fb" draggable="true">';
+          nb += '<td><span class="drag-handle" title="Drag to reorder">&#9776;</span></td>';
           nb += '<td><span class="module-badge module-nb">BUILD</span></td>';
           nb += '<td style="max-width:220px"><strong>' + esc(p.projectName) + '</strong>';
           if (p._contractor) nb += '<div style="font-size:.74rem;color:var(--text-muted)">' + esc(p._contractor) + '</div>';
@@ -1510,7 +1513,8 @@ function renderProjectList() {
           return nb;
         }
 
-        var row2 = '<tr>';
+        var row2 = '<tr draggable="true">';
+        row2 += '<td><span class="drag-handle" title="Drag to reorder">&#9776;</span></td>';
         row2 += '<td><a href="#" onclick="navigate(\'newproject\',\'' + pid + '\');return false" style="color:var(--pk-green);font-weight:600;text-decoration:none">' + esc(p.projectNumber||'—') + '</a></td>';
         row2 += '<td style="max-width:200px"><strong>' + esc(p.projectName) + '</strong></td>';
         row2 += '<td><span class="cat-badge">' + esc(p.category||'—') + '</span></td>';
@@ -1529,7 +1533,7 @@ function renderProjectList() {
         row2 += '</div></td></tr>';
         return row2;
       }).join('')
-    : '<tr><td colspan="' + (State.combinedView?9:8) + '" class="table-empty">' + (State.projectSearch ? 'No projects match your search.' : 'No projects yet.') + '</td></tr>';
+    : '<tr><td colspan="' + (State.combinedView?10:9) + '" class="table-empty">' + (State.projectSearch ? 'No projects match your search.' : 'No projects yet.') + '</td></tr>';
 
   // Pagination controls
   let pgHtml = `<span style="font-size:.78rem;color:var(--text-muted)">${total} project${total!==1?'s':''}</span>`;
@@ -1539,6 +1543,29 @@ function renderProjectList() {
     pgHtml += `<button class="pg-btn" onclick="changePage(${State.projectPage+1})" ${State.projectPage===pages?'disabled':''}>Next</button>`;
   }
   $('project-pagination').innerHTML = pgHtml;
+
+  enableTableDragSort('project-list-body', (from, to) => {
+    const a = paged[from], b = paged[to];
+    if (!a || !b) return;
+    if (a._isGarden && b._isGarden) {
+      const fi = State.gardens.findIndex(g => g.id === a._gardenId);
+      const ti = State.gardens.findIndex(g => g.id === b._gardenId);
+      if (fi >= 0 && ti >= 0) { arrayMove(State.gardens, fi, ti); saveGardens(); }
+    } else if (a._isHW && b._isHW) {
+      const fi = hwProjects.findIndex(p => p.id === a._hwId);
+      const ti = hwProjects.findIndex(p => p.id === b._hwId);
+      if (fi >= 0 && ti >= 0) { arrayMove(hwProjects, fi, ti); saveHWProjects(hwProjects); }
+    } else if (a._isNB && b._isNB) {
+      const fi = nbProjects.findIndex(p => p.id === a._nbId);
+      const ti = nbProjects.findIndex(p => p.id === b._nbId);
+      if (fi >= 0 && ti >= 0) { arrayMove(nbProjects, fi, ti); saveNBProjects(nbProjects); }
+    } else if (!a._isGarden && !a._isHW && !a._isNB && !b._isGarden && !b._isHW && !b._isNB) {
+      const fi = State.projects.findIndex(p => p.id === a.id);
+      const ti = State.projects.findIndex(p => p.id === b.id);
+      if (fi >= 0 && ti >= 0) { arrayMove(State.projects, fi, ti); DB.save(DB.keys(currentSiteId).projects, State.projects); }
+    }
+    renderProjectList();
+  });
 }
 
 function changePage(n)   { State.projectPage = n; renderProjectList(); }
@@ -2346,8 +2373,9 @@ function renderGardens() {
     }
 
     // ── Header ─────────────────────────────────────────────
-    var html = '<div class="garden-card-full">';
+    var html = '<div class="garden-card-full" draggable="true" data-id="' + id + '">';
     html += '<div class="gcf-header">';
+    html += '<span class="drag-handle" title="Drag to reorder">&#9776;</span>';
     html += '<div>';
     html += '<div class="gcf-name">' + esc(gn.gardenName) + '</div>';
     html += '<div class="gcf-location">' + esc(gn.location || '');
@@ -2463,6 +2491,11 @@ function renderGardens() {
     html += '</div>'; // /garden-card-full
     return html;
   }).join('');
+  enableDragSort('garden-grid', '.garden-card-full', (from, to) => {
+    arrayMove(State.gardens, from, to);
+    saveGardens();
+    renderGardens();
+  });
 }
 function openGardenModal(id) {
   // Always refresh gardens from storage first
@@ -2943,10 +2976,11 @@ function renderHWGrid() {
     // Scope progress bar
     const scopePct = scopeItems.length ? Math.round(doneScope / scopeItems.length * 100) : null;
 
-    return `<div class="hw-card">
+    return `<div class="hw-card" draggable="true" data-id="${p.id}">
 
       <!-- Header -->
       <div class="hwc-header">
+        <span class="drag-handle" title="Drag to reorder">&#9776;</span>
         <div style="flex:1;min-width:0">
           <div class="hwc-cat"><span class="hw-editable" onclick="hwInlineEdit('${p.id}','category',this,event)" title="Click to edit category">${esc(p.category)}</span> · <span class="hw-editable" onclick="hwInlineEdit('${p.id}','holiday',this,event)" title="Click to edit holiday">${esc(p.holiday||'')}</span></div>
           <div class="hwc-title hw-editable" onclick="hwInlineEdit('${p.id}','title',this,event)" title="Click to edit title">${esc(p.title)}</div>
@@ -3060,6 +3094,17 @@ function renderHWGrid() {
       </div>
     </div>`;
   }).join('');
+  enableDragSort('hw-grid', '.hw-card', (from, to) => {
+    const filtered = hwCurrentCat === 'All' ? hwProjects : hwProjects.filter(p => p.category === hwCurrentCat);
+    const fromId = filtered[from]?.id, toId = filtered[to]?.id;
+    if (!fromId) return;
+    const fi = hwProjects.findIndex(p => p.id === fromId);
+    const ti = hwProjects.findIndex(p => p.id === toId);
+    if (fi < 0 || ti < 0) return;
+    arrayMove(hwProjects, fi, ti);
+    saveHWProjects(hwProjects);
+    renderHWGrid();
+  });
 }
 
 /* ── Toggle scope item done state inline ── */
@@ -3803,8 +3848,9 @@ function renderNBGrid() {
 
     const scopePct = scopeItems.length ? Math.round(doneScope / scopeItems.length * 100) : null;
 
-    return `<div class="hw-card">
+    return `<div class="hw-card" draggable="true" data-id="${p.id}">
       <div class="hwc-header">
+        <span class="drag-handle" title="Drag to reorder">&#9776;</span>
         <div style="flex:1;min-width:0">
           <div class="hwc-cat"><span class="nb-editable" onclick="nbInlineEdit('${p.id}','category',this,event)" title="Click to edit category">${esc(p.category)}</span>${p.size ? ' · '+p.size+' m²' : ''}</div>
           <div class="hwc-title nb-editable" onclick="nbInlineEdit('${p.id}','title',this,event)" title="Click to edit title">${esc(p.title)}</div>
@@ -3908,6 +3954,17 @@ function renderNBGrid() {
       </div>
     </div>`;
   }).join('');
+  enableDragSort('nb-grid', '.hw-card', (from, to) => {
+    const filtered = nbCurrentCat === 'All' ? nbProjects : nbProjects.filter(p => p.category === nbCurrentCat);
+    const fromId = filtered[from]?.id, toId = filtered[to]?.id;
+    if (!fromId) return;
+    const fi = nbProjects.findIndex(p => p.id === fromId);
+    const ti = nbProjects.findIndex(p => p.id === toId);
+    if (fi < 0 || ti < 0) return;
+    arrayMove(nbProjects, fi, ti);
+    saveNBProjects(nbProjects);
+    renderNBGrid();
+  });
 }
 
 function toggleNBScopeItem(pid, idx, checked) {
@@ -4994,6 +5051,175 @@ async function clearBothSites() {
   setSyncStatus('synced');
   loadSiteData(); navigate('dashboard');
   toast('All data cleared');
+}
+
+/* ── Drag-to-reorder ────────────────────────────────────── */
+function enableDragSort(containerId, itemSelector, onReorder) {
+  const container = $(containerId); if (!container) return;
+  let dragIdx = null;
+
+  container.addEventListener('dragstart', e => {
+    const item = e.target.closest(itemSelector);
+    if (!item || !e.target.closest('.drag-handle')) { e.preventDefault(); return; }
+    dragIdx = [...container.querySelectorAll(itemSelector)].indexOf(item);
+    item.classList.add('drag-active');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', dragIdx);
+    container.classList.add('drag-sorting');
+  });
+
+  container.addEventListener('dragend', e => {
+    const item = e.target.closest(itemSelector);
+    if (item) item.classList.remove('drag-active');
+    container.classList.remove('drag-sorting');
+    container.querySelectorAll('.drag-indicator').forEach(el => el.remove());
+    dragIdx = null;
+  });
+
+  container.addEventListener('dragover', e => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const target = e.target.closest(itemSelector);
+    if (!target) return;
+    container.querySelectorAll('.drag-indicator').forEach(el => el.remove());
+    const rect = target.getBoundingClientRect();
+    const mid = rect.top + rect.height / 2;
+    const indicator = document.createElement('div');
+    indicator.className = 'drag-indicator';
+    if (e.clientY < mid) {
+      target.style.position = 'relative';
+      indicator.style.top = '-2px';
+      target.prepend(indicator);
+    } else {
+      target.style.position = 'relative';
+      indicator.style.bottom = '-2px'; indicator.style.top = 'auto';
+      target.append(indicator);
+    }
+  });
+
+  container.addEventListener('drop', e => {
+    e.preventDefault();
+    container.querySelectorAll('.drag-indicator').forEach(el => el.remove());
+    const target = e.target.closest(itemSelector);
+    if (!target || dragIdx === null) return;
+    const items = [...container.querySelectorAll(itemSelector)];
+    const dropIdx = items.indexOf(target);
+    const rect = target.getBoundingClientRect();
+    const mid = rect.top + rect.height / 2;
+    const insertBefore = e.clientY < mid;
+    let toIdx = insertBefore ? dropIdx : dropIdx + 1;
+    if (toIdx > dragIdx) toIdx--;
+    if (toIdx !== dragIdx) onReorder(dragIdx, toIdx);
+  });
+
+  // Touch support for mobile
+  let touchItem = null, touchIdx = null, touchClone = null, lastTouchY = 0;
+  container.addEventListener('touchstart', e => {
+    const handle = e.target.closest('.drag-handle');
+    if (!handle) return;
+    const item = handle.closest(itemSelector);
+    if (!item) return;
+    e.preventDefault();
+    touchItem = item;
+    touchIdx = [...container.querySelectorAll(itemSelector)].indexOf(item);
+    lastTouchY = e.touches[0].clientY;
+    touchClone = item.cloneNode(true);
+    touchClone.style.cssText = 'position:fixed;z-index:9999;pointer-events:none;opacity:.8;width:'+item.offsetWidth+'px;left:'+item.getBoundingClientRect().left+'px;top:'+item.getBoundingClientRect().top+'px;transition:none;transform:scale(.97);box-shadow:0 8px 30px rgba(0,0,0,.18)';
+    document.body.appendChild(touchClone);
+    item.classList.add('drag-active');
+    container.classList.add('drag-sorting');
+  }, { passive: false });
+
+  container.addEventListener('touchmove', e => {
+    if (!touchItem) return;
+    e.preventDefault();
+    const y = e.touches[0].clientY;
+    if (touchClone) touchClone.style.top = y - 30 + 'px';
+    lastTouchY = y;
+    container.querySelectorAll('.drag-indicator').forEach(el => el.remove());
+    const items = [...container.querySelectorAll(itemSelector)];
+    for (const el of items) {
+      const r = el.getBoundingClientRect();
+      if (y >= r.top && y <= r.bottom) {
+        el.style.position = 'relative';
+        const ind = document.createElement('div');
+        ind.className = 'drag-indicator';
+        if (y < r.top + r.height / 2) el.prepend(ind);
+        else el.append(ind);
+        break;
+      }
+    }
+  }, { passive: false });
+
+  container.addEventListener('touchend', e => {
+    if (!touchItem) return;
+    if (touchClone) { touchClone.remove(); touchClone = null; }
+    touchItem.classList.remove('drag-active');
+    container.classList.remove('drag-sorting');
+    container.querySelectorAll('.drag-indicator').forEach(el => el.remove());
+    const items = [...container.querySelectorAll(itemSelector)];
+    let dropTo = touchIdx;
+    for (let i = 0; i < items.length; i++) {
+      const r = items[i].getBoundingClientRect();
+      if (lastTouchY >= r.top && lastTouchY <= r.bottom) {
+        dropTo = lastTouchY < r.top + r.height / 2 ? i : i + 1;
+        if (dropTo > touchIdx) dropTo--;
+        break;
+      }
+    }
+    if (dropTo !== touchIdx) onReorder(touchIdx, dropTo);
+    touchItem = null; touchIdx = null;
+  });
+}
+
+function enableTableDragSort(tbodyId, onReorder) {
+  const tbody = $(tbodyId); if (!tbody) return;
+  let dragIdx = null;
+
+  tbody.addEventListener('dragstart', e => {
+    const row = e.target.closest('tr');
+    if (!row || !e.target.closest('.drag-handle')) { e.preventDefault(); return; }
+    dragIdx = [...tbody.children].indexOf(row);
+    row.classList.add('drag-active');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', dragIdx);
+  });
+
+  tbody.addEventListener('dragend', () => {
+    tbody.querySelectorAll('.drag-active,.drag-over-above,.drag-over-below').forEach(el =>
+      el.classList.remove('drag-active','drag-over-above','drag-over-below'));
+    dragIdx = null;
+  });
+
+  tbody.addEventListener('dragover', e => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    tbody.querySelectorAll('.drag-over-above,.drag-over-below').forEach(el =>
+      el.classList.remove('drag-over-above','drag-over-below'));
+    const row = e.target.closest('tr');
+    if (!row) return;
+    const rect = row.getBoundingClientRect();
+    row.classList.add(e.clientY < rect.top + rect.height / 2 ? 'drag-over-above' : 'drag-over-below');
+  });
+
+  tbody.addEventListener('drop', e => {
+    e.preventDefault();
+    tbody.querySelectorAll('.drag-over-above,.drag-over-below').forEach(el =>
+      el.classList.remove('drag-over-above','drag-over-below'));
+    const row = e.target.closest('tr');
+    if (!row || dragIdx === null) return;
+    const dropIdx = [...tbody.children].indexOf(row);
+    const rect = row.getBoundingClientRect();
+    let toIdx = e.clientY < rect.top + rect.height / 2 ? dropIdx : dropIdx + 1;
+    if (toIdx > dragIdx) toIdx--;
+    if (toIdx !== dragIdx) onReorder(dragIdx, toIdx);
+  });
+}
+
+function arrayMove(arr, from, to) {
+  const item = arr.splice(from, 1)[0];
+  arr.splice(to, 0, item);
+  return arr;
 }
 
 /* ── Modals ──────────────────────────────────────────────── */

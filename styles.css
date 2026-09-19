@@ -1850,6 +1850,28 @@ select {
 .hw-tab:hover  { color: var(--pk-green); background: rgba(125,162,75,.04); }
 .hw-tab.active { color: var(--pk-green); border-bottom-color: var(--pk-green); background: rgba(125,162,75,.06); }
 
+/* ── Drag-to-reorder ────────────────────────────────────── */
+.drag-handle {
+  cursor: grab; opacity: .35; font-size: .85rem; padding: 4px 6px;
+  user-select: none; touch-action: none; flex-shrink: 0;
+  transition: opacity .15s;
+}
+.drag-handle:hover { opacity: .7; }
+.drag-handle:active { cursor: grabbing; }
+.drag-sorting .drag-handle { opacity: .5; }
+[draggable="true"].drag-active {
+  opacity: .4; box-shadow: none; transform: none !important;
+  transition: opacity .15s;
+}
+.drag-indicator {
+  position: absolute; left: 0; right: 0; height: 3px;
+  background: var(--asp-green); border-radius: 2px; z-index: 10;
+  pointer-events: none;
+}
+tr.drag-active { opacity: .4; }
+tr.drag-over-above td { box-shadow: inset 0 2px 0 var(--asp-green); }
+tr.drag-over-below td { box-shadow: inset 0 -2px 0 var(--asp-green); }
+
 /* Project cards */
 .hw-card {
   background: #fff;
