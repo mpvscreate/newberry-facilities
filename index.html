@@ -491,8 +491,9 @@
         <div class="panel-body">
           <div class="upload-bar">
             <button type="button" class="btn btn-primary btn-sm" onclick="triggerPhotoUpload()">+ Upload Photos</button>
+            <button type="button" class="btn btn-sm" onclick="triggerCameraCapture()" style="background:var(--asp-green);color:#fff;gap:4px;display:inline-flex;align-items:center">&#128247; Camera</button>
             <div style="display:flex;align-items:center;gap:8px">
-              <label for="photo-category" style="font-size:.78rem;color:var(--text-secondary);white-space:nowrap">Category:</label>
+              <label for="photo-category" style="font-size:.78rem;color:var(--text-secondary);white-space:nowrap">Phase:</label>
               <select id="photo-category" style="width:auto">
                 <option value="Before">Before</option>
                 <option value="During">During</option>
@@ -503,6 +504,7 @@
             <span class="hint-msg">JPEG, PNG, WEBP · Drag &amp; drop also supported</span>
           </div>
           <input type="file" id="photo-file-input" multiple="" accept="image/*" style="display:none" onchange="handlePhotoUpload(event)">
+          <input type="file" id="camera-file-input" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoUpload(event)">
           <div id="photo-drop-zone" class="drop-zone no-print">Drop photos here or use the upload button above</div>
           <div id="photo-gallery"></div>
         </div>
@@ -635,6 +637,29 @@
           </div>
         </div>
       </div>
+
+      <!-- Weekly Digest Generator -->
+      <div class="card" style="max-width:700px;margin-bottom:24px">
+        <div class="card-header"><h3 class="card-title">Weekly Digest</h3></div>
+        <div class="card-body">
+          <p style="font-size:.82rem;color:var(--text-secondary);margin-bottom:14px;line-height:1.5">One-tap summary of this week's activity, overdue items, upcoming deadlines, and spend — ready to share with the school board via WhatsApp or PDF.</p>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <button class="btn btn-primary" onclick="generateWeeklyDigest()">&#128203; Generate Digest</button>
+            <span class="hint-msg">Covers the last 7 days across all project modules.</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="digest-action-bar" style="display:none;max-width:800px;margin:0 auto 16px;background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:14px 20px;box-shadow:var(--shadow)">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span style="font-size:.82rem;font-weight:600;color:var(--pk-green);flex:1">&#9989; Digest ready</span>
+          <button class="btn btn-outline" onclick="shareDigestWhatsApp()">&#128172; Share via WhatsApp</button>
+          <button class="btn btn-outline" onclick="printDigest()">&#128438; Print / PDF</button>
+          <button class="btn btn-primary" onclick="copyDigestText()">&#128203; Copy Text</button>
+        </div>
+      </div>
+
+      <div id="digest-preview"></div>
 
       <!-- Action bar — shown only after report is generated -->
       <div id="report-action-bar" style="display:none;max-width:800px;margin:0 auto 16px;background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:14px 20px;box-shadow:var(--shadow);display:none">

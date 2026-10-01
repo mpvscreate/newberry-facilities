@@ -1040,7 +1040,19 @@ function renderDashFeed() {
     if (p.location)      html += '<span>&#128205; ' + esc(p.location) + '</span>';
     if (p.contractorName) html += '<span>&#127959; ' + esc(p.contractorName) + '</span>';
     if (quotes > 0)      html += '<span>' + quotes + ' quote' + (quotes!==1?'s':'') + '</span>';
-    if (photos > 0)      html += '<span>' + photos + ' photo' + (photos!==1?'s':'') + '</span>';
+    if (photos > 0) {
+      var phArr = p.photos||[], bCount = 0, dCount = 0, aCount = 0;
+      phArr.forEach(function(x){ if(x.label==='Before')bCount++; else if(x.label==='During')dCount++; else if(x.label==='After')aCount++; });
+      if (bCount||dCount||aCount) {
+        html += '<span class="photo-timeline-dots">';
+        html += '<span class="ptd-pip' + (bCount?' ptd-pip-filled':'') + '" title="Before: '+bCount+'">B</span>';
+        html += '<span class="ptd-pip' + (dCount?' ptd-pip-filled':'') + '" title="During: '+dCount+'">D</span>';
+        html += '<span class="ptd-pip' + (aCount?' ptd-pip-filled':'') + '" title="After: '+aCount+'">A</span>';
+        html += '</span>';
+      } else {
+        html += '<span>' + photos + ' photo' + (photos!==1?'s':'') + '</span>';
+      }
+    }
     if (!p._isGarden && p.telephone) {
       var ph = (p.telephone||'').replace(/'/g,'');
       html += '<span onclick="event.stopPropagation();openWhatsApp(\'' + ph + '\',WA_MSG.quoteRequest(State.projects.find(function(x){return x.id===\'' + (p.id||'') + '\'})||{}))" style="cursor:pointer;color:#25d366;font-weight:600" title="WhatsApp contractor">WhatsApp</span>';
@@ -1175,15 +1187,10 @@ function openDashDrawer(projectId) {
       </div>`).join('')}
     </div>` : ''}
 
-    <!-- Photos gallery -->
+    <!-- Photos timeline -->
     ${photos.length ? `<div class="drawer-section">
-      <div class="drawer-section-title">Photos (${photos.length})</div>
-      <div class="drawer-photo-grid">
-        ${photos.map(ph=>`<div class="drawer-photo" onclick="openLightbox('${ph.id}')" title="${esc(ph.label||'Photo')}">
-          <img src="${ph.data}" alt="${esc(ph.label||'photo')}">
-          <div class="drawer-photo-label">${esc(ph.label||'')}</div>
-        </div>`).join('')}
-      </div>
+      <div class="drawer-section-title">Photo Timeline (${photos.length})</div>
+      ${renderPhotoTimeline(photos)}
     </div>` : ''}
 
     <!-- Notes -->
@@ -2109,14 +2116,37 @@ function deleteInvoice(pid, iid) {
 }
 function renderPhotosInForm(p) {
   const photos = p.photos || [];
-  $('photo-gallery').innerHTML = photos.length
-    ? '<div class="photo-grid">' + photos.map(ph => `
-        <div class="photo-thumb">
-          <img src="${ph.data}" alt="${esc(ph.label||'photo')}" onclick="openLightbox('${ph.id}')">
-          <div class="photo-label">${esc(ph.label||'Photo')}</div>
-          <button class="photo-delete-btn" onclick="deletePhoto('${p.id}','${ph.id}')" title="Remove">&#215;</button>
-        </div>`).join('') + '</div>'
-    : '<p style="color:var(--text-muted);font-size:.82rem;margin-top:4px">No photos attached yet.</p>';
+  if (!photos.length) {
+    $('photo-gallery').innerHTML = '<p style="color:var(--text-muted);font-size:.82rem;margin-top:4px">No photos attached yet.</p>';
+    return;
+  }
+  const phases = ['Before','During','After','General'];
+  const grouped = {};
+  phases.forEach(ph => grouped[ph] = []);
+  photos.forEach(ph => {
+    const cat = phases.includes(ph.label) ? ph.label : 'General';
+    grouped[cat].push(ph);
+  });
+  const icons = { Before:'\u{1F4CB}', During:'\u{1F6A7}', After:'✅', General:'\u{1F4F7}' };
+  let html = '<div class="photo-timeline-form">';
+  phases.forEach((phase, idx) => {
+    const items = grouped[phase];
+    const isLast = idx === phases.length - 1;
+    html += `<div class="ptf-phase${items.length ? '' : ' ptf-empty'}">
+      <div class="ptf-marker"><span class="ptf-dot${items.length ? ' ptf-filled' : ''}">${icons[phase]}</span>${!isLast ? '<div class="ptf-line"></div>' : ''}</div>
+      <div class="ptf-content">
+        <div class="ptf-label">${phase} <span class="ptf-count">${items.length}</span></div>
+        ${items.length ? '<div class="photo-grid">' + items.map(ph => `
+          <div class="photo-thumb">
+            <img src="${ph.data}" alt="${esc(ph.label||'photo')}" onclick="openLightbox('${ph.id}')">
+            <div class="photo-label">${fmt.date(ph.ts)}</div>
+            <button class="photo-delete-btn" onclick="deletePhoto('${p.id}','${ph.id}')" title="Remove">&#215;</button>
+          </div>`).join('') + '</div>' : '<div class="ptf-hint">No ' + phase.toLowerCase() + ' photos yet</div>'}
+      </div>
+    </div>`;
+  });
+  html += '</div>';
+  $('photo-gallery').innerHTML = html;
 }
 
 function triggerPhotoUpload() {
@@ -2192,6 +2222,38 @@ function deletePhoto(pid, phid) {
   saveProjects();
   renderPhotosInForm(p);
   toast('Photo removed');
+}
+
+function renderPhotoTimeline(photos) {
+  const phases = ['Before','During','After','General'];
+  const grouped = {};
+  phases.forEach(ph => grouped[ph] = []);
+  photos.forEach(ph => {
+    const cat = phases.includes(ph.label) ? ph.label : 'General';
+    grouped[cat].push(ph);
+  });
+  const icons = { Before:'\u{1F4CB}', During:'\u{1F6A7}', After:'✅', General:'\u{1F4F7}' };
+  let html = '<div class="photo-timeline-drawer">';
+  phases.forEach((phase, idx) => {
+    const items = grouped[phase];
+    if (!items.length) return;
+    html += `<div class="ptd-phase">
+      <div class="ptd-header"><span class="ptd-icon">${icons[phase]}</span> ${phase} <span class="ptf-count">${items.length}</span></div>
+      <div class="drawer-photo-grid">
+        ${items.map(ph => `<div class="drawer-photo" onclick="openLightbox('${ph.id}')" title="${esc(ph.label||'Photo')} · ${fmt.date(ph.ts)}">
+          <img src="${ph.data}" alt="${esc(ph.label||'photo')}">
+          <div class="drawer-photo-label">${fmt.date(ph.ts)}</div>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  });
+  html += '</div>';
+  return html;
+}
+
+function triggerCameraCapture() {
+  if (!editingProjectId) { toast('Save the project first', 'warning'); return; }
+  $('camera-file-input').click();
 }
 
 /* ── Documents ───────────────────────────────────────────── */
@@ -4491,23 +4553,29 @@ function generateReport() {
       </table>`
     : '<p style="color:#888;font-size:.85rem">No quotations received.</p>';
 
-  // ── Photos section ────────────────────────────────────────
+  // ── Photos section (grouped by timeline phase) ─────────
   const photos = p.photos || [];
-  const photosHtml = photos.length
-    ? `<div class="report-section">
-        <h3>Photographs (${photos.length})</h3>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-top:10px">
-          ${photos.map(ph => `
-            <div style="break-inside:avoid">
-              <img src="${ph.data}" alt="${esc(ph.label||'Photo')}"
-                   style="width:100%;height:160px;object-fit:cover;border-radius:6px;border:1px solid #ddd;display:block">
-              <div style="font-size:.72rem;color:#666;text-align:center;margin-top:4px;font-weight:600;text-transform:uppercase;letter-spacing:.04em">
-                ${esc(ph.label||'Photo')} · ${fmt.date(ph.ts)}
-              </div>
-            </div>`).join('')}
+  const photosHtml = photos.length ? (() => {
+    const phases = ['Before','During','After','General'];
+    const grouped = {};
+    phases.forEach(ph => grouped[ph] = []);
+    photos.forEach(ph => { const cat = phases.includes(ph.label) ? ph.label : 'General'; grouped[cat].push(ph); });
+    let inner = '';
+    phases.forEach(phase => {
+      const items = grouped[phase];
+      if (!items.length) return;
+      inner += `<div style="margin-top:16px">
+        <h4 style="font-size:.88rem;color:#1F3D1D;margin:0 0 8px;border-bottom:2px solid #7DA24B;padding-bottom:4px">${phase}</h4>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px">
+          ${items.map(ph => `<div style="break-inside:avoid">
+            <img src="${ph.data}" alt="${esc(ph.label||'Photo')}" style="width:100%;height:160px;object-fit:cover;border-radius:6px;border:1px solid #ddd;display:block">
+            <div style="font-size:.72rem;color:#666;text-align:center;margin-top:4px;font-weight:600;text-transform:uppercase;letter-spacing:.04em">${esc(phase)} · ${fmt.date(ph.ts)}</div>
+          </div>`).join('')}
         </div>
-      </div>`
-    : '';
+      </div>`;
+    });
+    return `<div class="report-section"><h3>Photographs (${photos.length})</h3>${inner}</div>`;
+  })() : '';
 
   // ── Documents section ─────────────────────────────────────
   const docs = p.documents || [];
@@ -5001,6 +5069,254 @@ function emailReport() {
   a.href = mailtoHref;
   a.click();
   toast('Opening your email app…');
+}
+
+/* ── Weekly Digest Generator ─────────────────────────────── */
+function generateWeeklyDigest() {
+  refreshProjectsFromStorage();
+  State.settings = DB.loadObj(DB.keys(currentSiteId).settings, State.settings);
+  const s = State.settings;
+  const now = new Date();
+  const weekAgo = new Date(now - 7 * 86400000);
+  const isThisWeek = ts => ts && new Date(ts) >= weekAgo;
+
+  const allProjects = State.projects || [];
+  const hw = loadHWProjects();
+  const nb = loadNBProjects();
+  const log = ActivityLog.load().filter(a => isThisWeek(a.ts));
+
+  const overdue = allProjects.filter(p => p.completionDate && new Date(p.completionDate) < now && p.status !== 'Completed' && p.status !== 'Cancelled');
+  const upcoming = allProjects.filter(p => {
+    if (!p.completionDate || p.status === 'Completed' || p.status === 'Cancelled') return false;
+    const d = new Date(p.completionDate);
+    return d >= now && d <= new Date(now.getTime() + 7 * 86400000);
+  });
+
+  const hwOverdue = hw.filter(p => p.endDate && new Date(p.endDate) < now && p.status !== 'Completed' && p.status !== 'Cancelled');
+  const hwUpcoming = hw.filter(p => {
+    if (!p.endDate || p.status === 'Completed' || p.status === 'Cancelled') return false;
+    const d = new Date(p.endDate);
+    return d >= now && d <= new Date(now.getTime() + 7 * 86400000);
+  });
+
+  const weekInvoices = [];
+  allProjects.forEach(p => {
+    (p.invoices||[]).forEach(inv => { if (isThisWeek(inv.date || inv.ts)) weekInvoices.push({...inv, projectName: p.projectName}); });
+  });
+  const totalSpend = weekInvoices.reduce((t,i) => t + parseFloat(i.amount||0), 0);
+
+  const statusCounts = {};
+  allProjects.forEach(p => { const s = p.status||'Draft'; statusCounts[s] = (statusCounts[s]||0)+1; });
+  const hwStatusCounts = {};
+  hw.forEach(p => { const s = p.status||'Draft'; hwStatusCounts[s] = (hwStatusCounts[s]||0)+1; });
+
+  const dateRange = fmt.date(weekAgo.toISOString()) + ' – ' + fmt.date(now.toISOString());
+
+  let html = `<div class="digest-preview" id="printable-digest">
+    <div style="background:var(--pk-green);color:#fff;padding:20px 24px;border-radius:var(--radius) var(--radius) 0 0">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        <div>
+          <div style="font-size:1.1rem;font-weight:700">${esc(s.schoolName)}</div>
+          <div style="font-size:.82rem;opacity:.85">Facilities Weekly Digest</div>
+        </div>
+        <div style="text-align:right;font-size:.78rem;opacity:.8">
+          <div>Campus: ${esc(currentSite.name)}</div>
+          <div>${dateRange}</div>
+        </div>
+      </div>
+    </div>
+    <div style="padding:20px 24px;background:var(--surface);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius) var(--radius)">`;
+
+  // Summary stats
+  html += `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-bottom:20px">
+    <div class="digest-stat"><div class="digest-stat-val">${allProjects.length}</div><div class="digest-stat-label">Projects</div></div>
+    <div class="digest-stat"><div class="digest-stat-val">${hw.length}</div><div class="digest-stat-label">HW Projects</div></div>
+    <div class="digest-stat"><div class="digest-stat-val">${log.length}</div><div class="digest-stat-label">Activities</div></div>
+    <div class="digest-stat"><div class="digest-stat-val">${overdue.length + hwOverdue.length}</div><div class="digest-stat-label" style="color:${(overdue.length+hwOverdue.length)?'var(--danger)':'inherit'}">Overdue</div></div>
+  </div>`;
+
+  // Status overview
+  html += `<div class="digest-section"><div class="digest-section-title">Project Status Overview</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      ${Object.entries(statusCounts).map(([s,c]) => `<span class="badge" style="font-size:.76rem">${esc(s)}: ${c}</span>`).join('')}
+    </div>`;
+  if (Object.keys(hwStatusCounts).length) {
+    html += `<div style="margin-top:8px;font-size:.76rem;color:var(--text-muted)">Holiday Work: ${Object.entries(hwStatusCounts).map(([s,c]) => esc(s)+': '+c).join(' · ')}</div>`;
+  }
+  html += '</div>';
+
+  // Overdue items
+  if (overdue.length || hwOverdue.length) {
+    html += `<div class="digest-section"><div class="digest-section-title" style="color:var(--danger)">&#9888; Overdue Items (${overdue.length + hwOverdue.length})</div><ul class="digest-list">`;
+    overdue.forEach(p => {
+      const days = Math.ceil((now - new Date(p.completionDate)) / 86400000);
+      html += `<li><strong>${esc(p.projectName)}</strong> — ${days}d overdue (due ${fmt.date(p.completionDate)})</li>`;
+    });
+    hwOverdue.forEach(p => {
+      const days = Math.ceil((now - new Date(p.endDate)) / 86400000);
+      html += `<li><strong>${esc(p.title)}</strong> [HW] — ${days}d overdue (due ${fmt.date(p.endDate)})</li>`;
+    });
+    html += '</ul></div>';
+  }
+
+  // Upcoming deadlines
+  if (upcoming.length || hwUpcoming.length) {
+    html += `<div class="digest-section"><div class="digest-section-title">&#128197; Upcoming Deadlines (${upcoming.length + hwUpcoming.length})</div><ul class="digest-list">`;
+    upcoming.forEach(p => {
+      const days = Math.ceil((new Date(p.completionDate) - now) / 86400000);
+      html += `<li><strong>${esc(p.projectName)}</strong> — ${days === 0 ? 'Due today' : days + 'd left'} (${fmt.date(p.completionDate)})</li>`;
+    });
+    hwUpcoming.forEach(p => {
+      const days = Math.ceil((new Date(p.endDate) - now) / 86400000);
+      html += `<li><strong>${esc(p.title)}</strong> [HW] — ${days === 0 ? 'Due today' : days + 'd left'} (${fmt.date(p.endDate)})</li>`;
+    });
+    html += '</ul></div>';
+  }
+
+  // Spend summary
+  html += `<div class="digest-section"><div class="digest-section-title">&#128176; Spend This Week</div>`;
+  if (weekInvoices.length) {
+    html += `<div style="font-size:.88rem;font-weight:700;color:var(--pk-green);margin-bottom:8px">Total: ${fmt.currency(totalSpend)}</div>`;
+    html += '<ul class="digest-list">';
+    weekInvoices.forEach(inv => {
+      html += `<li>${esc(inv.projectName)} — ${fmt.currency(inv.amount)} (${esc(inv.supplier||'—')}, ${inv.paid?'Paid':'Pending'})</li>`;
+    });
+    html += '</ul>';
+  } else {
+    html += '<p style="font-size:.82rem;color:var(--text-muted)">No invoices recorded this week.</p>';
+  }
+  html += '</div>';
+
+  // Recent activity
+  if (log.length) {
+    html += `<div class="digest-section"><div class="digest-section-title">&#128221; Recent Activity (${log.length})</div>
+      <ul class="digest-list">
+        ${log.slice(0, 20).map(a => `<li><span style="color:var(--text-muted);font-size:.76rem">${fmt.dateTime(a.ts)}</span> ${a.text}</li>`).join('')}
+      </ul>
+      ${log.length > 20 ? `<p style="font-size:.76rem;color:var(--text-muted);margin-top:4px">+ ${log.length - 20} more entries</p>` : ''}
+    </div>`;
+  }
+
+  html += `<div style="margin-top:20px;padding-top:14px;border-top:1px solid var(--border);font-size:.72rem;color:var(--text-muted);display:flex;justify-content:space-between">
+    <span>${esc(s.reportFooter || s.schoolName)}</span>
+    <span>Generated: ${new Date().toLocaleString('en-ZA')}</span>
+  </div>`;
+
+  html += '</div></div>';
+
+  $('digest-preview').innerHTML = html;
+  const bar = $('digest-action-bar');
+  if (bar) bar.style.display = '';
+  toast('Weekly digest generated');
+}
+
+function getDigestPlainText() {
+  refreshProjectsFromStorage();
+  State.settings = DB.loadObj(DB.keys(currentSiteId).settings, State.settings);
+  const s = State.settings;
+  const now = new Date();
+  const weekAgo = new Date(now - 7 * 86400000);
+  const isThisWeek = ts => ts && new Date(ts) >= weekAgo;
+  const dateRange = fmt.date(weekAgo.toISOString()) + ' – ' + fmt.date(now.toISOString());
+
+  const allProjects = State.projects || [];
+  const hw = loadHWProjects();
+  const log = ActivityLog.load().filter(a => isThisWeek(a.ts));
+
+  const overdue = allProjects.filter(p => p.completionDate && new Date(p.completionDate) < now && p.status !== 'Completed' && p.status !== 'Cancelled');
+  const upcoming = allProjects.filter(p => {
+    if (!p.completionDate || p.status === 'Completed' || p.status === 'Cancelled') return false;
+    const d = new Date(p.completionDate);
+    return d >= now && d <= new Date(now.getTime() + 7 * 86400000);
+  });
+  const hwOverdue = hw.filter(p => p.endDate && new Date(p.endDate) < now && p.status !== 'Completed' && p.status !== 'Cancelled');
+
+  const weekInvoices = [];
+  allProjects.forEach(p => {
+    (p.invoices||[]).forEach(inv => { if (isThisWeek(inv.date || inv.ts)) weekInvoices.push({...inv, projectName: p.projectName}); });
+  });
+  const totalSpend = weekInvoices.reduce((t,i) => t + parseFloat(i.amount||0), 0);
+
+  const lines = [
+    `📋 ${s.schoolName} — Weekly Facilities Digest`,
+    `Campus: ${currentSite.name}`,
+    `Period: ${dateRange}`,
+    '',
+    `📊 SUMMARY`,
+    `Projects: ${allProjects.length} | HW: ${hw.length} | Activities: ${log.length} | Overdue: ${overdue.length + hwOverdue.length}`,
+  ];
+
+  if (overdue.length || hwOverdue.length) {
+    lines.push('', `⚠️ OVERDUE (${overdue.length + hwOverdue.length})`);
+    overdue.forEach(p => {
+      const days = Math.ceil((now - new Date(p.completionDate)) / 86400000);
+      lines.push(`• ${p.projectName} — ${days}d overdue`);
+    });
+    hwOverdue.forEach(p => {
+      const days = Math.ceil((now - new Date(p.endDate)) / 86400000);
+      lines.push(`• ${p.title} [HW] — ${days}d overdue`);
+    });
+  }
+
+  if (upcoming.length) {
+    lines.push('', `📅 UPCOMING DEADLINES`);
+    upcoming.forEach(p => {
+      const days = Math.ceil((new Date(p.completionDate) - now) / 86400000);
+      lines.push(`• ${p.projectName} — ${days === 0 ? 'Due today' : days + 'd left'}`);
+    });
+  }
+
+  if (weekInvoices.length) {
+    lines.push('', `💰 SPEND THIS WEEK: ${fmt.currency(totalSpend)}`);
+    weekInvoices.forEach(inv => lines.push(`• ${inv.projectName} — ${fmt.currency(inv.amount)}`));
+  }
+
+  if (log.length) {
+    lines.push('', `📝 ACTIVITY (${Math.min(log.length, 10)} most recent)`);
+    log.slice(0, 10).forEach(a => {
+      const text = a.text.replace(/<[^>]+>/g, '');
+      lines.push(`• ${text}`);
+    });
+    if (log.length > 10) lines.push(`  + ${log.length - 10} more`);
+  }
+
+  lines.push('', '—', `Generated: ${new Date().toLocaleString('en-ZA')}`);
+  return lines.join('\n');
+}
+
+function shareDigestWhatsApp() {
+  const text = getDigestPlainText();
+  const url = 'https://wa.me/?text=' + encodeURIComponent(text);
+  window.open(url, '_blank');
+  toast('Opening WhatsApp…');
+}
+
+function printDigest() {
+  const el = $('printable-digest');
+  if (!el) { toast('Generate the digest first', 'warning'); return; }
+  const win = window.open('', '_blank');
+  if (!win) { toast('Pop-up blocked — allow pop-ups for this site', 'error'); return; }
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Weekly Digest</title>
+    <style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;margin:24px;color:#333;font-size:14px}
+    .digest-stat{text-align:center;padding:12px;background:#f8f8f8;border-radius:8px}
+    .digest-stat-val{font-size:1.5rem;font-weight:700;color:#1F3D1D}
+    .digest-stat-label{font-size:.72rem;color:#888;margin-top:2px;text-transform:uppercase;letter-spacing:.04em}
+    .digest-section{margin-top:16px;padding-top:14px;border-top:1px solid #eee}
+    .digest-section-title{font-size:.82rem;font-weight:700;color:#1F3D1D;margin-bottom:8px}
+    .digest-list{margin:0;padding-left:18px;font-size:.84rem;line-height:1.8}
+    .badge{display:inline-block;padding:2px 8px;border-radius:10px;background:#e8f5e9;font-weight:600}
+    @media print{body{margin:0;padding:16px}}
+    </style></head><body>${el.innerHTML}</body></html>`);
+  win.document.close();
+  setTimeout(() => { win.print(); }, 300);
+}
+
+function copyDigestText() {
+  const text = getDigestPlainText();
+  navigator.clipboard.writeText(text).then(
+    () => toast('Digest copied to clipboard'),
+    () => toast('Could not copy — try Share via WhatsApp instead', 'warning')
+  );
 }
 
 /* ── Settings ────────────────────────────────────────────── */
