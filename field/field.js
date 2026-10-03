@@ -117,44 +117,87 @@ async function loadProjects() {
     setSyncStatus('offline');
   }
 
-  renderRecentFeed();
+  renderProjectList();
   populateProjectDropdowns();
 }
 
 /* ── Skeleton loading ───────────────────────────────────── */
 function showFeedSkeleton() {
-  const feed = $('recent-feed');
-  feed.innerHTML = Array.from({length: 5}, () =>
+  const list = $('project-list');
+  list.innerHTML = Array.from({length: 5}, () =>
     '<div class="skeleton skeleton-card"></div>'
   ).join('');
 }
 
-/* ── Render recent feed ─────────────────────────────────── */
-function renderRecentFeed() {
-  const feed = $('recent-feed');
+/* ── Render collapsible project list ───────────────────── */
+function renderProjectList() {
+  const list = $('project-list');
   const all = [
-    ...projects.map(p => ({ name: p.projectName, status: p.status || 'Draft', ref: p.projectNumber, updated: p.dateUpdated, type: 'project', id: p.id })),
-    ...hwProjects.map(p => ({ name: p.title, status: p.status || 'Planning', ref: p.holiday, updated: p.dateUpdated || p.dateCreated, type: 'hw', id: p.id })),
-  ].sort((a, b) => new Date(b.updated || 0) - new Date(a.updated || 0)).slice(0, 10);
+    ...projects.map(p => ({
+      name: p.projectName, status: p.status || 'Draft', ref: p.projectNumber,
+      created: p.dateCreated, updated: p.dateUpdated, type: 'project', id: p.id,
+      photos: p.photos || [], invoices: p.invoices || [],
+      notes: p.notes || '', activity: p.activity || [],
+    })),
+    ...hwProjects.map(p => ({
+      name: p.title, status: p.status || 'Planning', ref: p.holiday,
+      created: p.dateCreated, updated: p.dateUpdated || p.dateCreated, type: 'hw', id: p.id,
+      photos: p.photos || [], invoices: p.invoices || [],
+      notes: p.notes || '', activity: p.activity || [],
+    })),
+  ].filter(p => p.status !== 'Completed' && p.status !== 'Cancelled')
+   .sort((a, b) => new Date(b.updated || 0) - new Date(a.updated || 0));
 
   if (!all.length) {
-    feed.innerHTML = '<div class="empty-state">' + SVG.inbox + '<div>No projects yet. Sync from the main app first.</div></div>';
+    list.innerHTML = '<div class="empty-state">' + SVG.inbox + '<div>No active projects. Sync from the main app first.</div></div>';
     return;
   }
 
-  feed.innerHTML = all.map(p => {
+  const chevron = '<svg class="proj-card-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
+
+  list.innerHTML = all.map(p => {
     const icon = p.type === 'hw' ? SVG.hardHat : SVG.pin;
-    const bg = p.type === 'hw' ? '#fff3e0' : '#e8f5e9';
-    const dateStr = p.updated ? new Date(p.updated).toLocaleDateString('en-ZA', { day:'2-digit', month:'short' }) : '';
-    return `<div class="feed-card">
-      <div class="feed-card-icon" style="background:${bg}">${icon}</div>
-      <div class="feed-card-body">
-        <div class="feed-card-name">${esc(p.name)}</div>
-        <div class="feed-card-meta">${esc(p.ref || '')} ${dateStr ? '&middot; ' + dateStr : ''}</div>
+    const typeLabel = p.type === 'hw' ? 'Holiday Work' : 'Project';
+    const fmtDate = d => d ? new Date(d).toLocaleDateString('en-ZA', { day:'2-digit', month:'short', year:'numeric' }) : '—';
+    const photoCount = p.photos.length;
+    const expTotal = p.invoices.reduce((sum, inv) => sum + (inv.amount || 0), 0);
+    const lastNote = p.notes ? p.notes.split('\n\n').pop().replace(/^\[.*?\]\s*/, '') : '';
+    const lastActivity = p.activity.length ? p.activity[0].text : '';
+    const activityTime = p.activity.length ? fmtDate(p.activity[0].ts) : '';
+
+    return `<div class="proj-card type-${p.type}">
+      <div class="proj-card-header" onclick="toggleProject(this)">
+        <div class="proj-card-icon">${icon}</div>
+        <div class="proj-card-info">
+          <div class="proj-card-name">${esc(p.name)}</div>
+          <div class="proj-card-meta">${esc(p.ref || typeLabel)}</div>
+        </div>
+        <div class="proj-card-right">
+          <span class="proj-card-badge">${esc(p.status)}</span>
+          ${chevron}
+        </div>
       </div>
-      <div class="feed-card-status">${esc(p.status)}</div>
+      <div class="proj-card-body">
+        <div class="proj-summary">
+          <div class="proj-summary-grid">
+            <div class="proj-stat"><span class="proj-stat-label">Status</span><span class="proj-stat-value">${esc(p.status)}</span></div>
+            <div class="proj-stat"><span class="proj-stat-label">Type</span><span class="proj-stat-value">${typeLabel}</span></div>
+            <div class="proj-stat"><span class="proj-stat-label">Created</span><span class="proj-stat-value">${fmtDate(p.created)}</span></div>
+            <div class="proj-stat"><span class="proj-stat-label">Updated</span><span class="proj-stat-value">${fmtDate(p.updated)}</span></div>
+            <div class="proj-stat"><span class="proj-stat-label">Photos</span><span class="proj-stat-value">${photoCount}</span></div>
+            <div class="proj-stat"><span class="proj-stat-label">Expenses</span><span class="proj-stat-value">R ${expTotal.toFixed(2)}</span></div>
+          </div>
+          ${lastNote ? '<div class="proj-note"><div class="proj-note-label">Latest Note</div>' + esc(lastNote).substring(0, 150) + (lastNote.length > 150 ? '…' : '') + '</div>' : ''}
+          ${lastActivity ? '<div class="proj-activity">' + SVG.check + '<span>' + esc(lastActivity) + ' &middot; ' + activityTime + '</span></div>' : ''}
+        </div>
+      </div>
     </div>`;
   }).join('');
+}
+
+function toggleProject(header) {
+  const card = header.closest('.proj-card');
+  card.classList.toggle('open');
 }
 
 /* ── Populate project dropdowns ─────────────────────────── */
