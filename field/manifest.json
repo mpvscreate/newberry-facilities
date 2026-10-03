@@ -1,0 +1,14 @@
+{
+  "name": "Newberry Field",
+  "short_name": "Field",
+  "id": "newberry-field",
+  "start_url": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1F3D1D",
+  "theme_color": "#1F3D1D",
+  "icons": [
+    { "src": "../logo.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "../logo.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

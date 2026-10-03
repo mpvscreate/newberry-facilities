@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#1F3D1D">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Newberry Field</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="../logo.png" type="image/png">
+  <link rel="apple-touch-icon" href="../logo.png">
+  <link rel="stylesheet" href="field.css">
+</head>
+<body>
+  <!-- Top bar -->
+  <header id="topbar">
+    <div class="topbar-left">
+      <img src="../logo.png" alt="" class="topbar-logo">
+      <div>
+        <div class="topbar-title">Newberry Field</div>
+        <div id="sync-status" class="sync-pill sync-offline">Offline</div>
+      </div>
+    </div>
+    <button id="site-toggle" class="site-btn" onclick="toggleSite()">
+      <span id="site-label">Lourensford</span>
+    </button>
+  </header>
+
+  <!-- Main views -->
+  <main id="app">
+    <!-- Home / Quick Actions -->
+    <section id="view-home" class="view active">
+      <div class="quick-grid">
+        <button class="quick-card qc-camera" onclick="startSnapTag()">
+          <div class="qc-icon">&#128247;</div>
+          <div class="qc-label">Snap &amp; Tag</div>
+          <div class="qc-hint">Photo + note to project</div>
+        </button>
+        <button class="quick-card qc-status" onclick="showView('status')">
+          <div class="qc-icon">&#128221;</div>
+          <div class="qc-label">Status Update</div>
+          <div class="qc-hint">Change project status</div>
+        </button>
+        <button class="quick-card qc-expense" onclick="showView('expense')">
+          <div class="qc-icon">&#128176;</div>
+          <div class="qc-label">Log Expense</div>
+          <div class="qc-hint">Receipt &amp; amount</div>
+        </button>
+        <button class="quick-card qc-notes" onclick="showView('notes')">
+          <div class="qc-icon">&#128466;</div>
+          <div class="qc-label">Quick Note</div>
+          <div class="qc-hint">Text note to project</div>
+        </button>
+      </div>
+
+      <!-- Recent activity feed -->
+      <div class="section-label">Recent</div>
+      <div id="recent-feed" class="recent-feed">
+        <div class="empty-state">Loading projects…</div>
+      </div>
+    </section>
+
+    <!-- Snap & Tag flow -->
+    <section id="view-snap" class="view">
+      <div class="view-header">
+        <button class="back-btn" onclick="showView('home')">&#8592;</button>
+        <h2>Snap &amp; Tag</h2>
+      </div>
+
+      <!-- Step 1: Capture -->
+      <div id="snap-step-1" class="snap-step active">
+        <div class="snap-capture-area">
+          <div id="snap-preview-wrap" class="snap-preview-wrap" style="display:none">
+            <img id="snap-preview" alt="Captured photo">
+            <button class="snap-retake" onclick="retakePhoto()">&#8635; Retake</button>
+          </div>
+          <div id="snap-buttons" class="snap-buttons">
+            <button class="snap-btn snap-btn-camera" onclick="capturePhoto()">
+              <span class="snap-btn-icon">&#128247;</span>
+              Take Photo
+            </button>
+            <button class="snap-btn snap-btn-gallery" onclick="pickFromGallery()">
+              <span class="snap-btn-icon">&#128193;</span>
+              Gallery
+            </button>
+          </div>
+          <input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none">
+          <input type="file" id="gallery-input" accept="image/*" multiple style="display:none">
+        </div>
+        <button class="btn-primary btn-full" id="snap-next-btn" onclick="snapNext()" disabled>Next &#8594;</button>
+      </div>
+
+      <!-- Step 2: Tag -->
+      <div id="snap-step-2" class="snap-step">
+        <div class="snap-thumb-row">
+          <img id="snap-thumb" alt="Photo thumbnail">
+          <div id="snap-thumb-count" class="snap-thumb-count"></div>
+        </div>
+
+        <label class="field-label">Project</label>
+        <select id="snap-project" class="field-select">
+          <option value="">— Select project —</option>
+        </select>
+
+        <label class="field-label">Phase</label>
+        <div class="phase-pills" id="snap-phase">
+          <button class="phase-pill active" data-phase="Before" onclick="selectPhase(this)">&#128203; Before</button>
+          <button class="phase-pill" data-phase="During" onclick="selectPhase(this)">&#128679; During</button>
+          <button class="phase-pill" data-phase="After" onclick="selectPhase(this)">&#9989; After</button>
+          <button class="phase-pill" data-phase="General" onclick="selectPhase(this)">&#128247; General</button>
+        </div>
+
+        <label class="field-label">Note <span class="optional">(optional)</span></label>
+        <textarea id="snap-note" class="field-textarea" rows="3" placeholder="What's happening here…"></textarea>
+
+        <button class="btn-primary btn-full" onclick="submitSnap()">&#10003; Save &amp; Upload</button>
+      </div>
+
+      <!-- Step 3: Done -->
+      <div id="snap-step-3" class="snap-step">
+        <div class="done-state">
+          <div class="done-icon">&#9989;</div>
+          <div class="done-title">Photo saved!</div>
+          <div class="done-subtitle" id="snap-done-msg">Uploaded to project</div>
+          <div class="done-actions">
+            <button class="btn-primary" onclick="startSnapTag()">Take Another</button>
+            <button class="btn-outline" onclick="showView('home')">Done</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Status Update view -->
+    <section id="view-status" class="view">
+      <div class="view-header">
+        <button class="back-btn" onclick="showView('home')">&#8592;</button>
+        <h2>Status Update</h2>
+      </div>
+      <div id="status-list" class="project-list">
+        <div class="empty-state">Loading…</div>
+      </div>
+    </section>
+
+    <!-- Expense Log view -->
+    <section id="view-expense" class="view">
+      <div class="view-header">
+        <button class="back-btn" onclick="showView('home')">&#8592;</button>
+        <h2>Log Expense</h2>
+      </div>
+      <div class="form-card">
+        <label class="field-label">Project</label>
+        <select id="exp-project" class="field-select">
+          <option value="">— Select project —</option>
+        </select>
+        <label class="field-label">Amount (R)</label>
+        <input type="number" id="exp-amount" class="field-input" placeholder="0.00" inputmode="decimal" step="0.01">
+        <label class="field-label">Supplier</label>
+        <input type="text" id="exp-supplier" class="field-input" placeholder="Supplier name">
+        <label class="field-label">Invoice Ref <span class="optional">(optional)</span></label>
+        <input type="text" id="exp-ref" class="field-input" placeholder="INV-001">
+        <label class="field-label">Receipt Photo <span class="optional">(optional)</span></label>
+        <div class="snap-buttons" style="justify-content:flex-start;gap:8px">
+          <button class="snap-btn snap-btn-camera" onclick="captureReceipt()" style="padding:10px 16px;font-size:.82rem">&#128247; Snap Receipt</button>
+        </div>
+        <div id="exp-receipt-preview" style="display:none;margin-top:8px">
+          <img id="exp-receipt-img" style="max-height:120px;border-radius:8px;border:1px solid var(--border)">
+        </div>
+        <input type="file" id="receipt-input" accept="image/*" capture="environment" style="display:none">
+        <button class="btn-primary btn-full" onclick="submitExpense()" style="margin-top:16px">&#10003; Log Expense</button>
+      </div>
+    </section>
+
+    <!-- Quick Note view -->
+    <section id="view-notes" class="view">
+      <div class="view-header">
+        <button class="back-btn" onclick="showView('home')">&#8592;</button>
+        <h2>Quick Note</h2>
+      </div>
+      <div class="form-card">
+        <label class="field-label">Project</label>
+        <select id="note-project" class="field-select">
+          <option value="">— Select project —</option>
+        </select>
+        <label class="field-label">Note</label>
+        <textarea id="note-text" class="field-textarea" rows="5" placeholder="Type your note…"></textarea>
+        <button class="btn-primary btn-full" onclick="submitNote()" style="margin-top:16px">&#10003; Save Note</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- Toast container -->
+  <div id="toast-container"></div>
+
+  <!-- Offline queue indicator -->
+  <div id="queue-bar" class="queue-bar" style="display:none">
+    <span id="queue-count">0</span> pending · <button onclick="flushQueue()" class="queue-flush">Sync now</button>
+  </div>
+
+  <script src="field.js"></script>
+  <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw-field.js');</script>
+</body>
+</html>

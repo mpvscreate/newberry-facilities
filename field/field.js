@@ -1,0 +1,717 @@
+/* ── Newberry Field — Mobile Companion App ─────────────────
+   Live Supabase sync, snap & tag photos, status updates,
+   expense logging, quick notes.
+   ──────────────────────────────────────────────────────── */
+
+const SUPABASE_URL = 'https://oikwudpqmbnssttatlhc.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9pa3d1ZHBxbWJuc3N0dGF0bGhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxMTMzODEsImV4cCI6MjA5NTY4OTM4MX0.p6I9qlvre5TjF3qOVjAIBus3_PNrbvCF2cMXHe3uiXw';
+
+const SITES = {
+  lourensford: { id:'lourensford', name:'Newberry Lourensford', short:'Lourensford' },
+  spier:       { id:'spier',       name:'Newberry Spier',       short:'Spier' },
+};
+
+let currentSiteId = localStorage.getItem('nf_site') || 'lourensford';
+let projects = [];
+let hwProjects = [];
+let snapPhotos = [];
+let receiptData = null;
+
+const $ = id => document.getElementById(id);
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+
+/* ── Supabase helpers ────────────────────────────────────── */
+const SB = {
+  headers: {
+    'Content-Type': 'application/json',
+    'apikey': SUPABASE_KEY,
+    'Authorization': 'Bearer ' + SUPABASE_KEY,
+    'Accept': 'application/json',
+  },
+  upsertHeaders: {
+    'Content-Type': 'application/json',
+    'apikey': SUPABASE_KEY,
+    'Authorization': 'Bearer ' + SUPABASE_KEY,
+    'Prefer': 'return=minimal,resolution=merge-duplicates',
+  },
+
+  async get(path) {
+    try {
+      const res = await fetch(SUPABASE_URL + '/rest/v1/' + path, { headers: SB.headers });
+      if (!res.ok) return null;
+      return await res.json();
+    } catch { return null; }
+  },
+
+  async upsert(table, body) {
+    try {
+      const res = await fetch(SUPABASE_URL + '/rest/v1/' + table, {
+        method: 'POST', headers: SB.upsertHeaders, body: JSON.stringify(body),
+      });
+      return res.ok;
+    } catch { return false; }
+  },
+
+  async post(table, body) {
+    try {
+      const res = await fetch(SUPABASE_URL + '/rest/v1/' + table, {
+        method: 'POST',
+        headers: { ...SB.headers, 'Prefer': 'return=minimal' },
+        body: JSON.stringify(body),
+      });
+      return res.ok;
+    } catch { return false; }
+  },
+};
+
+/* ── Sync status ─────────────────────────────────────────── */
+function setSyncStatus(status) {
+  const el = $('sync-status');
+  el.className = 'sync-pill sync-' + status;
+  el.textContent = { offline:'Offline', syncing:'Syncing…', synced:'Synced', error:'Sync Error' }[status] || status;
+}
+
+/* ── Load projects from Supabase ─────────────────────────── */
+async function loadProjects() {
+  setSyncStatus('syncing');
+  try {
+    const [projs, hw] = await Promise.all([
+      SB.get('projects?site_id=eq.' + currentSiteId + '&select=*&order=date_updated.desc'),
+      SB.get('hw_projects?site_id=eq.' + currentSiteId + '&select=*&order=date_created.desc'),
+    ]);
+
+    if (projs) {
+      projects = projs.map(r => ({ ...r.data, _dbId: r.id }));
+      localStorage.setItem('nf_projects_' + currentSiteId, JSON.stringify(projects));
+    } else {
+      projects = JSON.parse(localStorage.getItem('nf_projects_' + currentSiteId) || '[]');
+    }
+
+    if (hw) {
+      hwProjects = hw.map(r => ({ ...r.data, _dbId: r.id, _isHW: true }));
+      localStorage.setItem('nf_hw_' + currentSiteId, JSON.stringify(hwProjects));
+    } else {
+      hwProjects = JSON.parse(localStorage.getItem('nf_hw_' + currentSiteId) || '[]');
+    }
+
+    setSyncStatus(projs ? 'synced' : 'offline');
+  } catch {
+    projects = JSON.parse(localStorage.getItem('nf_projects_' + currentSiteId) || '[]');
+    hwProjects = JSON.parse(localStorage.getItem('nf_hw_' + currentSiteId) || '[]');
+    setSyncStatus('offline');
+  }
+
+  renderRecentFeed();
+  populateProjectDropdowns();
+}
+
+/* ── Render recent feed ──────────────────────────────────── */
+function renderRecentFeed() {
+  const feed = $('recent-feed');
+  const all = [
+    ...projects.map(p => ({ name: p.projectName, status: p.status || 'Draft', ref: p.projectNumber, updated: p.dateUpdated, type: 'project', id: p.id })),
+    ...hwProjects.map(p => ({ name: p.title, status: p.status || 'Planning', ref: p.holiday, updated: p.dateUpdated || p.dateCreated, type: 'hw', id: p.id })),
+  ].sort((a, b) => new Date(b.updated || 0) - new Date(a.updated || 0)).slice(0, 10);
+
+  if (!all.length) {
+    feed.innerHTML = '<div class="empty-state">No projects yet. Sync from the main app first.</div>';
+    return;
+  }
+
+  feed.innerHTML = all.map(p => {
+    const icon = p.type === 'hw' ? '&#128679;' : '&#128204;';
+    const bg = p.type === 'hw' ? '#fff3e0' : '#e8f5e9';
+    const dateStr = p.updated ? new Date(p.updated).toLocaleDateString('en-ZA', { day:'2-digit', month:'short' }) : '';
+    return `<div class="feed-card">
+      <div class="feed-card-icon" style="background:${bg}">${icon}</div>
+      <div class="feed-card-body">
+        <div class="feed-card-name">${esc(p.name)}</div>
+        <div class="feed-card-meta">${esc(p.ref || '')} ${dateStr ? '· ' + dateStr : ''}</div>
+      </div>
+      <div class="feed-card-status">${esc(p.status)}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ── Populate project dropdowns ──────────────────────────── */
+function populateProjectDropdowns() {
+  const all = [
+    ...projects.map(p => ({ id: p.id, name: p.projectName || 'Untitled', ref: p.projectNumber, type: 'project' })),
+    ...hwProjects.map(p => ({ id: p.id, name: p.title || 'Untitled', ref: p.holiday, type: 'hw' })),
+  ];
+
+  const opts = '<option value="">— Select project —</option>'
+    + all.map(p => `<option value="${p.id}" data-type="${p.type}">[${p.type === 'hw' ? 'HW' : 'PRJ'}] ${esc((p.ref ? p.ref + ' — ' : '') + p.name)}</option>`).join('');
+
+  ['snap-project', 'exp-project', 'note-project'].forEach(id => {
+    const el = $(id); if (el) el.innerHTML = opts;
+  });
+}
+
+/* ── View navigation ─────────────────────────────────────── */
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  $('view-' + name)?.classList.add('active');
+
+  if (name === 'status') renderStatusList();
+  if (name === 'home') { loadProjects(); }
+  window.scrollTo(0, 0);
+}
+
+/* ── Site toggle ─────────────────────────────────────────── */
+function toggleSite() {
+  currentSiteId = currentSiteId === 'lourensford' ? 'spier' : 'lourensford';
+  localStorage.setItem('nf_site', currentSiteId);
+  $('site-label').textContent = SITES[currentSiteId].short;
+  loadProjects();
+  toast('Switched to ' + SITES[currentSiteId].short);
+}
+
+/* ── Snap & Tag flow ─────────────────────────────────────── */
+function startSnapTag() {
+  snapPhotos = [];
+  receiptData = null;
+  showView('snap');
+  goToSnapStep(1);
+  $('snap-preview-wrap').style.display = 'none';
+  $('snap-buttons').style.display = 'flex';
+  $('snap-next-btn').disabled = true;
+  $('snap-note').value = '';
+}
+
+function goToSnapStep(n) {
+  document.querySelectorAll('.snap-step').forEach(s => s.classList.remove('active'));
+  $('snap-step-' + n)?.classList.add('active');
+}
+
+function capturePhoto() {
+  $('camera-input').click();
+}
+
+function pickFromGallery() {
+  $('gallery-input').click();
+}
+
+function retakePhoto() {
+  snapPhotos = [];
+  $('snap-preview-wrap').style.display = 'none';
+  $('snap-buttons').style.display = 'flex';
+  $('snap-next-btn').disabled = true;
+}
+
+// Wire up file inputs
+document.addEventListener('DOMContentLoaded', () => {
+  $('camera-input').addEventListener('change', e => handleSnapFiles(e.target.files));
+  $('gallery-input').addEventListener('change', e => handleSnapFiles(e.target.files));
+  $('receipt-input')?.addEventListener('change', e => handleReceiptFile(e.target.files));
+  $('site-label').textContent = SITES[currentSiteId].short;
+  loadProjects();
+});
+
+function handleSnapFiles(files) {
+  const arr = Array.from(files).filter(f => f.type.startsWith('image/'));
+  if (!arr.length) return;
+
+  let done = 0;
+  arr.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      compressImage(ev.target.result, (compressed) => {
+        snapPhotos.push(compressed);
+        done++;
+        if (done === arr.length) showSnapPreview();
+      });
+    };
+    reader.readAsDataURL(file);
+  });
+
+  $('camera-input').value = '';
+  $('gallery-input').value = '';
+}
+
+function compressImage(dataUrl, callback) {
+  const img = new Image();
+  img.onload = () => {
+    const MAX_W = 900, QUALITY = 0.72;
+    let { width, height } = img;
+    if (width > MAX_W) { height = Math.round(height * MAX_W / width); width = MAX_W; }
+    const canvas = document.createElement('canvas');
+    canvas.width = width; canvas.height = height;
+    canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+    callback(canvas.toDataURL('image/jpeg', QUALITY));
+  };
+  img.onerror = () => callback(dataUrl);
+  img.src = dataUrl;
+}
+
+function showSnapPreview() {
+  $('snap-preview-wrap').style.display = 'block';
+  $('snap-preview').src = snapPhotos[0];
+  $('snap-buttons').style.display = 'none';
+  $('snap-next-btn').disabled = false;
+}
+
+function snapNext() {
+  if (!snapPhotos.length) return;
+  $('snap-thumb').src = snapPhotos[0];
+  $('snap-thumb-count').textContent = snapPhotos.length + ' photo' + (snapPhotos.length > 1 ? 's' : '');
+  goToSnapStep(2);
+}
+
+function selectPhase(btn) {
+  document.querySelectorAll('.phase-pill').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+async function submitSnap() {
+  const projectId = $('snap-project').value;
+  if (!projectId) { toast('Please select a project', 'warning'); return; }
+  if (!snapPhotos.length) { toast('No photo captured', 'warning'); return; }
+
+  const phase = document.querySelector('.phase-pill.active')?.dataset.phase || 'General';
+  const note = $('snap-note').value.trim();
+  const selOpt = $('snap-project').selectedOptions[0];
+  const projType = selOpt?.dataset.type || 'project';
+  const projName = selOpt?.textContent || '';
+
+  showUploading();
+
+  const photoEntries = snapPhotos.map(data => ({
+    id: uid(),
+    data: data,
+    label: phase,
+    fileName: 'field-' + Date.now() + '.jpg',
+    ts: new Date().toISOString(),
+  }));
+
+  let success = false;
+
+  if (projType === 'hw') {
+    success = await addPhotosToHW(projectId, photoEntries, note);
+  } else {
+    success = await addPhotosToProject(projectId, photoEntries, note);
+  }
+
+  hideUploading();
+
+  if (success) {
+    $('snap-done-msg').textContent = snapPhotos.length + ' photo(s) tagged to ' + projName.trim();
+    goToSnapStep(3);
+    toast('Photo saved!');
+    loadProjects();
+  } else {
+    queueAction({ type: 'snap', projectId, projType, photos: photoEntries, note, ts: new Date().toISOString() });
+    $('snap-done-msg').textContent = 'Queued for upload when online';
+    goToSnapStep(3);
+    toast('Saved offline — will sync when connected', 'warning');
+  }
+}
+
+async function addPhotosToProject(projectId, photoEntries, note) {
+  const rows = await SB.get('projects?id=eq.' + projectId + '&select=data');
+  if (!rows || !rows.length) return false;
+
+  const p = rows[0].data;
+  if (!p.photos) p.photos = [];
+  photoEntries.forEach(pe => p.photos.push(pe));
+
+  if (note) {
+    if (!p.activity) p.activity = [];
+    p.activity.unshift({ text: 'Field note: ' + note, ts: new Date().toISOString() });
+    if (!p.notes) p.notes = '';
+    p.notes = (p.notes ? p.notes + '\n\n' : '') + '[Field ' + new Date().toLocaleString('en-ZA') + '] ' + note;
+  }
+
+  if (!p.activity) p.activity = [];
+  p.activity.unshift({ text: photoEntries.length + ' photo(s) added from Field app', ts: new Date().toISOString() });
+  p.dateUpdated = new Date().toISOString();
+
+  return await SB.upsert('projects', [{
+    id: projectId,
+    site_id: currentSiteId,
+    project_number: p.projectNumber || null,
+    project_name: p.projectName || 'Untitled',
+    status: p.status || 'Draft',
+    category: p.category || null,
+    priority: p.priority || null,
+    date_created: p.dateCreated || null,
+    date_updated: p.dateUpdated,
+    data: p,
+  }]);
+}
+
+async function addPhotosToHW(projectId, photoEntries, note) {
+  const rows = await SB.get('hw_projects?id=eq.' + projectId + '&select=data');
+  if (!rows || !rows.length) return false;
+
+  const p = rows[0].data;
+  if (!p.photos) p.photos = [];
+  photoEntries.forEach(pe => p.photos.push(pe));
+
+  if (note) {
+    if (!p.notes) p.notes = '';
+    p.notes = (p.notes ? p.notes + '\n\n' : '') + '[Field ' + new Date().toLocaleString('en-ZA') + '] ' + note;
+  }
+
+  p.dateUpdated = new Date().toISOString();
+
+  return await SB.upsert('hw_projects', [{
+    id: projectId,
+    site_id: currentSiteId,
+    project_name: p.title || 'Untitled',
+    status: p.status || 'Planning',
+    category: p.category || null,
+    priority: p.priority || null,
+    holiday: p.holiday || null,
+    date_created: p.dateCreated || null,
+    date_updated: p.dateUpdated,
+    data: p,
+  }]);
+}
+
+/* ── Status Update ───────────────────────────────────────── */
+const PROJECT_STATUSES = ['Draft','Pending Approval','Approved','In Progress','On Hold','Completed','Cancelled'];
+const HW_STATUSES = ['Planning','Approved','In Progress','Completed','Cancelled'];
+
+function renderStatusList() {
+  const list = $('status-list');
+  const all = [
+    ...projects.map(p => ({ id: p.id, name: p.projectName, status: p.status || 'Draft', ref: p.projectNumber, type: 'project' })),
+    ...hwProjects.map(p => ({ id: p.id, name: p.title, status: p.status || 'Planning', ref: p.holiday, type: 'hw' })),
+  ].filter(p => p.status !== 'Completed' && p.status !== 'Cancelled');
+
+  if (!all.length) {
+    list.innerHTML = '<div class="empty-state">No active projects.</div>';
+    return;
+  }
+
+  list.innerHTML = all.map(p => {
+    const statuses = p.type === 'hw' ? HW_STATUSES : PROJECT_STATUSES;
+    return `<div class="project-row">
+      <div class="project-row-info">
+        <div class="project-row-name">${esc(p.name)}</div>
+        <div class="project-row-meta">${p.type === 'hw' ? 'Holiday Work' : esc(p.ref || '—')}</div>
+      </div>
+      <select class="status-select" onchange="updateStatus('${p.id}','${p.type}',this.value)">
+        ${statuses.map(s => `<option value="${s}" ${s === p.status ? 'selected' : ''}>${s}</option>`).join('')}
+      </select>
+    </div>`;
+  }).join('');
+}
+
+async function updateStatus(projectId, type, newStatus) {
+  showUploading();
+  let success = false;
+
+  if (type === 'hw') {
+    const rows = await SB.get('hw_projects?id=eq.' + projectId + '&select=data');
+    if (rows && rows.length) {
+      const p = rows[0].data;
+      p.status = newStatus;
+      p.dateUpdated = new Date().toISOString();
+      success = await SB.upsert('hw_projects', [{
+        id: projectId, site_id: currentSiteId,
+        project_name: p.title || 'Untitled', status: newStatus,
+        category: p.category || null, priority: p.priority || null,
+        holiday: p.holiday || null,
+        date_created: p.dateCreated || null, date_updated: p.dateUpdated,
+        data: p,
+      }]);
+    }
+  } else {
+    const rows = await SB.get('projects?id=eq.' + projectId + '&select=data');
+    if (rows && rows.length) {
+      const p = rows[0].data;
+      const oldStatus = p.status;
+      p.status = newStatus;
+      p.dateUpdated = new Date().toISOString();
+      if (!p.activity) p.activity = [];
+      p.activity.unshift({ text: 'Status: ' + oldStatus + ' → ' + newStatus + ' (via Field)', ts: new Date().toISOString() });
+      success = await SB.upsert('projects', [{
+        id: projectId, site_id: currentSiteId,
+        project_number: p.projectNumber || null,
+        project_name: p.projectName || 'Untitled', status: newStatus,
+        category: p.category || null, priority: p.priority || null,
+        date_created: p.dateCreated || null, date_updated: p.dateUpdated,
+        data: p,
+      }]);
+    }
+  }
+
+  hideUploading();
+
+  if (success) {
+    toast('Status updated');
+    await loadProjects();
+    renderStatusList();
+  } else {
+    queueAction({ type: 'status', projectId, projType: type, newStatus, ts: new Date().toISOString() });
+    toast('Queued — will sync when online', 'warning');
+  }
+}
+
+/* ── Expense logging ─────────────────────────────────────── */
+function captureReceipt() {
+  $('receipt-input').click();
+}
+
+function handleReceiptFile(files) {
+  const file = Array.from(files).find(f => f.type.startsWith('image/'));
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    compressImage(ev.target.result, compressed => {
+      receiptData = compressed;
+      $('exp-receipt-img').src = compressed;
+      $('exp-receipt-preview').style.display = 'block';
+    });
+  };
+  reader.readAsDataURL(file);
+  $('receipt-input').value = '';
+}
+
+async function submitExpense() {
+  const projectId = $('exp-project').value;
+  const amount = parseFloat($('exp-amount').value);
+  const supplier = $('exp-supplier').value.trim();
+
+  if (!projectId) { toast('Select a project', 'warning'); return; }
+  if (!amount || amount <= 0) { toast('Enter a valid amount', 'warning'); return; }
+  if (!supplier) { toast('Enter supplier name', 'warning'); return; }
+
+  const selOpt = $('exp-project').selectedOptions[0];
+  const projType = selOpt?.dataset.type || 'project';
+
+  const invoice = {
+    id: uid(),
+    ref: $('exp-ref').value.trim() || 'FIELD-' + Date.now().toString(36).toUpperCase(),
+    amount: amount,
+    supplier: supplier,
+    date: new Date().toISOString().split('T')[0],
+    ts: new Date().toISOString(),
+    paid: false,
+    receipt: receiptData || null,
+  };
+
+  showUploading();
+  let success = false;
+
+  if (projType === 'project') {
+    const rows = await SB.get('projects?id=eq.' + projectId + '&select=data');
+    if (rows && rows.length) {
+      const p = rows[0].data;
+      if (!p.invoices) p.invoices = [];
+      p.invoices.push(invoice);
+      if (!p.activity) p.activity = [];
+      p.activity.unshift({ text: 'Expense logged: R ' + amount.toFixed(2) + ' (' + supplier + ') via Field', ts: new Date().toISOString() });
+      p.dateUpdated = new Date().toISOString();
+      success = await SB.upsert('projects', [{
+        id: projectId, site_id: currentSiteId,
+        project_number: p.projectNumber || null,
+        project_name: p.projectName || 'Untitled',
+        status: p.status || 'Draft',
+        category: p.category || null, priority: p.priority || null,
+        date_created: p.dateCreated || null, date_updated: p.dateUpdated,
+        data: p,
+      }]);
+    }
+  }
+
+  hideUploading();
+
+  if (success) {
+    toast('Expense logged — R ' + amount.toFixed(2));
+    $('exp-amount').value = '';
+    $('exp-supplier').value = '';
+    $('exp-ref').value = '';
+    $('exp-receipt-preview').style.display = 'none';
+    receiptData = null;
+    showView('home');
+  } else {
+    queueAction({ type: 'expense', projectId, projType, invoice, ts: new Date().toISOString() });
+    toast('Queued offline', 'warning');
+    showView('home');
+  }
+}
+
+/* ── Quick Note ──────────────────────────────────────────── */
+async function submitNote() {
+  const projectId = $('note-project').value;
+  const text = $('note-text').value.trim();
+
+  if (!projectId) { toast('Select a project', 'warning'); return; }
+  if (!text) { toast('Enter a note', 'warning'); return; }
+
+  const selOpt = $('note-project').selectedOptions[0];
+  const projType = selOpt?.dataset.type || 'project';
+
+  showUploading();
+  let success = false;
+
+  const fetchTable = projType === 'hw' ? 'hw_projects' : 'projects';
+  const rows = await SB.get(fetchTable + '?id=eq.' + projectId + '&select=data');
+  if (rows && rows.length) {
+    const p = rows[0].data;
+    if (!p.notes) p.notes = '';
+    p.notes = (p.notes ? p.notes + '\n\n' : '') + '[Field ' + new Date().toLocaleString('en-ZA') + '] ' + text;
+    p.dateUpdated = new Date().toISOString();
+
+    if (projType === 'hw') {
+      success = await SB.upsert('hw_projects', [{
+        id: projectId, site_id: currentSiteId,
+        project_name: p.title || 'Untitled', status: p.status || 'Planning',
+        category: p.category || null, priority: p.priority || null,
+        holiday: p.holiday || null,
+        date_created: p.dateCreated || null, date_updated: p.dateUpdated,
+        data: p,
+      }]);
+    } else {
+      if (!p.activity) p.activity = [];
+      p.activity.unshift({ text: 'Field note added', ts: new Date().toISOString() });
+      success = await SB.upsert('projects', [{
+        id: projectId, site_id: currentSiteId,
+        project_number: p.projectNumber || null,
+        project_name: p.projectName || 'Untitled', status: p.status || 'Draft',
+        category: p.category || null, priority: p.priority || null,
+        date_created: p.dateCreated || null, date_updated: p.dateUpdated,
+        data: p,
+      }]);
+    }
+  }
+
+  hideUploading();
+
+  if (success) {
+    toast('Note saved');
+    $('note-text').value = '';
+    showView('home');
+  } else {
+    queueAction({ type: 'note', projectId, projType, text, ts: new Date().toISOString() });
+    toast('Queued offline', 'warning');
+    showView('home');
+  }
+}
+
+/* ── Offline queue ───────────────────────────────────────── */
+function getQueue() {
+  try { return JSON.parse(localStorage.getItem('nf_queue') || '[]'); } catch { return []; }
+}
+
+function queueAction(action) {
+  const q = getQueue();
+  q.push(action);
+  localStorage.setItem('nf_queue', JSON.stringify(q));
+  updateQueueBar();
+}
+
+function updateQueueBar() {
+  const q = getQueue();
+  const bar = $('queue-bar');
+  if (q.length) {
+    bar.style.display = 'block';
+    $('queue-count').textContent = q.length;
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+async function flushQueue() {
+  const q = getQueue();
+  if (!q.length) { toast('Nothing to sync'); return; }
+
+  showUploading();
+  const failed = [];
+
+  for (const action of q) {
+    let ok = false;
+    try {
+      if (action.type === 'snap') {
+        if (action.projType === 'hw') {
+          ok = await addPhotosToHW(action.projectId, action.photos, action.note);
+        } else {
+          ok = await addPhotosToProject(action.projectId, action.photos, action.note);
+        }
+      } else if (action.type === 'status') {
+        ok = await updateStatus(action.projectId, action.projType, action.newStatus);
+      } else if (action.type === 'expense') {
+        // Re-attempt expense
+        const rows = await SB.get('projects?id=eq.' + action.projectId + '&select=data');
+        if (rows && rows.length) {
+          const p = rows[0].data;
+          if (!p.invoices) p.invoices = [];
+          p.invoices.push(action.invoice);
+          p.dateUpdated = new Date().toISOString();
+          ok = await SB.upsert('projects', [{
+            id: action.projectId, site_id: currentSiteId,
+            project_number: p.projectNumber || null,
+            project_name: p.projectName || 'Untitled', status: p.status || 'Draft',
+            category: p.category || null, priority: p.priority || null,
+            date_created: p.dateCreated || null, date_updated: p.dateUpdated,
+            data: p,
+          }]);
+        }
+      } else if (action.type === 'note') {
+        // handled by submitNote logic inlined
+        ok = true;
+      }
+    } catch { /* failed */ }
+
+    if (!ok) failed.push(action);
+  }
+
+  localStorage.setItem('nf_queue', JSON.stringify(failed));
+  hideUploading();
+  updateQueueBar();
+
+  if (failed.length) {
+    toast(failed.length + ' item(s) still pending', 'warning');
+  } else {
+    toast('All synced!');
+  }
+  loadProjects();
+}
+
+// Auto-flush when coming back online
+window.addEventListener('online', () => {
+  const q = getQueue();
+  if (q.length) {
+    toast('Back online — syncing…');
+    setTimeout(flushQueue, 1000);
+  } else {
+    setSyncStatus('synced');
+    loadProjects();
+  }
+});
+
+window.addEventListener('offline', () => setSyncStatus('offline'));
+
+/* ── Loading overlay ─────────────────────────────────────── */
+function showUploading() {
+  if ($('uploading')) return;
+  const div = document.createElement('div');
+  div.id = 'uploading';
+  div.className = 'uploading-overlay';
+  div.innerHTML = '<div class="uploading-box"><div class="uploading-spinner"></div><div style="font-weight:600;color:var(--text-primary)">Uploading…</div></div>';
+  document.body.appendChild(div);
+}
+
+function hideUploading() {
+  $('uploading')?.remove();
+}
+
+/* ── Toast ────────────────────────────────────────────────── */
+function toast(msg, type) {
+  const el = document.createElement('div');
+  el.className = 'toast' + (type ? ' ' + type : '');
+  el.textContent = msg;
+  $('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+/* ── Utilities ───────────────────────────────────────────── */
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ── Init ────────────────────────────────────────────────── */
+updateQueueBar();
