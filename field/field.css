@@ -64,21 +64,13 @@ body {
 .sync-synced  { background: #4caf50; color: #fff; }
 .sync-error   { background: #ef5555; color: #fff; }
 
-.site-area { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
 .site-btn {
-  display: inline-flex; align-items: center; gap: 5px;
+  display: inline-flex; align-items: center;
   background: rgba(255,255,255,.15); border: none; color: #fff;
   padding: 6px 14px; border-radius: 20px; font-size: .78rem;
   font-weight: 600; cursor: pointer; transition: all .2s var(--ease);
 }
 .site-btn:active { background: rgba(255,255,255,.25); transform: scale(.96); }
-
-.site-dots { display: flex; gap: 6px; padding-right: 4px; }
-.site-dot {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: rgba(255,255,255,.3); transition: all .3s var(--ease);
-}
-.site-dot.active { background: #fff; width: 16px; border-radius: 3px; }
 
 /* ── Views & Transitions ────────────────────────────────── */
 main {
@@ -86,8 +78,6 @@ main {
   overflow-x: hidden;
   transition: transform .3s var(--ease), opacity .3s var(--ease);
 }
-main.slide-out-left { transform: translateX(-30%); opacity: 0; }
-main.slide-out-right { transform: translateX(30%); opacity: 0; }
 
 .view { display: none; }
 .view.active { display: block; animation: viewIn .35s var(--ease); }
@@ -472,13 +462,3 @@ main.slide-out-right { transform: translateX(30%); opacity: 0; }
 .uploading-text { font-weight: 600; color: var(--text-primary); font-size: .88rem; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ── Swipe hint ─────────────────────────────────────────── */
-.swipe-hint {
-  position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
-  background: rgba(0,0,0,.7); color: #fff;
-  padding: 12px 24px; border-radius: 20px;
-  font-size: .82rem; font-weight: 600;
-  z-index: 300; pointer-events: none;
-  animation: fadeIn .2s, toastOut .3s var(--ease) 1.2s forwards;
-  backdrop-filter: blur(4px);
-}

@@ -1,6 +1,6 @@
 /* ── Newberry Field — Mobile Companion App ─────────────────
    Live Supabase sync, snap & tag photos, status updates,
-   expense logging, quick notes. Swipe between sites.
+   expense logging, quick notes.
    ──────────────────────────────────────────────────────── */
 
 const SUPABASE_URL = 'https://oikwudpqmbnssttatlhc.supabase.co';
@@ -10,8 +10,6 @@ const SITES = {
   lourensford: { id:'lourensford', name:'Newberry Lourensford', short:'Lourensford' },
   spier:       { id:'spier',       name:'Newberry Spier',       short:'Spier' },
 };
-const SITE_ORDER = ['lourensford', 'spier'];
-
 let currentSiteId = localStorage.getItem('nf_site') || 'lourensford';
 let projects = [];
 let hwProjects = [];
@@ -217,88 +215,9 @@ function showView(name) {
 function toggleSite() {
   currentSiteId = currentSiteId === 'lourensford' ? 'spier' : 'lourensford';
   localStorage.setItem('nf_site', currentSiteId);
-  updateSiteUI();
+  $('site-label').textContent = SITES[currentSiteId].short;
   loadProjects();
   toast(SITES[currentSiteId].short, 'success');
-}
-
-function switchSiteWithAnimation(direction) {
-  if (currentView !== 'home') return;
-  const nextIdx = direction === 'left'
-    ? Math.min(SITE_ORDER.indexOf(currentSiteId) + 1, SITE_ORDER.length - 1)
-    : Math.max(SITE_ORDER.indexOf(currentSiteId) - 1, 0);
-  const nextSite = SITE_ORDER[nextIdx];
-  if (nextSite === currentSiteId) return;
-
-  const main = $('app');
-  const slideClass = direction === 'left' ? 'slide-out-left' : 'slide-out-right';
-  main.classList.add(slideClass);
-
-  setTimeout(() => {
-    currentSiteId = nextSite;
-    localStorage.setItem('nf_site', currentSiteId);
-    updateSiteUI();
-    loadProjects();
-    main.classList.remove(slideClass);
-  }, 300);
-}
-
-function updateSiteUI() {
-  $('site-label').textContent = SITES[currentSiteId].short;
-  SITE_ORDER.forEach(s => {
-    const dot = $('dot-' + s);
-    if (dot) dot.classList.toggle('active', s === currentSiteId);
-  });
-}
-
-/* ── Swipe gesture ──────────────────────────────────────── */
-let touchStartX = 0, touchStartY = 0, touchDeltaX = 0, isSwiping = false, swipeLocked = false;
-
-function initSwipe() {
-  const main = $('app');
-  main.addEventListener('touchstart', e => {
-    if (currentView !== 'home') return;
-    touchStartX = e.touches[0].clientX;
-    touchStartY = e.touches[0].clientY;
-    isSwiping = false;
-    swipeLocked = false;
-    touchDeltaX = 0;
-  }, { passive: true });
-
-  main.addEventListener('touchmove', e => {
-    if (currentView !== 'home' || swipeLocked) return;
-    const dx = e.touches[0].clientX - touchStartX;
-    const dy = e.touches[0].clientY - touchStartY;
-
-    if (!isSwiping && Math.abs(dy) > Math.abs(dx)) {
-      swipeLocked = true;
-      return;
-    }
-
-    if (!isSwiping && Math.abs(dx) > 12) {
-      isSwiping = true;
-    }
-
-    if (isSwiping) {
-      e.preventDefault();
-      touchDeltaX = dx;
-      const clamped = Math.max(-80, Math.min(80, dx * 0.4));
-      main.style.transform = 'translateX(' + clamped + 'px)';
-      main.style.transition = 'none';
-    }
-  }, { passive: false });
-
-  main.addEventListener('touchend', () => {
-    if (!isSwiping) return;
-    const main = $('app');
-    main.style.transition = '';
-    main.style.transform = '';
-
-    if (Math.abs(touchDeltaX) > 70) {
-      switchSiteWithAnimation(touchDeltaX < 0 ? 'left' : 'right');
-    }
-    isSwiping = false;
-  });
 }
 
 /* ── Snap & Tag flow ────────────────────────────────────── */
@@ -829,8 +748,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('gallery-input').addEventListener('change', e => handleSnapFiles(e.target.files));
   $('receipt-input')?.addEventListener('change', e => handleReceiptFile(e.target.files));
 
-  updateSiteUI();
-  initSwipe();
+  $('site-label').textContent = SITES[currentSiteId].short;
   loadProjects();
 });
 
