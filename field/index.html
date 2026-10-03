@@ -13,146 +13,134 @@
   <link rel="stylesheet" href="field.css">
 </head>
 <body>
-  <!-- Top bar -->
   <header id="topbar">
     <div class="topbar-left">
       <img src="../logo.png" alt="" class="topbar-logo">
       <div>
         <div class="topbar-title">Newberry Field</div>
-        <div id="sync-status" class="sync-pill sync-offline">Offline</div>
+        <div id="sync-status" class="sync-pill sync-offline">
+          <svg class="icon icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.56 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+          <span id="sync-text">Offline</span>
+        </div>
       </div>
     </div>
-    <button id="site-toggle" class="site-btn" onclick="toggleSite()">
-      <span id="site-label">Lourensford</span>
-    </button>
+    <div class="site-area">
+      <button id="site-toggle" class="site-btn" onclick="toggleSite()">
+        <svg class="icon icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        <span id="site-label">Lourensford</span>
+      </button>
+      <div class="site-dots">
+        <span class="site-dot active" id="dot-lourensford"></span>
+        <span class="site-dot" id="dot-spier"></span>
+      </div>
+    </div>
   </header>
 
-  <!-- Main views -->
   <main id="app">
-    <!-- Home / Quick Actions -->
+    <!-- Home -->
     <section id="view-home" class="view active">
       <div class="quick-grid">
         <button class="quick-card qc-camera" onclick="startSnapTag()">
-          <div class="qc-icon">&#128247;</div>
+          <div class="qc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></div>
           <div class="qc-label">Snap &amp; Tag</div>
           <div class="qc-hint">Photo + note to project</div>
         </button>
-        <button class="quick-card qc-status" onclick="showView('status')">
-          <div class="qc-icon">&#128221;</div>
+        <button class="quick-card qc-status" onclick="navigateTo('status')">
+          <div class="qc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="12" y2="18"/></svg></div>
           <div class="qc-label">Status Update</div>
           <div class="qc-hint">Change project status</div>
         </button>
-        <button class="quick-card qc-expense" onclick="showView('expense')">
-          <div class="qc-icon">&#128176;</div>
+        <button class="quick-card qc-expense" onclick="navigateTo('expense')">
+          <div class="qc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M2 10h20"/><circle cx="17" cy="14" r="1.5"/><path d="M6 6V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2"/></svg></div>
           <div class="qc-label">Log Expense</div>
           <div class="qc-hint">Receipt &amp; amount</div>
         </button>
-        <button class="quick-card qc-notes" onclick="showView('notes')">
-          <div class="qc-icon">&#128466;</div>
+        <button class="quick-card qc-notes" onclick="navigateTo('notes')">
+          <div class="qc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></div>
           <div class="qc-label">Quick Note</div>
           <div class="qc-hint">Text note to project</div>
         </button>
       </div>
-
-      <!-- Recent activity feed -->
       <div class="section-label">Recent</div>
-      <div id="recent-feed" class="recent-feed">
-        <div class="empty-state">Loading projects…</div>
-      </div>
+      <div id="recent-feed" class="recent-feed"></div>
     </section>
 
-    <!-- Snap & Tag flow -->
+    <!-- Snap & Tag -->
     <section id="view-snap" class="view">
       <div class="view-header">
-        <button class="back-btn" onclick="showView('home')">&#8592;</button>
+        <button class="back-btn" onclick="navigateBack()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
         <h2>Snap &amp; Tag</h2>
       </div>
-
-      <!-- Step 1: Capture -->
       <div id="snap-step-1" class="snap-step active">
         <div class="snap-capture-area">
           <div id="snap-preview-wrap" class="snap-preview-wrap" style="display:none">
             <img id="snap-preview" alt="Captured photo">
-            <button class="snap-retake" onclick="retakePhoto()">&#8635; Retake</button>
+            <button class="snap-retake" onclick="retakePhoto()"><svg class="icon icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Retake</button>
           </div>
           <div id="snap-buttons" class="snap-buttons">
             <button class="snap-btn snap-btn-camera" onclick="capturePhoto()">
-              <span class="snap-btn-icon">&#128247;</span>
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
               Take Photo
             </button>
             <button class="snap-btn snap-btn-gallery" onclick="pickFromGallery()">
-              <span class="snap-btn-icon">&#128193;</span>
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
               Gallery
             </button>
           </div>
           <input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none">
           <input type="file" id="gallery-input" accept="image/*" multiple style="display:none">
         </div>
-        <button class="btn-primary btn-full" id="snap-next-btn" onclick="snapNext()" disabled>Next &#8594;</button>
+        <button class="btn-primary btn-full" id="snap-next-btn" onclick="snapNext()" disabled>Next <svg class="icon icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
       </div>
-
-      <!-- Step 2: Tag -->
       <div id="snap-step-2" class="snap-step">
         <div class="snap-thumb-row">
           <img id="snap-thumb" alt="Photo thumbnail">
           <div id="snap-thumb-count" class="snap-thumb-count"></div>
         </div>
-
         <label class="field-label">Project</label>
-        <select id="snap-project" class="field-select">
-          <option value="">— Select project —</option>
-        </select>
-
+        <select id="snap-project" class="field-select"><option value="">-- Select project --</option></select>
         <label class="field-label">Phase</label>
         <div class="phase-pills" id="snap-phase">
-          <button class="phase-pill active" data-phase="Before" onclick="selectPhase(this)">&#128203; Before</button>
-          <button class="phase-pill" data-phase="During" onclick="selectPhase(this)">&#128679; During</button>
-          <button class="phase-pill" data-phase="After" onclick="selectPhase(this)">&#9989; After</button>
-          <button class="phase-pill" data-phase="General" onclick="selectPhase(this)">&#128247; General</button>
+          <button class="phase-pill active" data-phase="Before" onclick="selectPhase(this)"><svg class="icon icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg> Before</button>
+          <button class="phase-pill" data-phase="During" onclick="selectPhase(this)"><svg class="icon icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 18h20"/><path d="M4 18v-3a8 8 0 0 1 16 0v3"/><path d="M12 3v4"/><path d="M8 7l1 4"/><path d="M16 7l-1 4"/></svg> During</button>
+          <button class="phase-pill" data-phase="After" onclick="selectPhase(this)"><svg class="icon icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> After</button>
+          <button class="phase-pill" data-phase="General" onclick="selectPhase(this)"><svg class="icon icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> General</button>
         </div>
-
         <label class="field-label">Note <span class="optional">(optional)</span></label>
-        <textarea id="snap-note" class="field-textarea" rows="3" placeholder="What's happening here…"></textarea>
-
-        <button class="btn-primary btn-full" onclick="submitSnap()">&#10003; Save &amp; Upload</button>
+        <textarea id="snap-note" class="field-textarea" rows="3" placeholder="What's happening here..."></textarea>
+        <button class="btn-primary btn-full" onclick="submitSnap()"><svg class="icon icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Save &amp; Upload</button>
       </div>
-
-      <!-- Step 3: Done -->
       <div id="snap-step-3" class="snap-step">
         <div class="done-state">
-          <div class="done-icon">&#9989;</div>
+          <div class="done-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
           <div class="done-title">Photo saved!</div>
           <div class="done-subtitle" id="snap-done-msg">Uploaded to project</div>
           <div class="done-actions">
             <button class="btn-primary" onclick="startSnapTag()">Take Another</button>
-            <button class="btn-outline" onclick="showView('home')">Done</button>
+            <button class="btn-outline" onclick="navigateBack()">Done</button>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- Status Update view -->
+    <!-- Status Update -->
     <section id="view-status" class="view">
       <div class="view-header">
-        <button class="back-btn" onclick="showView('home')">&#8592;</button>
+        <button class="back-btn" onclick="navigateBack()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
         <h2>Status Update</h2>
       </div>
-      <div id="status-list" class="project-list">
-        <div class="empty-state">Loading…</div>
-      </div>
+      <div id="status-list" class="project-list"></div>
     </section>
 
-    <!-- Expense Log view -->
+    <!-- Expense Log -->
     <section id="view-expense" class="view">
       <div class="view-header">
-        <button class="back-btn" onclick="showView('home')">&#8592;</button>
+        <button class="back-btn" onclick="navigateBack()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
         <h2>Log Expense</h2>
       </div>
       <div class="form-card">
         <label class="field-label">Project</label>
-        <select id="exp-project" class="field-select">
-          <option value="">— Select project —</option>
-        </select>
+        <select id="exp-project" class="field-select"><option value="">-- Select project --</option></select>
         <label class="field-label">Amount (R)</label>
         <input type="number" id="exp-amount" class="field-input" placeholder="0.00" inputmode="decimal" step="0.01">
         <label class="field-label">Supplier</label>
@@ -161,40 +149,41 @@
         <input type="text" id="exp-ref" class="field-input" placeholder="INV-001">
         <label class="field-label">Receipt Photo <span class="optional">(optional)</span></label>
         <div class="snap-buttons" style="justify-content:flex-start;gap:8px">
-          <button class="snap-btn snap-btn-camera" onclick="captureReceipt()" style="padding:10px 16px;font-size:.82rem">&#128247; Snap Receipt</button>
+          <button class="snap-btn snap-btn-camera" onclick="captureReceipt()" style="padding:10px 16px;font-size:.82rem">
+            <svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            Snap Receipt
+          </button>
         </div>
         <div id="exp-receipt-preview" style="display:none;margin-top:8px">
           <img id="exp-receipt-img" style="max-height:120px;border-radius:8px;border:1px solid var(--border)">
         </div>
         <input type="file" id="receipt-input" accept="image/*" capture="environment" style="display:none">
-        <button class="btn-primary btn-full" onclick="submitExpense()" style="margin-top:16px">&#10003; Log Expense</button>
+        <button class="btn-primary btn-full" onclick="submitExpense()" style="margin-top:16px"><svg class="icon icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Log Expense</button>
       </div>
     </section>
 
-    <!-- Quick Note view -->
+    <!-- Quick Note -->
     <section id="view-notes" class="view">
       <div class="view-header">
-        <button class="back-btn" onclick="showView('home')">&#8592;</button>
+        <button class="back-btn" onclick="navigateBack()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
         <h2>Quick Note</h2>
       </div>
       <div class="form-card">
         <label class="field-label">Project</label>
-        <select id="note-project" class="field-select">
-          <option value="">— Select project —</option>
-        </select>
+        <select id="note-project" class="field-select"><option value="">-- Select project --</option></select>
         <label class="field-label">Note</label>
-        <textarea id="note-text" class="field-textarea" rows="5" placeholder="Type your note…"></textarea>
-        <button class="btn-primary btn-full" onclick="submitNote()" style="margin-top:16px">&#10003; Save Note</button>
+        <textarea id="note-text" class="field-textarea" rows="5" placeholder="Type your note..."></textarea>
+        <button class="btn-primary btn-full" onclick="submitNote()" style="margin-top:16px"><svg class="icon icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Save Note</button>
       </div>
     </section>
   </main>
 
-  <!-- Toast container -->
   <div id="toast-container"></div>
 
-  <!-- Offline queue indicator -->
   <div id="queue-bar" class="queue-bar" style="display:none">
-    <span id="queue-count">0</span> pending · <button onclick="flushQueue()" class="queue-flush">Sync now</button>
+    <svg class="icon icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg>
+    <span id="queue-count">0</span> pending &middot;
+    <button onclick="flushQueue()" class="queue-flush">Sync now</button>
   </div>
 
   <script src="field.js"></script>

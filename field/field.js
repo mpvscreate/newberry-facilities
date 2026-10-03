@@ -1,6 +1,6 @@
 /* ── Newberry Field — Mobile Companion App ─────────────────
    Live Supabase sync, snap & tag photos, status updates,
-   expense logging, quick notes.
+   expense logging, quick notes. Swipe between sites.
    ──────────────────────────────────────────────────────── */
 
 const SUPABASE_URL = 'https://oikwudpqmbnssttatlhc.supabase.co';
@@ -10,17 +10,28 @@ const SITES = {
   lourensford: { id:'lourensford', name:'Newberry Lourensford', short:'Lourensford' },
   spier:       { id:'spier',       name:'Newberry Spier',       short:'Spier' },
 };
+const SITE_ORDER = ['lourensford', 'spier'];
 
 let currentSiteId = localStorage.getItem('nf_site') || 'lourensford';
 let projects = [];
 let hwProjects = [];
 let snapPhotos = [];
 let receiptData = null;
+let currentView = 'home';
 
 const $ = id => document.getElementById(id);
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 
-/* ── Supabase helpers ────────────────────────────────────── */
+/* ── SVG icon strings for dynamic content ───────────────── */
+const SVG = {
+  hardHat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 18h20"/><path d="M4 18v-3a8 8 0 0 1 16 0v3"/><path d="M12 3v4"/><path d="M8 7l1 4"/><path d="M16 7l-1 4"/></svg>',
+  pin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>',
+  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+  alertCircle: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
+  inbox: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>',
+};
+
+/* ── Supabase helpers ───────────────────────────────────── */
 const SB = {
   headers: {
     'Content-Type': 'application/json',
@@ -34,7 +45,6 @@ const SB = {
     'Authorization': 'Bearer ' + SUPABASE_KEY,
     'Prefer': 'return=minimal,resolution=merge-duplicates',
   },
-
   async get(path) {
     try {
       const res = await fetch(SUPABASE_URL + '/rest/v1/' + path, { headers: SB.headers });
@@ -42,7 +52,6 @@ const SB = {
       return await res.json();
     } catch { return null; }
   },
-
   async upsert(table, body) {
     try {
       const res = await fetch(SUPABASE_URL + '/rest/v1/' + table, {
@@ -51,7 +60,6 @@ const SB = {
       return res.ok;
     } catch { return false; }
   },
-
   async post(table, body) {
     try {
       const res = await fetch(SUPABASE_URL + '/rest/v1/' + table, {
@@ -64,16 +72,26 @@ const SB = {
   },
 };
 
-/* ── Sync status ─────────────────────────────────────────── */
+/* ── Sync status ────────────────────────────────────────── */
+const SYNC_ICONS = {
+  offline: '<svg class="icon icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.56 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>',
+  syncing: '<svg class="icon icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg>',
+  synced: '<svg class="icon icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+  error: '<svg class="icon icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
+};
+const SYNC_LABELS = { offline:'Offline', syncing:'Syncing', synced:'Synced', error:'Error' };
+
 function setSyncStatus(status) {
   const el = $('sync-status');
   el.className = 'sync-pill sync-' + status;
-  el.textContent = { offline:'Offline', syncing:'Syncing…', synced:'Synced', error:'Sync Error' }[status] || status;
+  el.innerHTML = (SYNC_ICONS[status] || '') + '<span id="sync-text">' + (SYNC_LABELS[status] || status) + '</span>';
 }
 
-/* ── Load projects from Supabase ─────────────────────────── */
+/* ── Load projects ──────────────────────────────────────── */
 async function loadProjects() {
   setSyncStatus('syncing');
+  showFeedSkeleton();
+
   try {
     const [projs, hw] = await Promise.all([
       SB.get('projects?site_id=eq.' + currentSiteId + '&select=*&order=date_updated.desc'),
@@ -105,7 +123,15 @@ async function loadProjects() {
   populateProjectDropdowns();
 }
 
-/* ── Render recent feed ──────────────────────────────────── */
+/* ── Skeleton loading ───────────────────────────────────── */
+function showFeedSkeleton() {
+  const feed = $('recent-feed');
+  feed.innerHTML = Array.from({length: 5}, () =>
+    '<div class="skeleton skeleton-card"></div>'
+  ).join('');
+}
+
+/* ── Render recent feed ─────────────────────────────────── */
 function renderRecentFeed() {
   const feed = $('recent-feed');
   const all = [
@@ -114,33 +140,33 @@ function renderRecentFeed() {
   ].sort((a, b) => new Date(b.updated || 0) - new Date(a.updated || 0)).slice(0, 10);
 
   if (!all.length) {
-    feed.innerHTML = '<div class="empty-state">No projects yet. Sync from the main app first.</div>';
+    feed.innerHTML = '<div class="empty-state">' + SVG.inbox + '<div>No projects yet. Sync from the main app first.</div></div>';
     return;
   }
 
   feed.innerHTML = all.map(p => {
-    const icon = p.type === 'hw' ? '&#128679;' : '&#128204;';
+    const icon = p.type === 'hw' ? SVG.hardHat : SVG.pin;
     const bg = p.type === 'hw' ? '#fff3e0' : '#e8f5e9';
     const dateStr = p.updated ? new Date(p.updated).toLocaleDateString('en-ZA', { day:'2-digit', month:'short' }) : '';
     return `<div class="feed-card">
       <div class="feed-card-icon" style="background:${bg}">${icon}</div>
       <div class="feed-card-body">
         <div class="feed-card-name">${esc(p.name)}</div>
-        <div class="feed-card-meta">${esc(p.ref || '')} ${dateStr ? '· ' + dateStr : ''}</div>
+        <div class="feed-card-meta">${esc(p.ref || '')} ${dateStr ? '&middot; ' + dateStr : ''}</div>
       </div>
       <div class="feed-card-status">${esc(p.status)}</div>
     </div>`;
   }).join('');
 }
 
-/* ── Populate project dropdowns ──────────────────────────── */
+/* ── Populate project dropdowns ─────────────────────────── */
 function populateProjectDropdowns() {
   const all = [
     ...projects.map(p => ({ id: p.id, name: p.projectName || 'Untitled', ref: p.projectNumber, type: 'project' })),
     ...hwProjects.map(p => ({ id: p.id, name: p.title || 'Untitled', ref: p.holiday, type: 'hw' })),
   ];
 
-  const opts = '<option value="">— Select project —</option>'
+  const opts = '<option value="">-- Select project --</option>'
     + all.map(p => `<option value="${p.id}" data-type="${p.type}">[${p.type === 'hw' ? 'HW' : 'PRJ'}] ${esc((p.ref ? p.ref + ' — ' : '') + p.name)}</option>`).join('');
 
   ['snap-project', 'exp-project', 'note-project'].forEach(id => {
@@ -148,35 +174,145 @@ function populateProjectDropdowns() {
   });
 }
 
-/* ── View navigation ─────────────────────────────────────── */
-function showView(name) {
-  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-  $('view-' + name)?.classList.add('active');
+/* ── View navigation with transitions ───────────────────── */
+function navigateTo(name) {
+  if (name === currentView) return;
+  const oldView = $('view-' + currentView);
+  const newView = $('view-' + name);
+  if (!newView) return;
 
+  if (oldView) oldView.classList.remove('active', 'slide-in-forward', 'slide-in-back');
+  newView.classList.remove('slide-in-forward', 'slide-in-back');
+  newView.classList.add('active', 'slide-in-forward');
+
+  currentView = name;
   if (name === 'status') renderStatusList();
-  if (name === 'home') { loadProjects(); }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function navigateBack() {
+  const oldView = $('view-' + currentView);
+  const newView = $('view-home');
+  if (!newView || currentView === 'home') return;
+
+  if (oldView) oldView.classList.remove('active', 'slide-in-forward', 'slide-in-back');
+  newView.classList.remove('slide-in-forward', 'slide-in-back');
+  newView.classList.add('active', 'slide-in-back');
+
+  currentView = 'home';
+  loadProjects();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active', 'slide-in-forward', 'slide-in-back'));
+  $('view-' + name)?.classList.add('active');
+  currentView = name;
+  if (name === 'status') renderStatusList();
+  if (name === 'home') loadProjects();
   window.scrollTo(0, 0);
 }
 
-/* ── Site toggle ─────────────────────────────────────────── */
+/* ── Site toggle ────────────────────────────────────────── */
 function toggleSite() {
   currentSiteId = currentSiteId === 'lourensford' ? 'spier' : 'lourensford';
   localStorage.setItem('nf_site', currentSiteId);
-  $('site-label').textContent = SITES[currentSiteId].short;
+  updateSiteUI();
   loadProjects();
-  toast('Switched to ' + SITES[currentSiteId].short);
+  toast(SITES[currentSiteId].short, 'success');
 }
 
-/* ── Snap & Tag flow ─────────────────────────────────────── */
+function switchSiteWithAnimation(direction) {
+  if (currentView !== 'home') return;
+  const nextIdx = direction === 'left'
+    ? Math.min(SITE_ORDER.indexOf(currentSiteId) + 1, SITE_ORDER.length - 1)
+    : Math.max(SITE_ORDER.indexOf(currentSiteId) - 1, 0);
+  const nextSite = SITE_ORDER[nextIdx];
+  if (nextSite === currentSiteId) return;
+
+  const main = $('app');
+  const slideClass = direction === 'left' ? 'slide-out-left' : 'slide-out-right';
+  main.classList.add(slideClass);
+
+  setTimeout(() => {
+    currentSiteId = nextSite;
+    localStorage.setItem('nf_site', currentSiteId);
+    updateSiteUI();
+    loadProjects();
+    main.classList.remove(slideClass);
+  }, 300);
+}
+
+function updateSiteUI() {
+  $('site-label').textContent = SITES[currentSiteId].short;
+  SITE_ORDER.forEach(s => {
+    const dot = $('dot-' + s);
+    if (dot) dot.classList.toggle('active', s === currentSiteId);
+  });
+}
+
+/* ── Swipe gesture ──────────────────────────────────────── */
+let touchStartX = 0, touchStartY = 0, touchDeltaX = 0, isSwiping = false, swipeLocked = false;
+
+function initSwipe() {
+  const main = $('app');
+  main.addEventListener('touchstart', e => {
+    if (currentView !== 'home') return;
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    isSwiping = false;
+    swipeLocked = false;
+    touchDeltaX = 0;
+  }, { passive: true });
+
+  main.addEventListener('touchmove', e => {
+    if (currentView !== 'home' || swipeLocked) return;
+    const dx = e.touches[0].clientX - touchStartX;
+    const dy = e.touches[0].clientY - touchStartY;
+
+    if (!isSwiping && Math.abs(dy) > Math.abs(dx)) {
+      swipeLocked = true;
+      return;
+    }
+
+    if (!isSwiping && Math.abs(dx) > 12) {
+      isSwiping = true;
+    }
+
+    if (isSwiping) {
+      e.preventDefault();
+      touchDeltaX = dx;
+      const clamped = Math.max(-80, Math.min(80, dx * 0.4));
+      main.style.transform = 'translateX(' + clamped + 'px)';
+      main.style.transition = 'none';
+    }
+  }, { passive: false });
+
+  main.addEventListener('touchend', () => {
+    if (!isSwiping) return;
+    const main = $('app');
+    main.style.transition = '';
+    main.style.transform = '';
+
+    if (Math.abs(touchDeltaX) > 70) {
+      switchSiteWithAnimation(touchDeltaX < 0 ? 'left' : 'right');
+    }
+    isSwiping = false;
+  });
+}
+
+/* ── Snap & Tag flow ────────────────────────────────────── */
 function startSnapTag() {
   snapPhotos = [];
   receiptData = null;
-  showView('snap');
+  if (currentView !== 'snap') navigateTo('snap');
+  else showView('snap');
   goToSnapStep(1);
   $('snap-preview-wrap').style.display = 'none';
   $('snap-buttons').style.display = 'flex';
   $('snap-next-btn').disabled = true;
   $('snap-note').value = '';
+  $('snap-capture-area')?.classList.remove('has-photo');
 }
 
 function goToSnapStep(n) {
@@ -184,29 +320,16 @@ function goToSnapStep(n) {
   $('snap-step-' + n)?.classList.add('active');
 }
 
-function capturePhoto() {
-  $('camera-input').click();
-}
-
-function pickFromGallery() {
-  $('gallery-input').click();
-}
+function capturePhoto() { $('camera-input').click(); }
+function pickFromGallery() { $('gallery-input').click(); }
 
 function retakePhoto() {
   snapPhotos = [];
   $('snap-preview-wrap').style.display = 'none';
   $('snap-buttons').style.display = 'flex';
   $('snap-next-btn').disabled = true;
+  $('snap-capture-area')?.classList.remove('has-photo');
 }
-
-// Wire up file inputs
-document.addEventListener('DOMContentLoaded', () => {
-  $('camera-input').addEventListener('change', e => handleSnapFiles(e.target.files));
-  $('gallery-input').addEventListener('change', e => handleSnapFiles(e.target.files));
-  $('receipt-input')?.addEventListener('change', e => handleReceiptFile(e.target.files));
-  $('site-label').textContent = SITES[currentSiteId].short;
-  loadProjects();
-});
 
 function handleSnapFiles(files) {
   const arr = Array.from(files).filter(f => f.type.startsWith('image/'));
@@ -216,7 +339,7 @@ function handleSnapFiles(files) {
   arr.forEach(file => {
     const reader = new FileReader();
     reader.onload = ev => {
-      compressImage(ev.target.result, (compressed) => {
+      compressImage(ev.target.result, compressed => {
         snapPhotos.push(compressed);
         done++;
         if (done === arr.length) showSnapPreview();
@@ -249,6 +372,7 @@ function showSnapPreview() {
   $('snap-preview').src = snapPhotos[0];
   $('snap-buttons').style.display = 'none';
   $('snap-next-btn').disabled = false;
+  $('snap-capture-area')?.classList.add('has-photo');
 }
 
 function snapNext() {
@@ -277,27 +401,21 @@ async function submitSnap() {
   showUploading();
 
   const photoEntries = snapPhotos.map(data => ({
-    id: uid(),
-    data: data,
-    label: phase,
+    id: uid(), data, label: phase,
     fileName: 'field-' + Date.now() + '.jpg',
     ts: new Date().toISOString(),
   }));
 
-  let success = false;
-
-  if (projType === 'hw') {
-    success = await addPhotosToHW(projectId, photoEntries, note);
-  } else {
-    success = await addPhotosToProject(projectId, photoEntries, note);
-  }
+  let success = projType === 'hw'
+    ? await addPhotosToHW(projectId, photoEntries, note)
+    : await addPhotosToProject(projectId, photoEntries, note);
 
   hideUploading();
 
   if (success) {
     $('snap-done-msg').textContent = snapPhotos.length + ' photo(s) tagged to ' + projName.trim();
     goToSnapStep(3);
-    toast('Photo saved!');
+    toast('Photo saved!', 'success');
     loadProjects();
   } else {
     queueAction({ type: 'snap', projectId, projType, photos: photoEntries, note, ts: new Date().toISOString() });
@@ -327,15 +445,12 @@ async function addPhotosToProject(projectId, photoEntries, note) {
   p.dateUpdated = new Date().toISOString();
 
   return await SB.upsert('projects', [{
-    id: projectId,
-    site_id: currentSiteId,
+    id: projectId, site_id: currentSiteId,
     project_number: p.projectNumber || null,
     project_name: p.projectName || 'Untitled',
     status: p.status || 'Draft',
-    category: p.category || null,
-    priority: p.priority || null,
-    date_created: p.dateCreated || null,
-    date_updated: p.dateUpdated,
+    category: p.category || null, priority: p.priority || null,
+    date_created: p.dateCreated || null, date_updated: p.dateUpdated,
     data: p,
   }]);
 }
@@ -356,20 +471,17 @@ async function addPhotosToHW(projectId, photoEntries, note) {
   p.dateUpdated = new Date().toISOString();
 
   return await SB.upsert('hw_projects', [{
-    id: projectId,
-    site_id: currentSiteId,
+    id: projectId, site_id: currentSiteId,
     project_name: p.title || 'Untitled',
     status: p.status || 'Planning',
-    category: p.category || null,
-    priority: p.priority || null,
+    category: p.category || null, priority: p.priority || null,
     holiday: p.holiday || null,
-    date_created: p.dateCreated || null,
-    date_updated: p.dateUpdated,
+    date_created: p.dateCreated || null, date_updated: p.dateUpdated,
     data: p,
   }]);
 }
 
-/* ── Status Update ───────────────────────────────────────── */
+/* ── Status Update ──────────────────────────────────────── */
 const PROJECT_STATUSES = ['Draft','Pending Approval','Approved','In Progress','On Hold','Completed','Cancelled'];
 const HW_STATUSES = ['Planning','Approved','In Progress','Completed','Cancelled'];
 
@@ -381,13 +493,13 @@ function renderStatusList() {
   ].filter(p => p.status !== 'Completed' && p.status !== 'Cancelled');
 
   if (!all.length) {
-    list.innerHTML = '<div class="empty-state">No active projects.</div>';
+    list.innerHTML = '<div class="empty-state">' + SVG.inbox + '<div>No active projects.</div></div>';
     return;
   }
 
-  list.innerHTML = all.map(p => {
+  list.innerHTML = all.map((p, i) => {
     const statuses = p.type === 'hw' ? HW_STATUSES : PROJECT_STATUSES;
-    return `<div class="project-row">
+    return `<div class="project-row" style="animation-delay:${i * .03}s">
       <div class="project-row-info">
         <div class="project-row-name">${esc(p.name)}</div>
         <div class="project-row-meta">${p.type === 'hw' ? 'Holiday Work' : esc(p.ref || '—')}</div>
@@ -441,7 +553,7 @@ async function updateStatus(projectId, type, newStatus) {
   hideUploading();
 
   if (success) {
-    toast('Status updated');
+    toast('Status updated', 'success');
     await loadProjects();
     renderStatusList();
   } else {
@@ -450,10 +562,8 @@ async function updateStatus(projectId, type, newStatus) {
   }
 }
 
-/* ── Expense logging ─────────────────────────────────────── */
-function captureReceipt() {
-  $('receipt-input').click();
-}
+/* ── Expense logging ────────────────────────────────────── */
+function captureReceipt() { $('receipt-input').click(); }
 
 function handleReceiptFile(files) {
   const file = Array.from(files).find(f => f.type.startsWith('image/'));
@@ -485,8 +595,7 @@ async function submitExpense() {
   const invoice = {
     id: uid(),
     ref: $('exp-ref').value.trim() || 'FIELD-' + Date.now().toString(36).toUpperCase(),
-    amount: amount,
-    supplier: supplier,
+    amount, supplier,
     date: new Date().toISOString().split('T')[0],
     ts: new Date().toISOString(),
     paid: false,
@@ -520,21 +629,21 @@ async function submitExpense() {
   hideUploading();
 
   if (success) {
-    toast('Expense logged — R ' + amount.toFixed(2));
+    toast('Expense logged — R ' + amount.toFixed(2), 'success');
     $('exp-amount').value = '';
     $('exp-supplier').value = '';
     $('exp-ref').value = '';
     $('exp-receipt-preview').style.display = 'none';
     receiptData = null;
-    showView('home');
+    navigateBack();
   } else {
     queueAction({ type: 'expense', projectId, projType, invoice, ts: new Date().toISOString() });
     toast('Queued offline', 'warning');
-    showView('home');
+    navigateBack();
   }
 }
 
-/* ── Quick Note ──────────────────────────────────────────── */
+/* ── Quick Note ─────────────────────────────────────────── */
 async function submitNote() {
   const projectId = $('note-project').value;
   const text = $('note-text').value.trim();
@@ -582,17 +691,17 @@ async function submitNote() {
   hideUploading();
 
   if (success) {
-    toast('Note saved');
+    toast('Note saved', 'success');
     $('note-text').value = '';
-    showView('home');
+    navigateBack();
   } else {
     queueAction({ type: 'note', projectId, projType, text, ts: new Date().toISOString() });
     toast('Queued offline', 'warning');
-    showView('home');
+    navigateBack();
   }
 }
 
-/* ── Offline queue ───────────────────────────────────────── */
+/* ── Offline queue ──────────────────────────────────────── */
 function getQueue() {
   try { return JSON.parse(localStorage.getItem('nf_queue') || '[]'); } catch { return []; }
 }
@@ -608,7 +717,7 @@ function updateQueueBar() {
   const q = getQueue();
   const bar = $('queue-bar');
   if (q.length) {
-    bar.style.display = 'block';
+    bar.style.display = 'flex';
     $('queue-count').textContent = q.length;
   } else {
     bar.style.display = 'none';
@@ -626,15 +735,12 @@ async function flushQueue() {
     let ok = false;
     try {
       if (action.type === 'snap') {
-        if (action.projType === 'hw') {
-          ok = await addPhotosToHW(action.projectId, action.photos, action.note);
-        } else {
-          ok = await addPhotosToProject(action.projectId, action.photos, action.note);
-        }
+        ok = action.projType === 'hw'
+          ? await addPhotosToHW(action.projectId, action.photos, action.note)
+          : await addPhotosToProject(action.projectId, action.photos, action.note);
       } else if (action.type === 'status') {
         ok = await updateStatus(action.projectId, action.projType, action.newStatus);
       } else if (action.type === 'expense') {
-        // Re-attempt expense
         const rows = await SB.get('projects?id=eq.' + action.projectId + '&select=data');
         if (rows && rows.length) {
           const p = rows[0].data;
@@ -651,11 +757,9 @@ async function flushQueue() {
           }]);
         }
       } else if (action.type === 'note') {
-        // handled by submitNote logic inlined
         ok = true;
       }
     } catch { /* failed */ }
-
     if (!ok) failed.push(action);
   }
 
@@ -666,12 +770,11 @@ async function flushQueue() {
   if (failed.length) {
     toast(failed.length + ' item(s) still pending', 'warning');
   } else {
-    toast('All synced!');
+    toast('All synced!', 'success');
   }
   loadProjects();
 }
 
-// Auto-flush when coming back online
 window.addEventListener('online', () => {
   const q = getQueue();
   if (q.length) {
@@ -682,36 +785,53 @@ window.addEventListener('online', () => {
     loadProjects();
   }
 });
-
 window.addEventListener('offline', () => setSyncStatus('offline'));
 
-/* ── Loading overlay ─────────────────────────────────────── */
+/* ── Loading overlay ────────────────────────────────────── */
 function showUploading() {
   if ($('uploading')) return;
   const div = document.createElement('div');
   div.id = 'uploading';
   div.className = 'uploading-overlay';
-  div.innerHTML = '<div class="uploading-box"><div class="uploading-spinner"></div><div style="font-weight:600;color:var(--text-primary)">Uploading…</div></div>';
+  div.innerHTML = '<div class="uploading-box"><div class="uploading-spinner"></div><div class="uploading-text">Uploading…</div></div>';
   document.body.appendChild(div);
 }
 
 function hideUploading() {
-  $('uploading')?.remove();
+  const el = $('uploading');
+  if (el) { el.style.opacity = '0'; setTimeout(() => el.remove(), 200); }
 }
 
-/* ── Toast ────────────────────────────────────────────────── */
+/* ── Toast ───────────────────────────────────────────────── */
+const TOAST_ICONS = {
+  success: SVG.check,
+  warning: SVG.alertCircle,
+  error: SVG.alertCircle,
+};
+
 function toast(msg, type) {
   const el = document.createElement('div');
   el.className = 'toast' + (type ? ' ' + type : '');
-  el.textContent = msg;
+  const icon = TOAST_ICONS[type] || '';
+  el.innerHTML = icon + ' ' + esc(msg);
   $('toast-container').appendChild(el);
   setTimeout(() => el.remove(), 3000);
 }
 
-/* ── Utilities ───────────────────────────────────────────── */
+/* ── Utilities ──────────────────────────────────────────── */
 function esc(s) {
   return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-/* ── Init ────────────────────────────────────────────────── */
+/* ── Init ───────────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', () => {
+  $('camera-input').addEventListener('change', e => handleSnapFiles(e.target.files));
+  $('gallery-input').addEventListener('change', e => handleSnapFiles(e.target.files));
+  $('receipt-input')?.addEventListener('change', e => handleReceiptFile(e.target.files));
+
+  updateSiteUI();
+  initSwipe();
+  loadProjects();
+});
+
 updateQueueBar();
