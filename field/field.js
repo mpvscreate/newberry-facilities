@@ -780,6 +780,71 @@ function toast(msg, type) {
   setTimeout(() => el.remove(), 3000);
 }
 
+/* ── Voice to text ─────────────────────────────────────── */
+let activeRecognition = null;
+let activeRecBtn = null;
+
+function toggleVoice(textareaId, btn) {
+  const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRec) {
+    toast('Speech recognition not supported', 'warning');
+    return;
+  }
+
+  if (activeRecognition && activeRecBtn === btn) {
+    activeRecognition.stop();
+    return;
+  }
+
+  if (activeRecognition) activeRecognition.stop();
+
+  const rec = new SpeechRec();
+  rec.lang = 'en-ZA';
+  rec.continuous = true;
+  rec.interimResults = true;
+
+  const textarea = $(textareaId);
+  const baseText = textarea.value;
+  btn.classList.add('recording');
+  activeRecognition = rec;
+  activeRecBtn = btn;
+
+  rec.onresult = e => {
+    let interim = '', final = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const t = e.results[i][0].transcript;
+      if (e.results[i].isFinal) final += t;
+      else interim += t;
+    }
+    if (final) {
+      const sep = baseText && !baseText.endsWith(' ') && !baseText.endsWith('\n') ? ' ' : '';
+      textarea.value = baseText + sep + final;
+    }
+    if (interim) {
+      const sep = textarea.value && !textarea.value.endsWith(' ') && !textarea.value.endsWith('\n') ? ' ' : '';
+      textarea.value = textarea.value.replace(/ ?…$/, '') + sep + interim + '…';
+    }
+  };
+
+  rec.onerror = e => {
+    btn.classList.remove('recording');
+    activeRecognition = null;
+    activeRecBtn = null;
+    if (e.error === 'not-allowed') toast('Microphone access denied', 'error');
+    else if (e.error !== 'aborted') toast('Voice error: ' + e.error, 'warning');
+  };
+
+  rec.onend = () => {
+    btn.classList.remove('recording');
+    activeRecognition = null;
+    activeRecBtn = null;
+    textarea.value = textarea.value.replace(/ ?…$/, '');
+  };
+
+  rec.start();
+  toast('Listening…');
+}
+
 /* ── Utilities ──────────────────────────────────────────── */
 function esc(s) {
   return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
