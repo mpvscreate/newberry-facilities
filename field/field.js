@@ -16,6 +16,9 @@ let hwProjects = [];
 let snapPhotos = [];
 let receiptData = null;
 let currentView = 'home';
+let gpsEnabled = localStorage.getItem('nf_gps') === 'true';
+let lastGPS = null;
+let hapticEnabled = localStorage.getItem('nf_haptic') !== 'false';
 
 const $ = id => document.getElementById(id);
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
@@ -229,6 +232,7 @@ function navigateTo(name) {
   currentView = name;
   if (name === 'status') renderStatusList();
   window.scrollTo({ top: 0, behavior: 'smooth' });
+  updateNavActive(name);
 }
 
 function navigateBack() {
@@ -243,6 +247,7 @@ function navigateBack() {
   currentView = 'home';
   loadProjects();
   window.scrollTo({ top: 0, behavior: 'smooth' });
+  updateNavActive('home');
 }
 
 function showView(name) {
@@ -252,6 +257,7 @@ function showView(name) {
   if (name === 'status') renderStatusList();
   if (name === 'home') loadProjects();
   window.scrollTo(0, 0);
+  updateNavActive(name);
 }
 
 /* ── Site toggle ────────────────────────────────────────── */
@@ -275,6 +281,9 @@ function startSnapTag() {
   $('snap-next-btn').disabled = true;
   $('snap-note').value = '';
   $('snap-capture-area')?.classList.remove('has-photo');
+  const locEl = $('snap-location');
+  if (locEl) locEl.style.display = 'none';
+  if (gpsEnabled) requestGPS();
 }
 
 function goToSnapStep(n) {
@@ -296,6 +305,8 @@ function retakePhoto() {
 function handleSnapFiles(files) {
   const arr = Array.from(files).filter(f => f.type.startsWith('image/'));
   if (!arr.length) return;
+  playShutter();
+  haptic(30);
 
   let done = 0;
   arr.forEach(file => {
@@ -366,6 +377,7 @@ async function submitSnap() {
     id: uid(), data, label: phase,
     fileName: 'field-' + Date.now() + '.jpg',
     ts: new Date().toISOString(),
+    location: gpsEnabled && lastGPS ? { ...lastGPS } : null,
   }));
 
   let success = projType === 'hw'
@@ -378,6 +390,7 @@ async function submitSnap() {
     $('snap-done-msg').textContent = snapPhotos.length + ' photo(s) tagged to ' + projName.trim();
     goToSnapStep(3);
     toast('Photo saved!', 'success');
+    hapticSuccess();
     loadProjects();
   } else {
     queueAction({ type: 'snap', projectId, projType, photos: photoEntries, note, ts: new Date().toISOString() });
@@ -592,6 +605,7 @@ async function submitExpense() {
 
   if (success) {
     toast('Expense logged — R ' + amount.toFixed(2), 'success');
+    hapticSuccess();
     $('exp-amount').value = '';
     $('exp-supplier').value = '';
     $('exp-ref').value = '';
@@ -654,6 +668,7 @@ async function submitNote() {
 
   if (success) {
     toast('Note saved', 'success');
+    hapticSuccess();
     $('note-text').value = '';
     navigateBack();
   } else {
@@ -850,6 +865,142 @@ function esc(s) {
   return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+/* ── Dark mode ─────────────────────────────────────────── */
+function setDarkMode(mode) {
+  localStorage.setItem('nf_theme', mode);
+  applyTheme();
+  updateThemeButtons();
+  haptic();
+}
+
+function applyTheme() {
+  const pref = localStorage.getItem('nf_theme') || 'auto';
+  const html = document.documentElement;
+  if (pref === 'dark') html.setAttribute('data-theme', 'dark');
+  else if (pref === 'light') html.setAttribute('data-theme', 'light');
+  else html.setAttribute('data-theme', window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  const isDark = html.getAttribute('data-theme') === 'dark';
+  document.querySelector('meta[name="theme-color"]').content = isDark ? '#152914' : '#1F3D1D';
+}
+
+function updateThemeButtons() {
+  const pref = localStorage.getItem('nf_theme') || 'auto';
+  document.querySelectorAll('.toggle-opt').forEach(b => b.classList.toggle('active', b.dataset.mode === pref));
+}
+
+/* ── Bottom nav ────────────────────────────────────────── */
+function navTap(view) {
+  haptic(10);
+  if (view === 'snap') { startSnapTag(); return; }
+  if (view === currentView) return;
+  if (view === 'home') navigateBack();
+  else navigateTo(view);
+}
+
+function updateNavActive(view) {
+  const map = { home:'home', snap:'snap', notes:'notes', settings:'settings', status:'home', expense:'home' };
+  const v = map[view] || 'home';
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.view === v));
+}
+
+/* ── Pull to refresh ───────────────────────────────────── */
+function initPullToRefresh() {
+  const home = $('view-home');
+  const indicator = $('pull-indicator');
+  if (!home || !indicator) return;
+  let startY = 0, pulling = false, triggered = false;
+
+  home.addEventListener('touchstart', e => {
+    if (window.scrollY <= 0 && currentView === 'home') {
+      startY = e.touches[0].clientY;
+      pulling = true;
+      triggered = false;
+    }
+  }, { passive: true });
+
+  home.addEventListener('touchmove', e => {
+    if (!pulling) return;
+    const dy = e.touches[0].clientY - startY;
+    if (dy > 0 && dy < 150) {
+      indicator.style.height = Math.min(dy * 0.4, 50) + 'px';
+      indicator.style.opacity = Math.min(dy / 80, 1);
+      if (dy > 80 && !triggered) { triggered = true; indicator.classList.add('ready'); haptic(15); }
+    }
+  }, { passive: true });
+
+  home.addEventListener('touchend', () => {
+    if (!pulling) return;
+    pulling = false;
+    if (triggered) {
+      indicator.classList.remove('ready');
+      indicator.classList.add('refreshing');
+      loadProjects().then(() => {
+        indicator.classList.remove('refreshing');
+        indicator.style.height = '';
+        indicator.style.opacity = '';
+        toast('Refreshed', 'success');
+      });
+    } else {
+      indicator.style.height = '';
+      indicator.style.opacity = '';
+      indicator.classList.remove('ready');
+    }
+  }, { passive: true });
+}
+
+/* ── GPS location ──────────────────────────────────────── */
+function toggleGPS() {
+  gpsEnabled = !gpsEnabled;
+  localStorage.setItem('nf_gps', gpsEnabled);
+  $('gps-toggle')?.classList.toggle('on', gpsEnabled);
+  haptic();
+  if (gpsEnabled) requestGPS();
+}
+
+function requestGPS() {
+  if (!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      lastGPS = { lat: pos.coords.latitude, lng: pos.coords.longitude, acc: Math.round(pos.coords.accuracy) };
+      const el = $('snap-location');
+      if (el) { el.style.display = 'flex'; $('snap-gps-text').textContent = 'GPS: ' + lastGPS.lat.toFixed(5) + ', ' + lastGPS.lng.toFixed(5); }
+    },
+    () => {},
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+  );
+}
+
+/* ── Haptic & sound ────────────────────────────────────── */
+function toggleHaptic() {
+  hapticEnabled = !hapticEnabled;
+  localStorage.setItem('nf_haptic', hapticEnabled);
+  $('haptic-toggle')?.classList.toggle('on', hapticEnabled);
+  if (hapticEnabled) haptic();
+}
+
+function haptic(ms) {
+  if (!hapticEnabled || !navigator.vibrate) return;
+  navigator.vibrate(ms || 15);
+}
+
+function hapticSuccess() {
+  haptic(50);
+}
+
+function playShutter() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = 4000;
+    gain.gain.value = 0.12;
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.07);
+    osc.start(); osc.stop(ctx.currentTime + 0.07);
+    setTimeout(() => ctx.close(), 200);
+  } catch {}
+}
+
 /* ── Init ───────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
   $('camera-input').addEventListener('change', e => handleSnapFiles(e.target.files));
@@ -857,6 +1008,18 @@ document.addEventListener('DOMContentLoaded', () => {
   $('receipt-input')?.addEventListener('change', e => handleReceiptFile(e.target.files));
 
   $('site-label').textContent = SITES[currentSiteId].short;
+
+  applyTheme();
+  updateThemeButtons();
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
+
+  $('gps-toggle')?.classList.toggle('on', gpsEnabled);
+  $('haptic-toggle')?.classList.toggle('on', hapticEnabled);
+  if (gpsEnabled) requestGPS();
+  if ($('settings-site')) $('settings-site').textContent = SITES[currentSiteId].short;
+
+  initPullToRefresh();
+  updateNavActive('home');
   loadProjects();
 });
 
