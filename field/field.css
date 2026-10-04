@@ -33,6 +33,7 @@
   --text-muted: #6a6e66;
   --shadow: 0 2px 8px rgba(0,0,0,.25);
   --shadow-lg: 0 8px 24px rgba(0,0,0,.35);
+  --skeleton-highlight: #333633;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -172,7 +173,7 @@ main {
 
 /* ── Skeleton loading ───────────────────────────────────── */
 .skeleton {
-  background: linear-gradient(90deg, var(--border) 25%, #f0f1ee 50%, var(--border) 75%);
+  background: linear-gradient(90deg, var(--border) 25%, var(--skeleton-highlight, #f0f1ee) 50%, var(--border) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s ease infinite;
   border-radius: var(--radius-sm);
@@ -561,12 +562,18 @@ main {
   align-items: center; justify-content: center; gap: 2px;
   padding: 8px 0 6px; background: none; border: none;
   color: var(--text-muted); cursor: pointer;
-  font-size: .62rem; font-weight: 600;
+  font-size: .68rem; font-weight: 600;
   transition: color .2s var(--ease);
   -webkit-tap-highlight-color: transparent;
+  position: relative;
 }
 .nav-item svg { width: 22px; height: 22px; }
 .nav-item.active { color: var(--asp-green); }
+.nav-item.active::before {
+  content: ''; position: absolute; top: 0; left: 50%;
+  transform: translateX(-50%); width: 32px; height: 3px;
+  background: var(--asp-green); border-radius: 0 0 3px 3px;
+}
 .nav-item:active { transform: scale(.92); }
 
 /* ── Pull to refresh ───────────────────────────────────── */
@@ -638,10 +645,10 @@ main {
 /* ── Dark mode overrides ───────────────────────────────── */
 :root[data-theme="dark"] #topbar { background: #152914; }
 :root[data-theme="dark"] .back-btn { background: rgba(255,255,255,.08); }
-:root[data-theme="dark"] .type-project .proj-card-icon { background: rgba(125,162,75,.15); }
-:root[data-theme="dark"] .type-hw .proj-card-icon { background: rgba(230,81,0,.15); }
-:root[data-theme="dark"] .type-project .proj-card-badge { background: rgba(125,162,75,.15); }
-:root[data-theme="dark"] .type-hw .proj-card-badge { background: rgba(230,81,0,.15); }
+:root[data-theme="dark"] .type-project .proj-card-icon { background: rgba(125,162,75,.22); }
+:root[data-theme="dark"] .type-hw .proj-card-icon { background: rgba(230,81,0,.22); }
+:root[data-theme="dark"] .type-project .proj-card-badge { background: rgba(125,162,75,.22); color: #a8d475; }
+:root[data-theme="dark"] .type-hw .proj-card-badge { background: rgba(230,81,0,.22); color: #f0933a; }
 :root[data-theme="dark"] .mic-btn.recording { background: rgba(211,47,47,.15); }
 :root[data-theme="dark"] .proj-card-header:active { background: rgba(255,255,255,.03); }
 :root[data-theme="dark"] .toast { background: #3d5a28; }
