@@ -990,41 +990,55 @@ function toggleHaptic() {
 function haptic(ms) {
   if (!hapticEnabled) return;
   if (navigator.vibrate) navigator.vibrate(ms || 15);
-  playTick(4200, 0.06, 0.04);
+  playTone(1800, 0.3, 0.06);
 }
 
 function hapticSuccess() {
   if (!hapticEnabled) return;
-  if (navigator.vibrate) navigator.vibrate(50);
-  playTick(880, 0.10, 0.08);
-  setTimeout(() => playTick(1320, 0.10, 0.06), 90);
+  if (navigator.vibrate) navigator.vibrate([30, 50, 30]);
+  playTone(660, 0.35, 0.12);
+  setTimeout(() => playTone(880, 0.35, 0.15), 120);
 }
 
-function playTick(freq, vol, dur) {
+function playTone(freq, vol, dur) {
   try {
     const ctx = getAudioCtx();
+    const t = ctx.currentTime;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
-    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = 'sine';
     osc.frequency.value = freq;
-    gain.gain.setValueAtTime(vol, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + dur);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(vol, t + 0.005);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    osc.start(t);
+    osc.stop(t + dur + 0.01);
   } catch {}
 }
 
 function playShutter() {
   try {
     const ctx = getAudioCtx();
-    const osc = ctx.createOscillator();
+    const t = ctx.currentTime;
+    const bufSize = ctx.sampleRate * 0.04;
+    const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / bufSize);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
     const gain = ctx.createGain();
-    osc.connect(gain); gain.connect(ctx.destination);
-    osc.frequency.value = 4000;
-    gain.gain.setValueAtTime(0.12, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.07);
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.07);
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = 3000;
+    filter.Q.value = 1;
+    src.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    gain.gain.setValueAtTime(0.4, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+    src.start(t);
   } catch {}
 }
 
@@ -1049,10 +1063,19 @@ document.addEventListener('DOMContentLoaded', () => {
   updateNavActive('home');
   loadProjects();
 
-  document.body.addEventListener('touchstart', function warmAudio() {
-    getAudioCtx();
-    document.body.removeEventListener('touchstart', warmAudio);
-  }, { once: true });
+  function warmAudio() {
+    const ctx = getAudioCtx();
+    if (ctx.state === 'suspended') ctx.resume();
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    g.gain.value = 0;
+    osc.connect(g); g.connect(ctx.destination);
+    osc.start(); osc.stop(ctx.currentTime + 0.001);
+    document.removeEventListener('click', warmAudio);
+    document.removeEventListener('touchend', warmAudio);
+  }
+  document.addEventListener('click', warmAudio, { once: true });
+  document.addEventListener('touchend', warmAudio, { once: true });
 });
 
 updateQueueBar();
