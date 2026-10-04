@@ -1017,14 +1017,15 @@ function toggleHaptic() {
 function haptic(ms) {
   if (!hapticEnabled) return;
   if (navigator.vibrate) navigator.vibrate(ms || 15);
-  playWav(1200, 0.1, 1.0);
+  playWav(85, 0.08, 1.0);
 }
 
 function hapticSuccess() {
   if (!hapticEnabled) return;
   if (navigator.vibrate) navigator.vibrate([30, 50, 30]);
-  playWav(880, 0.2, 1.0);
-  setTimeout(() => playWav(1320, 0.25, 1.0), 180);
+  playWav(80, 0.12, 1.0);
+  setTimeout(() => playWav(100, 0.12, 1.0), 130);
+  setTimeout(() => playWav(130, 0.15, 1.0), 260);
 }
 
 function playTone(freq, vol, dur) {
@@ -1032,16 +1033,17 @@ function playTone(freq, vol, dur) {
 }
 
 function playShutter() {
-  playWav(800, 0.08, 1.0);
+  playWav(60, 0.06, 1.0);
 }
 
 function testSound() {
   const el = document.getElementById('sound-status');
   if (el) el.textContent = 'Playing...';
-  playWav(660, 0.5, 1.0);
-  setTimeout(() => playWav(880, 0.5, 1.0), 500);
-  setTimeout(() => playWav(1100, 0.5, 1.0), 1000);
-  setTimeout(() => { if (el) el.textContent = 'Done — did you hear 3 tones?'; }, 1600);
+  playWav(80, 0.3, 1.0);
+  setTimeout(() => playWav(100, 0.3, 1.0), 350);
+  setTimeout(() => playWav(130, 0.3, 1.0), 700);
+  setTimeout(() => playWav(160, 0.4, 1.0), 1050);
+  setTimeout(() => { if (el) el.textContent = 'Done — did you hear 4 bass notes?'; }, 1500);
 }
 
 /* ── Init ───────────────────────────────────────────────── */
@@ -1065,9 +1067,10 @@ document.addEventListener('DOMContentLoaded', () => {
   updateNavActive('home');
   loadProjects();
 
-  getWavUrl(1200, 0.1, 1.0);
-  getWavUrl(880, 0.2, 1.0);
-  getWavUrl(1320, 0.25, 1.0);
+  getWavUrl(85, 0.08, 1.0);
+  getWavUrl(80, 0.12, 1.0);
+  getWavUrl(100, 0.12, 1.0);
+  getWavUrl(130, 0.15, 1.0);
 });
 
 updateQueueBar();
