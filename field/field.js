@@ -971,30 +971,40 @@ function requestGPS() {
 }
 
 /* ── Haptic & sound ────────────────────────────────────── */
-let _audioCtx = null;
-let _audioUnlocked = false;
-function getAudioCtx() {
-  if (!_audioCtx || _audioCtx.state === 'closed') {
-    _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    _audioUnlocked = false;
+function makeWav(freq, dur, vol) {
+  const sr = 22050;
+  const len = Math.floor(sr * dur);
+  const buf = new ArrayBuffer(44 + len * 2);
+  const v = new DataView(buf);
+  function s(o, t) { for (let i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i)); }
+  s(0,'RIFF'); v.setUint32(4, 36 + len * 2, true); s(8,'WAVE');
+  s(12,'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true);
+  v.setUint16(22, 1, true); v.setUint32(24, sr, true);
+  v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  s(36,'data'); v.setUint32(40, len * 2, true);
+  for (let i = 0; i < len; i++) {
+    const t = i / sr;
+    const env = i < len * 0.7 ? 1 : Math.max(0, 1 - (i - len * 0.7) / (len * 0.3));
+    const sample = Math.sin(2 * Math.PI * freq * t) * vol * env * 32767;
+    v.setInt16(44 + i * 2, Math.max(-32768, Math.min(32767, sample)), true);
   }
-  return _audioCtx;
+  return new Blob([buf], { type: 'audio/wav' });
 }
 
-function unlockAudio() {
-  const ctx = getAudioCtx();
-  if (_audioUnlocked && ctx.state === 'running') return Promise.resolve(ctx);
-  return ctx.resume().then(() => {
-    if (!_audioUnlocked) {
-      const b = ctx.createBuffer(1, 1, ctx.sampleRate);
-      const s = ctx.createBufferSource();
-      s.buffer = b;
-      s.connect(ctx.destination);
-      s.start();
-      _audioUnlocked = true;
-    }
-    return ctx;
-  });
+const _wavCache = {};
+function getWavUrl(freq, dur, vol) {
+  const key = freq + '_' + dur + '_' + vol;
+  if (!_wavCache[key]) _wavCache[key] = URL.createObjectURL(makeWav(freq, dur, vol));
+  return _wavCache[key];
+}
+
+function playWav(freq, dur, vol) {
+  try {
+    const url = getWavUrl(freq, dur, vol || 1.0);
+    const a = new Audio(url);
+    a.volume = 1.0;
+    a.play().catch(() => {});
+  } catch {}
 }
 
 function toggleHaptic() {
@@ -1007,58 +1017,31 @@ function toggleHaptic() {
 function haptic(ms) {
   if (!hapticEnabled) return;
   if (navigator.vibrate) navigator.vibrate(ms || 15);
-  playTone(1200, 1.0, 0.1);
+  playWav(1200, 0.1, 1.0);
 }
 
 function hapticSuccess() {
   if (!hapticEnabled) return;
   if (navigator.vibrate) navigator.vibrate([30, 50, 30]);
-  playTone(880, 1.0, 0.18);
-  setTimeout(() => playTone(1320, 1.0, 0.22), 160);
+  playWav(880, 0.2, 1.0);
+  setTimeout(() => playWav(1320, 0.25, 1.0), 180);
 }
 
 function playTone(freq, vol, dur) {
-  try {
-    const ctx = getAudioCtx();
-    ctx.resume();
-    const t = ctx.currentTime;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.value = freq;
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    gain.gain.setValueAtTime(vol, t);
-    gain.gain.setValueAtTime(vol, t + dur * 0.65);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
-    osc.start(t);
-    osc.stop(t + dur + 0.02);
-  } catch {}
+  playWav(freq, dur, vol);
 }
 
 function playShutter() {
-  try {
-    const ctx = getAudioCtx();
-    ctx.resume();
-    const t = ctx.currentTime;
-    const bufSize = ctx.sampleRate * 0.1;
-    const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
-    const data = buf.getChannelData(0);
-    for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufSize, 0.4);
-    const src = ctx.createBufferSource();
-    src.buffer = buf;
-    const gain = ctx.createGain();
-    const filter = ctx.createBiquadFilter();
-    filter.type = 'bandpass';
-    filter.frequency.value = 2500;
-    filter.Q.value = 0.7;
-    src.connect(filter);
-    filter.connect(gain);
-    gain.connect(ctx.destination);
-    gain.gain.setValueAtTime(1.0, t);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
-    src.start(t);
-  } catch {}
+  playWav(800, 0.08, 1.0);
+}
+
+function testSound() {
+  const el = document.getElementById('sound-status');
+  if (el) el.textContent = 'Playing...';
+  playWav(660, 0.5, 1.0);
+  setTimeout(() => playWav(880, 0.5, 1.0), 500);
+  setTimeout(() => playWav(1100, 0.5, 1.0), 1000);
+  setTimeout(() => { if (el) el.textContent = 'Done — did you hear 3 tones?'; }, 1600);
 }
 
 /* ── Init ───────────────────────────────────────────────── */
@@ -1082,9 +1065,9 @@ document.addEventListener('DOMContentLoaded', () => {
   updateNavActive('home');
   loadProjects();
 
-  function warmAudio() { unlockAudio(); }
-  document.addEventListener('click', warmAudio);
-  document.addEventListener('touchend', warmAudio);
+  getWavUrl(1200, 0.1, 1.0);
+  getWavUrl(880, 0.2, 1.0);
+  getWavUrl(1320, 0.25, 1.0);
 });
 
 updateQueueBar();
