@@ -971,6 +971,15 @@ function requestGPS() {
 }
 
 /* ── Haptic & sound ────────────────────────────────────── */
+let _audioCtx = null;
+function getAudioCtx() {
+  if (!_audioCtx || _audioCtx.state === 'closed') {
+    _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (_audioCtx.state === 'suspended') _audioCtx.resume();
+  return _audioCtx;
+}
+
 function toggleHaptic() {
   hapticEnabled = !hapticEnabled;
   localStorage.setItem('nf_haptic', hapticEnabled);
@@ -979,25 +988,43 @@ function toggleHaptic() {
 }
 
 function haptic(ms) {
-  if (!hapticEnabled || !navigator.vibrate) return;
-  navigator.vibrate(ms || 15);
+  if (!hapticEnabled) return;
+  if (navigator.vibrate) navigator.vibrate(ms || 15);
+  playTick(4200, 0.06, 0.04);
 }
 
 function hapticSuccess() {
-  haptic(50);
+  if (!hapticEnabled) return;
+  if (navigator.vibrate) navigator.vibrate(50);
+  playTick(880, 0.10, 0.08);
+  setTimeout(() => playTick(1320, 0.10, 0.06), 90);
+}
+
+function playTick(freq, vol, dur) {
+  try {
+    const ctx = getAudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(vol, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + dur);
+  } catch {}
 }
 
 function playShutter() {
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const ctx = getAudioCtx();
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.connect(gain); gain.connect(ctx.destination);
     osc.frequency.value = 4000;
-    gain.gain.value = 0.12;
+    gain.gain.setValueAtTime(0.12, ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.07);
-    osc.start(); osc.stop(ctx.currentTime + 0.07);
-    setTimeout(() => ctx.close(), 200);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.07);
   } catch {}
 }
 
@@ -1021,6 +1048,11 @@ document.addEventListener('DOMContentLoaded', () => {
   initPullToRefresh();
   updateNavActive('home');
   loadProjects();
+
+  document.body.addEventListener('touchstart', function warmAudio() {
+    getAudioCtx();
+    document.body.removeEventListener('touchstart', warmAudio);
+  }, { once: true });
 });
 
 updateQueueBar();
