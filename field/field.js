@@ -972,12 +972,29 @@ function requestGPS() {
 
 /* ── Haptic & sound ────────────────────────────────────── */
 let _audioCtx = null;
+let _audioUnlocked = false;
 function getAudioCtx() {
   if (!_audioCtx || _audioCtx.state === 'closed') {
     _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    _audioUnlocked = false;
   }
-  if (_audioCtx.state === 'suspended') _audioCtx.resume();
   return _audioCtx;
+}
+
+function unlockAudio() {
+  const ctx = getAudioCtx();
+  if (_audioUnlocked && ctx.state === 'running') return Promise.resolve(ctx);
+  return ctx.resume().then(() => {
+    if (!_audioUnlocked) {
+      const b = ctx.createBuffer(1, 1, ctx.sampleRate);
+      const s = ctx.createBufferSource();
+      s.buffer = b;
+      s.connect(ctx.destination);
+      s.start();
+      _audioUnlocked = true;
+    }
+    return ctx;
+  });
 }
 
 function toggleHaptic() {
@@ -990,59 +1007,56 @@ function toggleHaptic() {
 function haptic(ms) {
   if (!hapticEnabled) return;
   if (navigator.vibrate) navigator.vibrate(ms || 15);
-  playTone(1400, 0.7, 0.08);
+  playTone(1200, 1.0, 0.1);
 }
 
 function hapticSuccess() {
   if (!hapticEnabled) return;
   if (navigator.vibrate) navigator.vibrate([30, 50, 30]);
-  playTone(880, 0.7, 0.15);
-  setTimeout(() => playTone(1320, 0.7, 0.2), 140);
+  playTone(880, 1.0, 0.18);
+  setTimeout(() => playTone(1320, 1.0, 0.22), 160);
 }
 
 function playTone(freq, vol, dur) {
   try {
     const ctx = getAudioCtx();
+    ctx.resume();
     const t = ctx.currentTime;
     const osc = ctx.createOscillator();
-    const comp = ctx.createDynamicsCompressor();
     const gain = ctx.createGain();
-    osc.type = 'square';
+    osc.type = 'sine';
     osc.frequency.value = freq;
-    osc.connect(comp);
-    comp.connect(gain);
+    osc.connect(gain);
     gain.connect(ctx.destination);
-    gain.gain.setValueAtTime(0, t);
-    gain.gain.linearRampToValueAtTime(vol, t + 0.003);
-    gain.gain.setValueAtTime(vol, t + dur * 0.6);
+    gain.gain.setValueAtTime(vol, t);
+    gain.gain.setValueAtTime(vol, t + dur * 0.65);
     gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
     osc.start(t);
-    osc.stop(t + dur + 0.01);
+    osc.stop(t + dur + 0.02);
   } catch {}
 }
 
 function playShutter() {
   try {
     const ctx = getAudioCtx();
+    ctx.resume();
     const t = ctx.currentTime;
-    const bufSize = ctx.sampleRate * 0.08;
+    const bufSize = ctx.sampleRate * 0.1;
     const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
     const data = buf.getChannelData(0);
-    for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufSize, 0.5);
+    for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufSize, 0.4);
     const src = ctx.createBufferSource();
     src.buffer = buf;
-    const comp = ctx.createDynamicsCompressor();
     const gain = ctx.createGain();
     const filter = ctx.createBiquadFilter();
     filter.type = 'bandpass';
     filter.frequency.value = 2500;
     filter.Q.value = 0.7;
     src.connect(filter);
-    filter.connect(comp);
-    comp.connect(gain);
+    filter.connect(gain);
     gain.connect(ctx.destination);
-    gain.gain.setValueAtTime(0.9, t);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+    gain.gain.setValueAtTime(1.0, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
     src.start(t);
   } catch {}
 }
@@ -1068,19 +1082,9 @@ document.addEventListener('DOMContentLoaded', () => {
   updateNavActive('home');
   loadProjects();
 
-  function warmAudio() {
-    const ctx = getAudioCtx();
-    if (ctx.state === 'suspended') ctx.resume();
-    const osc = ctx.createOscillator();
-    const g = ctx.createGain();
-    g.gain.value = 0;
-    osc.connect(g); g.connect(ctx.destination);
-    osc.start(); osc.stop(ctx.currentTime + 0.001);
-    document.removeEventListener('click', warmAudio);
-    document.removeEventListener('touchend', warmAudio);
-  }
-  document.addEventListener('click', warmAudio, { once: true });
-  document.addEventListener('touchend', warmAudio, { once: true });
+  function warmAudio() { unlockAudio(); }
+  document.addEventListener('click', warmAudio);
+  document.addEventListener('touchend', warmAudio);
 });
 
 updateQueueBar();
