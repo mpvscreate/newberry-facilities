@@ -990,14 +990,14 @@ function toggleHaptic() {
 function haptic(ms) {
   if (!hapticEnabled) return;
   if (navigator.vibrate) navigator.vibrate(ms || 15);
-  playTone(1800, 0.3, 0.06);
+  playTone(1400, 0.7, 0.08);
 }
 
 function hapticSuccess() {
   if (!hapticEnabled) return;
   if (navigator.vibrate) navigator.vibrate([30, 50, 30]);
-  playTone(660, 0.35, 0.12);
-  setTimeout(() => playTone(880, 0.35, 0.15), 120);
+  playTone(880, 0.7, 0.15);
+  setTimeout(() => playTone(1320, 0.7, 0.2), 140);
 }
 
 function playTone(freq, vol, dur) {
@@ -1005,13 +1005,16 @@ function playTone(freq, vol, dur) {
     const ctx = getAudioCtx();
     const t = ctx.currentTime;
     const osc = ctx.createOscillator();
+    const comp = ctx.createDynamicsCompressor();
     const gain = ctx.createGain();
-    osc.type = 'sine';
+    osc.type = 'square';
     osc.frequency.value = freq;
-    osc.connect(gain);
+    osc.connect(comp);
+    comp.connect(gain);
     gain.connect(ctx.destination);
     gain.gain.setValueAtTime(0, t);
-    gain.gain.linearRampToValueAtTime(vol, t + 0.005);
+    gain.gain.linearRampToValueAtTime(vol, t + 0.003);
+    gain.gain.setValueAtTime(vol, t + dur * 0.6);
     gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
     osc.start(t);
     osc.stop(t + dur + 0.01);
@@ -1022,22 +1025,24 @@ function playShutter() {
   try {
     const ctx = getAudioCtx();
     const t = ctx.currentTime;
-    const bufSize = ctx.sampleRate * 0.04;
+    const bufSize = ctx.sampleRate * 0.08;
     const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
     const data = buf.getChannelData(0);
-    for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / bufSize);
+    for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufSize, 0.5);
     const src = ctx.createBufferSource();
     src.buffer = buf;
+    const comp = ctx.createDynamicsCompressor();
     const gain = ctx.createGain();
     const filter = ctx.createBiquadFilter();
     filter.type = 'bandpass';
-    filter.frequency.value = 3000;
-    filter.Q.value = 1;
+    filter.frequency.value = 2500;
+    filter.Q.value = 0.7;
     src.connect(filter);
-    filter.connect(gain);
+    filter.connect(comp);
+    comp.connect(gain);
     gain.connect(ctx.destination);
-    gain.gain.setValueAtTime(0.4, t);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+    gain.gain.setValueAtTime(0.9, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
     src.start(t);
   } catch {}
 }
